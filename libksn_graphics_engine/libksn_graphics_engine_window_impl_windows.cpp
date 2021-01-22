@@ -48,7 +48,7 @@ struct window_t::_window_impl
 	~_window_impl()
 	{
 		this->close();
-		
+
 		delete this->m_msgs_p_lock;
 	}
 
