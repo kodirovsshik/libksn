@@ -28,9 +28,6 @@ struct window_t::_window_impl
 	static HDC s_screen_hdc;
 	static bool glew_initialized;
 
-	//std::deque<MSG> m_msgs_q;
-	//std::thread m_msgs_thread;
-	//std::binary_semaphore* m_msgs_p_lock;
 	HWND m_window;
 	HGLRC m_context;
 	HDC m_hdc;
@@ -42,28 +39,12 @@ struct window_t::_window_impl
 		this->m_window = nullptr;
 		this->m_hdc = nullptr;
 		this->m_context = nullptr;
-		//this->m_msgs_p_lock = nullptr;
 	}
 
 	~_window_impl()
 	{
 		this->close();
-		
-		//delete this->m_msgs_p_lock;
 	}
-
-	//static void msg_processor(my_t* window)
-	//{
-	//	int a = 0;
-	//	MSG msg;
-	//	while (GetMessageW(&msg, window->m_window, 0, 0) == 1)
-	//	{
-	//		window->m_msgs_p_lock->acquire();
-	//		window->m_msgs_q.push_back(std::move(msg));
-	//		window->m_msgs_p_lock->release();
-	//	}
-	//	a = a;
-	//}
 
 	static bool _process_pfd(HDC hdc, int bpp)
 	{
@@ -85,8 +66,6 @@ struct window_t::_window_impl
 		bool ok = this->_Xopen(width, height, window_name, settings, style);
 		if (ok)
 		{
-			//if (this->m_msgs_p_lock == nullptr) this->m_msgs_p_lock = new std::binary_semaphore(1);
-			//this->m_msgs_thread = std::thread(msg_processor, this);
 			if (wglGetCurrentContext() == nullptr) wglMakeCurrent(this->m_hdc, this->m_context);
 			ShowWindow(this->m_window, SW_SHOW);
 		}
@@ -103,7 +82,7 @@ struct window_t::_window_impl
 	bool _Xopen(size_t width, size_t height, const char_t* window_name, window_t::context_settings settings, window_t::style_t style)
 	{
 		constexpr static bool is_wide = std::is_same_v<wchar_t, char_t>;
-		constexpr static const char_t* const class_name = !is_wide 
+		constexpr static const char_t* const class_name = !is_wide
 #pragma warning(push)
 #pragma warning(disable : 6276)
 			? (const char_t*)("_KSN_")
@@ -130,13 +109,13 @@ struct window_t::_window_impl
 			register_result = RegisterClassW(&wc);
 		}
 		if (register_result == 0) return false;
-		
+
 		/*
 		Border = 1 //WS_BORDER
 		Close button = 2 //WS_SYSMENU
 		Minmax buttons = 4 //WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU
 		Resize = 8 //WS_THICKFRAM
-		Caption = 16 //WS_CAPTION	
+		Caption = 16 //WS_CAPTION
 		Fullscreen = 32
 		*/
 		constexpr static UINT winapi_flags[] =
@@ -150,8 +129,7 @@ struct window_t::_window_impl
 			0,
 			0
 		};
-		
-		//DWORD winapi_style = WS_VISIBLE;
+
 		DWORD winapi_style = 0;
 		for (int i = 0; i < 8; ++i) if (style & (1 << i)) winapi_style |= winapi_flags[i];
 		if constexpr (!is_wide)
@@ -164,18 +142,17 @@ struct window_t::_window_impl
 		}
 
 		if (this->m_window == nullptr) return false;
-		
+
 
 		this->m_hdc = GetDC(this->m_window);
 		if (this->m_hdc == nullptr) return false;
 
 		if (settings.ogl_version_major > 1 || (settings.ogl_version_major == 1 && settings.ogl_version_minor > 1))
 		{
-			//Need some extentions
 			if (my_t::glew_initialized == false)
 			{
 				//Create temporary context and make it current so glew can load without bugs
-				
+
 				if (!my_t::_process_pfd(this->m_hdc, settings.bits_per_color)) return false;
 
 				HGLRC temp = wglCreateContext(this->m_hdc);
@@ -204,7 +181,7 @@ struct window_t::_window_impl
 					WGL_CONTEXT_MAJOR_VERSION_ARB, settings.ogl_version_major,
 					WGL_CONTEXT_MINOR_VERSION_ARB, settings.ogl_version_minor,
 					WGL_CONTEXT_PROFILE_MASK_ARB, settings.ogl_compatibility_profile
-						? WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 
+						? WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB
 						: WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 					WGL_CONTEXT_FLAGS_ARB, settings.ogl_debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0,
 					0
@@ -227,11 +204,9 @@ struct window_t::_window_impl
 
 	void close()
 	{
-		//PostMessageA(this->m_window, WM_QUIT, 0, 0);
 		wglDeleteContext(this->m_context);
 		ReleaseDC(this->m_window, this->m_hdc);
 		DestroyWindow(this->m_window);
-		//if (this->m_msgs_thread.joinable()) this->m_msgs_thread.join();
 	}
 
 	bool peek(MSG& p)
