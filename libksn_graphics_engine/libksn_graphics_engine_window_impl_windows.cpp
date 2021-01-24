@@ -28,9 +28,9 @@ struct window_t::_window_impl
 	static HDC s_screen_hdc;
 	static bool glew_initialized;
 
-	std::deque<MSG> m_msgs_q;
-	std::jthread m_msgs_thread;
-	std::binary_semaphore* m_msgs_p_lock;
+	//std::deque<MSG> m_msgs_q;
+	//std::thread m_msgs_thread;
+	//std::binary_semaphore* m_msgs_p_lock;
 	HWND m_window;
 	HGLRC m_context;
 	HDC m_hdc;
@@ -42,28 +42,28 @@ struct window_t::_window_impl
 		this->m_window = nullptr;
 		this->m_hdc = nullptr;
 		this->m_context = nullptr;
-		this->m_msgs_p_lock = nullptr;
+		//this->m_msgs_p_lock = nullptr;
 	}
 
 	~_window_impl()
 	{
 		this->close();
 		
-		delete this->m_msgs_p_lock;
+		//delete this->m_msgs_p_lock;
 	}
 
-	static void msg_processor(std::stop_token st, my_t* window)
-	{
-		MSG msg;
-		while (!st.stop_requested() && GetMessageW(&msg, window->m_window, 0, 0) == 1)
-		{
-			window->m_msgs_p_lock->acquire();
-			window->m_msgs_q.push_back(std::move(msg));
-			window->m_msgs_p_lock->release();
-		}
-		int a = 0;
-		a = a;
-	}
+	//static void msg_processor(my_t* window)
+	//{
+	//	int a = 0;
+	//	MSG msg;
+	//	while (GetMessageW(&msg, window->m_window, 0, 0) == 1)
+	//	{
+	//		window->m_msgs_p_lock->acquire();
+	//		window->m_msgs_q.push_back(std::move(msg));
+	//		window->m_msgs_p_lock->release();
+	//	}
+	//	a = a;
+	//}
 
 	static bool _process_pfd(HDC hdc, int bpp)
 	{
@@ -79,16 +79,16 @@ struct window_t::_window_impl
 	}
 
 
-
 	template<typename char_t>
 	bool open(size_t width, size_t height, const char_t* window_name, window_t::context_settings settings, window_t::style_t style)
 	{
 		bool ok = this->_Xopen(width, height, window_name, settings, style);
 		if (ok)
 		{
-			if (this->m_msgs_p_lock == nullptr) this->m_msgs_p_lock = new std::binary_semaphore(1);
-			this->m_msgs_thread = std::jthread(msg_processor, this);
+			//if (this->m_msgs_p_lock == nullptr) this->m_msgs_p_lock = new std::binary_semaphore(1);
+			//this->m_msgs_thread = std::thread(msg_processor, this);
 			if (wglGetCurrentContext() == nullptr) wglMakeCurrent(this->m_hdc, this->m_context);
+			ShowWindow(this->m_window, SW_SHOW);
 		}
 		else
 		{
@@ -151,9 +151,9 @@ struct window_t::_window_impl
 			0
 		};
 		
-		DWORD winapi_style = WS_VISIBLE;
+		//DWORD winapi_style = WS_VISIBLE;
+		DWORD winapi_style = 0;
 		for (int i = 0; i < 8; ++i) if (style & (1 << i)) winapi_style |= winapi_flags[i];
-
 		if constexpr (!is_wide)
 		{
 			this->m_window = CreateWindowA(class_name, window_name, winapi_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
@@ -164,6 +164,7 @@ struct window_t::_window_impl
 		}
 
 		if (this->m_window == nullptr) return false;
+		
 
 		this->m_hdc = GetDC(this->m_window);
 		if (this->m_hdc == nullptr) return false;
@@ -226,19 +227,16 @@ struct window_t::_window_impl
 
 	void close()
 	{
-		//this->m_msgs_thread.request_stop();
-		
-		//CloseWindow(this->m_window);
+		//PostMessageA(this->m_window, WM_QUIT, 0, 0);
 		wglDeleteContext(this->m_context);
 		ReleaseDC(this->m_window, this->m_hdc);
 		DestroyWindow(this->m_window);
+		//if (this->m_msgs_thread.joinable()) this->m_msgs_thread.join();
+	}
 
-		//if (this->m_msgs_thread.joinable())
-		{
-			//this->m_msgs_thread.join();
-			//Sleep(100);
-			//this->m_msgs_thread.join();
-		}
+	bool peek(MSG& p)
+	{
+		return PeekMessageA(&p, this->m_window, 0, 0, true);
 	}
 };
 
@@ -248,23 +246,17 @@ bool window_t::_window_impl::glew_initialized = false;
 
 
 
-window_t::~window_t()
-{
-	this->m_impl.ptr()->~_window_impl();
-}
-window_t::window_t() noexcept
-{
-	new (&this->m_impl) decltype(this->m_impl);
-}
 window_t::window_t(size_t width, size_t height, const char* title, context_settings settings, style_t style) noexcept
 {
-	new (&this->m_impl) decltype(this->m_impl);
 	this->m_impl->open(width, height, title, settings, style);
 }
 window_t::window_t(size_t width, size_t height, const wchar_t* title, context_settings settings, style_t style) noexcept
 {
-	new (&this->m_impl) decltype(this->m_impl);
 	this->m_impl->open(width, height, title, settings, style);
+}
+bool window_t::poll_event(MSG& p)
+{
+	return this->m_impl->peek(p);
 }
 
 

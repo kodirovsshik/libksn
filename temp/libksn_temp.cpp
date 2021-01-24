@@ -16,6 +16,20 @@
 
 
 
+int main1()
+{
+	double x = 1;
+	uint64_t N = 1000000000;
+
+	for (size_t i = 1; i < N; i++)
+	{
+		x *= (1 - i / 281474976710656.0);
+	}
+
+	printf("%.17lf", x);
+	return 0;
+}
+
 int main()
 {
 
