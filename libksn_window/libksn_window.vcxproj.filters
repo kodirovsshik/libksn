@@ -13,18 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Source Files\Windows">
-      <UniqueIdentifier>{8e56a913-1c60-485f-b5ad-cc14add48d91}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\ksn\include\ksn\graphics_engine_window.hpp">
+    <ClInclude Include="..\ksn\include\ksn\window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libksn_graphics_engine_window_impl_windows.cpp">
-      <Filter>Source Files\Windows</Filter>
+    <ClCompile Include="libksn_window_impl.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

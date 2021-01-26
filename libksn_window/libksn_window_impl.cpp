@@ -1,26 +1,22 @@
 
+#include <ksn/window.hpp>
+
 #include <Windows.h>
-
-#include <ksn/graphics_engine_window.hpp>
-
-#include <deque>
-#include <thread>
-#include <semaphore>
 
 #include <GL/glew.h>
 #include <GL/wglew.h>
 
-
-
-#pragma warning(disable : 26812)
+#include <stdio.h>
 
 
 
 _KSN_BEGIN
 
 
-struct window_t::_window_impl
+class window_t::_window_impl
 {
+public:
+
 	using my_t = window_t::_window_impl;
 
 
@@ -34,17 +30,7 @@ struct window_t::_window_impl
 
 
 
-	_window_impl() noexcept
-	{
-		this->m_window = nullptr;
-		this->m_hdc = nullptr;
-		this->m_context = nullptr;
-	}
-
-	~_window_impl()
-	{
-		this->close();
-	}
+private:
 
 	static bool _process_pfd(HDC hdc, int bpp)
 	{
@@ -59,6 +45,38 @@ struct window_t::_window_impl
 		return SetPixelFormat(hdc, ChoosePixelFormat(hdc, &pfd), &pfd);
 	}
 
+	static void _process_msg(MSG& msg)
+	{
+		if (msg.message != WM_QUIT)
+		{
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
+	}
+
+
+
+public:
+
+	_window_impl() noexcept
+	{
+		this->m_window = nullptr;
+		this->m_hdc = nullptr;
+		this->m_context = nullptr;
+	}
+	~_window_impl() noexcept
+	{
+		this->close();
+	}
+
+
+	void close()
+	{
+		wglDeleteContext(this->m_context);
+		ReleaseDC(this->m_window, this->m_hdc);
+		DestroyWindow(this->m_window);
+	}
+
 
 	template<typename char_t>
 	bool open(size_t width, size_t height, const char_t* window_name, window_t::context_settings settings, window_t::style_t style)
@@ -71,10 +89,12 @@ struct window_t::_window_impl
 		}
 		else
 		{
+			int __error = GetLastError();
 #if _DEBUG
-			printf("Err %i %i\n", GetLastError(), glGetError());
+			printf("Err %i %i\n", __error, glGetError());
 #endif
 			this->close();
+			SetLastError(__error);
 		}
 		return ok;
 	}
@@ -202,18 +222,8 @@ struct window_t::_window_impl
 		}
 	}
 
-	void close()
-	{
-		wglDeleteContext(this->m_context);
-		ReleaseDC(this->m_window, this->m_hdc);
-		DestroyWindow(this->m_window);
-	}
-
-	bool peek(MSG& p)
-	{
-		return PeekMessageA(&p, this->m_window, 0, 0, true);
-	}
 };
+
 
 
 HDC window_t::_window_impl::s_screen_hdc = GetDC(nullptr);
@@ -221,19 +231,53 @@ bool window_t::_window_impl::glew_initialized = false;
 
 
 
+
+
+window_t::native_window_t window_t::window_native_handle() const noexcept
+{
+	return this->m_impl->m_window;
+}
+window_t::native_context_t window_t::context_native_handle() const noexcept
+{
+	return this->m_impl->m_context;
+}
+
+#pragma warning(push)
+#pragma warning(disable : 26812)
 window_t::window_t(size_t width, size_t height, const char* title, context_settings settings, style_t style) noexcept
 {
 	this->m_impl->open(width, height, title, settings, style);
 }
+#pragma warning(pop)
 window_t::window_t(size_t width, size_t height, const wchar_t* title, context_settings settings, style_t style) noexcept
 {
 	this->m_impl->open(width, height, title, settings, style);
 }
-bool window_t::poll_event(MSG& p)
+
+window_t::window_t() noexcept
 {
-	return this->m_impl->peek(p);
+}
+window_t::window_t(window_t&& w) noexcept
+	: m_impl(std::move(w.m_impl))
+{
+}
+window_t::~window_t() noexcept
+{
+	this->m_impl->close();
 }
 
+bool window_t::open(size_t width, size_t height, const char* title, context_settings settings, style_t style) noexcept
+{
+	return this->m_impl->open(width, height, title, settings, style);
+}
+bool window_t::open(size_t width, size_t height, const wchar_t* title, context_settings settings, style_t style) noexcept
+{
+	return this->m_impl->open(width, height, title, settings, style);
+}
 
+void window_t::close() noexcept
+{
+	this->m_impl->close();
+}
 
 _KSN_END

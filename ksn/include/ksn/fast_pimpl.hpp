@@ -5,20 +5,30 @@
 
 
 #include <ksn/ksn.hpp>
+
 #include <type_traits>
 
 
 
 _KSN_BEGIN
 
-
-template<class T, size_t size, size_t alignment>
+template<class T, size_t size, size_t alignment,
+	bool is_nothrow_copy_constructible = false,
+	bool is_nothrow_move_constructible = false,
+	bool is_nothrow_destructible = false,
+	bool is_nothrow_constructible = false
+>
 class fast_pimpl
 {
 
 private:
 		
-	using my_t = fast_pimpl<T, size, alignment>;
+	using my_t = fast_pimpl<T, size, alignment, 
+		is_nothrow_copy_constructible, 
+		is_nothrow_move_constructible, 
+		is_nothrow_destructible, 
+		is_nothrow_constructible
+	>;
 	
 
 
@@ -71,40 +81,27 @@ public:
 
 
 	template<class... args_t>
-	fast_pimpl(args_t&& ...args)
+	fast_pimpl(args_t&& ...args) noexcept(is_nothrow_constructible)
 	{
-		new (this->ptr()) T(std::forward<args_t>(args)...);
+		new ((void*)this->ptr()) T{ std::forward<args_t>(args)... };
 	}
-	fast_pimpl(const my_t& other)
+	fast_pimpl(const fast_pimpl& other) noexcept(is_nothrow_copy_constructible)
 	{
-		new (this->ptr()) T(*other);
+		new (this->ptr()) T{*other};
 	}
-	fast_pimpl(my_t&& other)
+	fast_pimpl(fast_pimpl&& other) noexcept(is_nothrow_move_constructible)
 	{
-		new (this->ptr()) T(std::move(*other));
-	}
-
-	my_t& operator=(const my_t& other)
-	{
-		*this->ptr() = *other.ptr();
-		return *this;
-	}
-	my_t& operator=(my_t&& other)
-	{
-		*this->ptr() = std::move(*other.ptr());
-		return *this;
+		new (this->ptr()) T{ std::move(*other) };
 	}
 	
-	~fast_pimpl()
+	~fast_pimpl() noexcept(is_nothrow_destructible)
 	{
 		my_t::validate<sizeof(T), alignof(T)>(0);
 		this->ptr()->~T();
 	}
 };
 
-
 _KSN_END
-
 
 
 #endif //!_KSN_FAST_PIMPL_HPP_
