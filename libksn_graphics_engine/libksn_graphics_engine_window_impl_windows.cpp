@@ -209,11 +209,49 @@ struct window_t::_window_impl
 		DestroyWindow(this->m_window);
 	}
 
+	bool peek(window_t::event_t& p)
+	{
+		MSG native_msg;
+		bool got_message = PeekMessageA(&native_msg, this->m_window, 0, 0, true);
+		if (!got_message) return false;
+		this->_process_msg(native_msg);
+
+		switch (native_msg.message)
+		{
+		case WM_CREATE:
+			p.type = p.create;
+			break;
+
+		default:
+			break;
+		}
+
+		return true;
+	}
+
 	bool peek(MSG& p)
 	{
-		return PeekMessageA(&p, this->m_window, 0, 0, true);
+		bool got_message = PeekMessageA(&p, this->m_window, 0, 0, true);
+		if (!got_message) return false;
+		this->_process_msg(p);
+		return true;
+	}
+
+	void _process_msg(MSG& msg)
+	{
+		if (msg.message != WM_QUIT)
+		{
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
 	}
 };
+
+template bool window_t::_window_impl::open<char>(size_t width, size_t height, const char* window_name, window_t::context_settings settings, window_t::style_t style);
+template bool window_t::_window_impl::open<wchar_t>(size_t width, size_t height, const wchar_t* window_name, window_t::context_settings settings, window_t::style_t style);
+
+template bool window_t::_window_impl::_Xopen<char>(size_t width, size_t height, const char* window_name, window_t::context_settings settings, window_t::style_t style);
+template bool window_t::_window_impl::_Xopen<wchar_t>(size_t width, size_t height, const wchar_t* window_name, window_t::context_settings settings, window_t::style_t style);
 
 
 HDC window_t::_window_impl::s_screen_hdc = GetDC(nullptr);
@@ -229,10 +267,29 @@ window_t::window_t(size_t width, size_t height, const wchar_t* title, context_se
 {
 	this->m_impl->open(width, height, title, settings, style);
 }
-bool window_t::poll_event(MSG& p)
+//
+//bool window_t::open(size_t width, size_t height, const char* title, context_settings settings, style_t style) noexcept
+//{
+//	return this->m_impl->open(width, height, title, settings, style);
+//}
+//bool window_t::open(size_t width, size_t height, const wchar_t* title, context_settings settings, style_t style) noexcept
+//{
+//	return this->m_impl->open(width, height, title, settings, style);
+//}
+
+//void window_t::close() noexcept
+//{
+//	this->m_impl->close();
+//}
+
+bool window_t::poll_event(window_t::event_t& p) noexcept
 {
 	return this->m_impl->peek(p);
 }
+//bool window_t::poll_event(MSG& p) noexcept
+//{
+//	return this->m_impl->peek(p);
+//}
 
 
 
