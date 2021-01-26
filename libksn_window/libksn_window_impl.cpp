@@ -10,7 +10,7 @@
 
 
 
-#pragma warning(disable : 26812)
+#pragma warning(disable : 26812 4996)
 
 
 
@@ -310,11 +310,12 @@ void window_t::close() noexcept
 
 //poll_event
 //wait_event
-
+FILE* f = fopen("log.txt", "w");
 bool window_t::poll_native_event(MSG& msg) noexcept
 {
 	bool got_message = PeekMessageW(&msg, this->m_impl->m_window, 0, 0, PM_REMOVE) == 1;
 	if (!got_message) return false;
+	fprintf(f, "0x%08X\n", (int)msg.message);
 	this->m_impl->_process_msg(msg);
 	return true;
 }

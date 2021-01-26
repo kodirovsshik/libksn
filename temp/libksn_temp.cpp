@@ -21,7 +21,7 @@ int main()
 	SetLastError(0);
 
 	ksn::window_t win;
-	if (!win.open(300, 300, "", { 3, 1 }))
+	if (!win.open(800, 600, "", { 3, 1 }))
 	{
 		char buffer[256];
 		snprintf(buffer, 256, "Failed to open a window\n\n\
