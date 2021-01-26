@@ -25,8 +25,8 @@ int main()
 	{
 		char buffer[256];
 		snprintf(buffer, 256, "Failed to open a window\n\n\
-You may have an old videocard that does not support OpenGL versions > 3.1\n\
-If you sure your videocard does, update your videocard drivers\n\n\
+You may have an old video card that does not support OpenGL versions > 3.1\n\
+If you sure your videocard does, update your video card drivers\n\n\
 WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError(), glGetError());
 		MessageBoxA(0, buffer, "Error", MB_ICONERROR);
 
@@ -38,7 +38,18 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 	}
 
 
-	WM_CREATE;
+	//ksn::window_t::event_t ev;
+	while (1)
+	{
+		MSG msg;
+		printf("a");
+		while (win.poll_native_event(msg))
+		{
+			printf("b");
+		}
+		printf("c");
+		Sleep(50);
+	}
 
 }
 

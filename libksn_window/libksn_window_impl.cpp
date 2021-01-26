@@ -10,6 +10,10 @@
 
 
 
+#pragma warning(disable : 26812)
+
+
+
 _KSN_BEGIN
 
 
@@ -30,7 +34,7 @@ public:
 
 
 
-private:
+//private:
 
 	static bool _process_pfd(HDC hdc, int bpp)
 	{
@@ -86,18 +90,40 @@ public:
 		{
 			if (wglGetCurrentContext() == nullptr) wglMakeCurrent(this->m_hdc, this->m_context);
 			ShowWindow(this->m_window, SW_SHOW);
+			
+			//Get rid of all "default" messages
+			MSG msg;
+			int threshold = 32; //But don't wait for too long
+			while (threshold --> 0)
+			{
+				if (PeekMessageW(&msg, this->m_window, 0, 0, PM_REMOVE) <= 0)
+				{
+					break;
+				}
+				_KSN_DEBUG_EXPR(printf("0x%08X\n", msg.message));
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+				//if (msg.message == WM_PAINT)
+				//{
+				//	//PAINTSTRUCT paint;
+				//	//HDC hdc = BeginPaint(this->m_window, &paint);
+				//	//int x = FillRect(hdc, &paint.rcPaint, (HBRUSH)COLOR_WINDOWFRAME);
+				//	//EndPaint(this->m_window, &paint);
+				//	break;
+				//}
+			}
+			if (threshold < 0) printf("THRESHOLD REACHED\n\a");
+			
 		}
 		else
 		{
 			int __error = GetLastError();
-#if _DEBUG
-			printf("Err %i %i\n", __error, glGetError());
-#endif
 			this->close();
 			SetLastError(__error);
 		}
 		return ok;
 	}
+
 	template<typename char_t>
 	bool _Xopen(size_t width, size_t height, const char_t* window_name, window_t::context_settings settings, window_t::style_t style)
 	{
@@ -225,12 +251,6 @@ public:
 };
 
 
-template bool window_t::_window_impl::open<char>(size_t width, size_t height, const char* window_name, window_t::context_settings settings, window_t::style_t style);
-template bool window_t::_window_impl::open<wchar_t>(size_t width, size_t height, const wchar_t* window_name, window_t::context_settings settings, window_t::style_t style);
-
-template bool window_t::_window_impl::_Xopen<char>(size_t width, size_t height, const char* window_name, window_t::context_settings settings, window_t::style_t style);
-template bool window_t::_window_impl::_Xopen<wchar_t>(size_t width, size_t height, const wchar_t* window_name, window_t::context_settings settings, window_t::style_t style);
-
 
 HDC window_t::_window_impl::s_screen_hdc = GetDC(nullptr);
 bool window_t::_window_impl::glew_initialized = false;
@@ -248,17 +268,16 @@ window_t::native_context_t window_t::context_native_handle() const noexcept
 	return this->m_impl->m_context;
 }
 
-#pragma warning(push)
-#pragma warning(disable : 26812)
+
 window_t::window_t(size_t width, size_t height, const char* title, context_settings settings, style_t style) noexcept
 {
 	this->m_impl->open(width, height, title, settings, style);
 }
-#pragma warning(pop)
 window_t::window_t(size_t width, size_t height, const wchar_t* title, context_settings settings, style_t style) noexcept
 {
 	this->m_impl->open(width, height, title, settings, style);
 }
+
 
 window_t::window_t() noexcept
 {
@@ -271,10 +290,7 @@ window_t::~window_t() noexcept
 {
 	this->m_impl->close();
 }
-//bool window_t::poll_event(MSG& p) noexcept
-//{
-//	return this->m_impl->peek(p);
-//}
+
 
 bool window_t::open(size_t width, size_t height, const char* title, context_settings settings, style_t style) noexcept
 {
@@ -285,9 +301,30 @@ bool window_t::open(size_t width, size_t height, const wchar_t* title, context_s
 	return this->m_impl->open(width, height, title, settings, style);
 }
 
+
 void window_t::close() noexcept
 {
 	this->m_impl->close();
 }
+
+
+//poll_event
+//wait_event
+
+bool window_t::poll_native_event(MSG& msg) noexcept
+{
+	bool got_message = PeekMessageW(&msg, this->m_impl->m_window, 0, 0, PM_REMOVE) == 1;
+	if (!got_message) return false;
+	this->m_impl->_process_msg(msg);
+	return true;
+}
+bool window_t::wait_native_event(MSG& msg) noexcept
+{
+	bool got_message = GetMessageW(&msg, this->m_impl->m_window, 0, 0) >= 0;
+	if (!got_message) return false;
+	this->m_impl->_process_msg(msg);
+	return true;
+}
+
 
 _KSN_END

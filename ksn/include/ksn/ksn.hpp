@@ -73,6 +73,12 @@
 		#define LDBL_DECIMAL_DIG DBL_DECIMAL_DIG
 	#endif
 
+	#ifdef _DEBUG
+		#define _KSN_IS_DEBUG_BUILD 1
+	#else
+		#define _KSN_IS_DEBUG_BUILD 0
+	#endif
+
 #elif defined _KSN_COMPILER_GCC
 
 #ifndef _KSN_IS_64
@@ -98,8 +104,6 @@
 	#define _KSN_FORCEINLINE inline
 
 #endif
-
-#undef _KSN_FORCEINLINE
 
 
 
@@ -165,6 +169,22 @@ static_assert(CHAR_BIT == 8, "The size of a byte does not equal to 8 bits. You c
 #define _KSN_NODISCARD_BECAUSE(reason)
 #endif
 
+
+
+
+
+#ifndef _KSN_IS_DEBUG_BUILD
+	static_assert(false, "_KSN_IS_DEBUG_BUILD has failed to be defined");
+#endif
+
+#ifndef _KSN_IS_64
+	static_assert(false, "_KSN_IS_64 has failed to be defined");
+#endif
+
+
+
+//Expression that will only be executed on debug builds
+#define _KSN_DEBUG_EXPR(expression) if constexpr (_KSN_IS_DEBUG_BUILD) { expression; }; ((void)0)
 
 
 

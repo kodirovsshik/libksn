@@ -101,6 +101,12 @@ public:
 
 	void close() noexcept;
 
+	bool poll_event(event_t&) noexcept;
+	bool wait_event(event_t&) noexcept;
+
+	bool poll_native_event(native_event_t&) noexcept;
+	bool wait_native_event(native_event_t&) noexcept;
+
 };
 
 
