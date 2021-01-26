@@ -225,6 +225,12 @@ public:
 };
 
 
+template bool window_t::_window_impl::open<char>(size_t width, size_t height, const char* window_name, window_t::context_settings settings, window_t::style_t style);
+template bool window_t::_window_impl::open<wchar_t>(size_t width, size_t height, const wchar_t* window_name, window_t::context_settings settings, window_t::style_t style);
+
+template bool window_t::_window_impl::_Xopen<char>(size_t width, size_t height, const char* window_name, window_t::context_settings settings, window_t::style_t style);
+template bool window_t::_window_impl::_Xopen<wchar_t>(size_t width, size_t height, const wchar_t* window_name, window_t::context_settings settings, window_t::style_t style);
+
 
 HDC window_t::_window_impl::s_screen_hdc = GetDC(nullptr);
 bool window_t::_window_impl::glew_initialized = false;
@@ -265,6 +271,10 @@ window_t::~window_t() noexcept
 {
 	this->m_impl->close();
 }
+//bool window_t::poll_event(MSG& p) noexcept
+//{
+//	return this->m_impl->peek(p);
+//}
 
 bool window_t::open(size_t width, size_t height, const char* title, context_settings settings, style_t style) noexcept
 {
