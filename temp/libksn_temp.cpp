@@ -44,7 +44,7 @@ int main()
 	settings.ogl_version_major = 3;
 	settings.ogl_version_minor = 2;
 
-	auto* pname = "libKSN window system";
+	auto* pname = L"libKSN window system";
 
 	if (win.open(400, 300, pname, settings) != win.ok)
 	{
@@ -62,8 +62,6 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 		printf("Running OpenGL %s on %s", glGetString(GL_VERSION), /*glGetString(GL_VENDOR),*/ glGetString(GL_RENDERER));
 	}
 
-	WM_QUIT;
-	
 	//SetWindowTextW(win.window_native_handle(), L"♪♪♪　こんぺこ～!!!　♪♪♪");
 	
 	//ksn::window_t::event_t ev;
