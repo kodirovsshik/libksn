@@ -19,4 +19,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <MASM Include="ksn_long_jump_impl64.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
+    <MASM Include="libksn_temp64.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
+  </ItemGroup>
 </Project>

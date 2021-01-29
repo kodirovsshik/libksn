@@ -1,5 +1,6 @@
-
+﻿
 #include <ksn/window.hpp>
+#include <ksn/stuff.hpp>
 
 #include <Windows.h>
 #include <GL/GL.h>
@@ -13,15 +14,39 @@
 #pragma comment(lib, "glew32s.lib")
 
 #pragma comment(lib, "libksn_window.lib")
+#pragma comment(lib, "libksn_stuff.lib")
+#pragma comment(lib, "libksn_x86_instruction_set.lib")
 
+
+
+_KSN_BEGIN
+
+[[noreturn]] void __cdecl long_jump(const void*);
+
+_KSN_END
+
+
+#pragma warning(disable : 4996)
 
 
 int main()
 {
-	SetLastError(0);
+	FILE* f = fopen("f.txt", "w");
+	fwrite("\xd\xa", 1, 2, f);
+	fclose(f);
+
+	fflush(f);
+
+	setlocale(0, "");
 
 	ksn::window_t win;
-	if (!win.open(800, 600, "", { 3, 1 }))
+	ksn::window_t::context_settings settings;
+	settings.ogl_version_major = 3;
+	settings.ogl_version_minor = 2;
+
+	auto* pname = "libKSN window system";
+
+	if (win.open(400, 300, pname, settings) != win.ok)
 	{
 		char buffer[256];
 		snprintf(buffer, 256, "Failed to open a window\n\n\
@@ -37,17 +62,20 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 		printf("Running OpenGL %s on %s", glGetString(GL_VERSION), /*glGetString(GL_VENDOR),*/ glGetString(GL_RENDERER));
 	}
 
-
+	WM_QUIT;
+	
+	//SetWindowTextW(win.window_native_handle(), L"♪♪♪　こんぺこ～!!!　♪♪♪");
+	
 	//ksn::window_t::event_t ev;
-	while (1)
+	while (win.is_open())
 	{
 		MSG msg;
-		printf("a");
-		while (win.poll_native_event(msg))
+		//printf("a");
+		while (win.wait_native_event(msg))
 		{
-			printf("b");
+			//printf("b");
 		}
-		printf("c");
+		//printf("c");
 		Sleep(50);
 	}
 
