@@ -12,7 +12,7 @@
 
 
 
-#pragma warning(disable : 26812 4996 26451 6001)
+//#pragma warning(disable : 26812 4996 26451 6001)
 
 
 
@@ -21,15 +21,21 @@ _KSN_BEGIN
 
 class window_t::_window_impl
 {
+
+	friend class window_t;
+
+
+
 public:
+
 	static LRESULT WINAPI __ksn_wnd_procA(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	{
-		printf("ProcA handled %04X: %016zX %016zX\n", LOWORD(msg), (size_t)w, (size_t)l);
+		_KSN_DEBUG_EXPR(printf("ProcA handled %04X: %016zX %016zX\n", LOWORD(msg), (size_t)w, (size_t)l));
 		return DefWindowProcA(wnd, msg, w, l);
 	}
 	static LRESULT WINAPI __ksn_wnd_procW(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	{
-		printf("ProcW handled %04X: %016zX %016zX\n", LOWORD(msg), (size_t)w, (size_t)l);
+		_KSN_DEBUG_EXPR(printf("ProcW handled %04X: %016zX %016zX\n", LOWORD(msg), (size_t)w, (size_t)l));
 		return DefWindowProcW(wnd, msg, w, l);
 	}
 
@@ -37,6 +43,7 @@ public:
 	using error_t = window_t::error_t;
 
 
+public:
 
 	static HDC s_screen_hdc;
 	static bool glew_initialized;
@@ -49,10 +56,11 @@ public:
 
 
 
-//private:
+private:
 
 	static bool _process_pfd(HDC hdc, int bpp)
 	{
+		//Do boring repetitive WINAPI stuff 
 		PIXELFORMATDESCRIPTOR pfd{};
 		pfd.nSize = sizeof(pfd);
 		pfd.nVersion = 1;
@@ -66,13 +74,11 @@ public:
 
 	static void _process_msg(MSG& msg)
 	{
+		//See comment above
 		if (LOWORD(msg.message) != WM_DESTROY)
 		{
-			//printf("a");
 			TranslateMessage(&msg);
-			//printf("b");
 			DispatchMessageW(&msg);
-			//printf("c");
 		}
 	}
 
@@ -123,12 +129,14 @@ public:
 	template<typename char_t>
 	error_t open(uint16_t width, uint16_t height, const char_t* window_name, window_t::context_settings settings, window_t::style_t style) noexcept
 	{
+		//Just a wrapper function for "real" _Xopen
+
 		this->close();
 		error_t result = this->_Xopen(width, height, window_name, settings, style);
 
 		if (result == error_t::ok)
 		{
-			if (wglGetCurrentContext() == nullptr) wglMakeCurrent(this->m_hdc, this->m_context);
+			//Window is created hidden initially
 			ShowWindow(this->m_window, SW_SHOW);
 			
 			//Get rid of all "default" messages
@@ -140,7 +148,6 @@ public:
 				{
 					break;
 				}
-				_KSN_DEBUG_EXPR(printf("0x%08X\n", msg.message));
 				TranslateMessage(&msg);
 				DispatchMessageW(&msg);
 			}
@@ -149,9 +156,10 @@ public:
 		}
 		else
 		{
-			int __error = GetLastError();
+			//If something has broken, undid everything that hasn't but preserve the error
+			int last_error = GetLastError();
 			this->close();
-			SetLastError(__error);
+			SetLastError(last_error);
 		}
 		return result;
 	}
@@ -162,11 +170,12 @@ public:
 		constexpr static bool is_wide = std::is_same_v<wchar_t, char_t>;
 		static_assert(std::is_same_v<char_t, char> || std::is_same_v<char_t, wchar_t>);
 
-		char_t class_name[32];
+		char_t class_name[32]; //a new window class is created every time window is opened
 
 
 		if (style & window_t::style_t::fullscreen) return error_t::unimplemented; //TODO
 
+		//WNDCLASSA for char and WNDCLASSW for wchar_t
 		std::conditional_t<!is_wide, WNDCLASSA, WNDCLASSW> wc{};
 		wc.lpszClassName = class_name;
 		wc.hCursor = LoadCursorA(nullptr, (LPCSTR)IDC_ARROW);
@@ -178,9 +187,8 @@ public:
 		{
 			wc.lpfnWndProc = &__ksn_wnd_procW;
 		}
-		//wc.lpfnWndProc = &noop_wnd_proc;
 
-		this->m_number = ++my_t::window_counter;
+		this->m_number = ++my_t::window_counter; //Obtain new unique class/window number from global atomic counter
 		if constexpr (!is_wide)
 		{
 			sprintf_s(class_name, 32, "__KSNWINDOW_%016zX", this->m_number);
@@ -190,7 +198,7 @@ public:
 			swprintf_s(class_name, 32, L"__KSNWINDOW_%016zX", this->m_number);
 		}
 
-		ATOM register_result;
+		ATOM register_result; //Why tf this type has to be named atom
 		if constexpr (!is_wide)
 		{
 			register_result = RegisterClassA(&wc);
@@ -201,22 +209,14 @@ public:
 		}
 		if (register_result == 0) return error_t::system_error;
 
-		/*
-		Border = 1 //WS_BORDER
-		Close button = 2 //WS_SYSMENU
-		Minmax buttons = 4 //WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU
-		Resize = 8 //WS_THICKFRAME
-		Caption = 16 //WS_CAPTION
-		Fullscreen = 32
-		*/
 		constexpr static UINT winapi_flags[] =
 		{
-			WS_BORDER,
-			WS_SYSMENU | WS_CAPTION,
-			WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU,
-			WS_THICKFRAME,
-			WS_CAPTION,
-			0,
+			WS_BORDER, //Border = 1, WS_BORDER
+			WS_SYSMENU | WS_CAPTION, //Close button = 2, WS_SYSMENU
+			WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU, //Minmax buttons = 4, WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU
+			WS_THICKFRAME, //Resize = 8, WS_THICKFRAME
+			WS_CAPTION, //Caption = 16, WS_CAPTION
+			0, //Fullscreen = 32
 			0,
 			0
 		};
@@ -227,6 +227,7 @@ public:
 		RECT rect{ 0, 0, (LONG)width, (LONG)height };
 		if (style & ~style_t::fullscreen) //if not fullscreen
 		{
+			//Adjust window size so that client area is exactly WxH
 			AdjustWindowRectEx(&rect, winapi_style, FALSE, 0);
 			width = uint16_t(rect.right - rect.left);
 			height = uint16_t(rect.bottom - rect.top);
@@ -245,6 +246,8 @@ public:
 		if (this->m_window == nullptr) return error_t::window_creation_error;
 
 		{
+			//If the client area size was (for example) 5x5, Windows may create a window that is much larger
+			//If this happens, report size error
 			RECT actual_rect;
 			GetWindowRect(this->m_window, &actual_rect);
 			if (width != (actual_rect.right - actual_rect.left) || height != (actual_rect.bottom - actual_rect.top)) return error_t::window_size_error;
@@ -254,33 +257,36 @@ public:
 		this->m_hdc = GetDC(this->m_window);
 		if (this->m_hdc == nullptr) return error_t::system_error;
 
+		//For OpenGL version > 1.1 use ARB extension to create a context
 		if (settings.ogl_version_major > 1 || (settings.ogl_version_major == 1 && settings.ogl_version_minor > 1))
 		{
 			if (my_t::glew_initialized == false)
 			{
-				//Create temporary context and make it current so glew can load without bugs
+				//Create temporary context and make it current so glew can initialize
 
+				//Do pixel format style
 				if (!my_t::_process_pfd(this->m_hdc, settings.bits_per_color)) return  error_t::system_error;
 
-				HGLRC temp = wglCreateContext(this->m_hdc);
-				if (temp == nullptr) return error_t::opengl_error;
+				HGLRC temp_context = wglCreateContext(this->m_hdc);
+				if (temp_context == nullptr) return error_t::opengl_error;
 
 				HGLRC previous_context = wglGetCurrentContext();
 				HDC previous_hdc = wglGetCurrentDC();
 
-				wglMakeCurrent(this->m_hdc, temp);
+				wglMakeCurrent(this->m_hdc, temp_context);
 
-				glewExperimental = true;
+				glewExperimental = true; //Make GLEW do it's best
 				auto glew_init_result = glewInit();
 
 				wglMakeCurrent(previous_hdc, previous_context);
-				wglDeleteContext(temp);
+				wglDeleteContext(temp_context);
 
 				if (glew_init_result != GLEW_OK) return error_t::glew_error;
 
 				my_t::glew_initialized = true;
 			}
 
+			//If extension is available
 			if (wglCreateContextAttribsARB)
 			{
 				int attributes[] =
@@ -297,11 +303,15 @@ public:
 				this->m_context = wglCreateContextAttribsARB(this->m_hdc, nullptr, attributes);
 				return (this->m_context) ? error_t::ok : error_t::opengl_error;
 			}
-
-			return opengl_unsupported_function;
+			else
+			{
+				//wglCreateContextAttribsARB is unavailable, no way to create context with version > 1.1
+				return opengl_unsupported_function;
+			}
 		}
-		else
+		else //otherwise (if not needed OpenGL > 1.1), use native WGL
 		{
+			//Do pixel format style
 			if (!my_t::_process_pfd(this->m_hdc, settings.bits_per_color)) return error_t::system_error;
 
 			this->m_context = wglCreateContext(this->m_hdc);
@@ -381,13 +391,10 @@ bool window_t::is_open() const noexcept
 
 
 
-FILE* f = stdout;
-//FILE* f = fopen("log.txt", "w");
 bool window_t::poll_native_event(MSG& msg) const noexcept
 {
 	bool got_message = PeekMessageA(&msg, this->m_impl->m_window, 0, 0, PM_REMOVE) > 0;
 	if (!got_message) return false;
-	//fprintf(f, "0x%08X\n", (int)msg.message);
 	this->m_impl->_process_msg(msg);
 	return true;
 	
@@ -396,9 +403,17 @@ bool window_t::wait_native_event(MSG& msg) const noexcept
 {
 	bool got_message = GetMessageW(&msg, this->m_impl->m_window, 0, 0) >= 0;
 	if (!got_message) return false;
-	//fprintf(f, "0x%08X\n", (int)msg.message);
 	this->m_impl->_process_msg(msg);
 	return true;
+}
+
+void window_t::make_current() const noexcept
+{
+	wglMakeCurrent(this->m_impl->m_hdc, this->m_impl->m_context);
+}
+bool window_t::is_current() const noexcept
+{
+	return wglGetCurrentContext() == this->m_impl->m_context;
 }
 
 

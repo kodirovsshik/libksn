@@ -139,6 +139,9 @@ public:
 
 	bool is_open() const noexcept;
 
+	void make_current() const noexcept;
+	bool is_current() const noexcept;
+
 };
 
 
