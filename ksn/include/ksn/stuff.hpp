@@ -41,7 +41,7 @@ RetType&& convert_or_forward(ArgType&&, const RetType&);
 class _memory_dump_t
 {
 private:
-	_memory_dump_t();
+	_memory_dump_t() {}
 	_memory_dump_t(const _memory_dump_t&) = delete;
 	_memory_dump_t(_memory_dump_t&&) = delete;
 

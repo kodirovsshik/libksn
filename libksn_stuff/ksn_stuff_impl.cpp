@@ -41,6 +41,9 @@ size_t c32len(const char32_t* p)
 
 
 
+//Flags:
+//Bit 1 << 0 is for capital hex letters
+//Bit 1 << 1 is for separating space between bytes
 void _memory_dump_t::operator()(const void* _p, size_t bytes, size_t bytes_per_line, flag_t flags, FILE* fd)
 {
 	uint8_t* p = (uint8_t*)_p, * pe = p + bytes;
