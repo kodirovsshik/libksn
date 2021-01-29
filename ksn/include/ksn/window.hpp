@@ -34,9 +34,9 @@ public:
 
 #ifdef _WIN32
 	#ifdef _WIN64
-		ksn::fast_pimpl<_window_impl, 24, 8, true, true, true, true> m_impl;
+		ksn::fast_pimpl<_window_impl, 32, 8, true, true, true, true> m_impl;
 	#else
-		ksn::fast_pimpl<_window_impl, 12, 4, true, true, true, true> m_impl;
+		ksn::fast_pimpl<_window_impl, 16, 4, true, true, true, true> m_impl;
 	#endif
 #else
 
@@ -81,6 +81,36 @@ public:
 		};
 	};
 
+	enum error_t : uint8_t
+	{
+		//All fine, window is opened
+		ok = 0,
+
+		//Not (possibly yet) implemented by the library
+		unimplemented = 1,
+
+		//Error after calling system API
+		//(except for window creation function itself)
+		system_error = 2,
+
+		//Error after calling OpenGL API
+		opengl_error = 3,
+
+		//Window creation system function failed
+		window_creation_error = 4,
+
+		//Invalid window size (too big/small)
+		window_size_error = 5,
+
+		//Failed to initialize GLEW
+		glew_error = 6,
+
+		//OpenGL feature required is not supported
+		opengl_unsupported_function = 7
+	};
+
+	
+
 
 
 
@@ -93,19 +123,21 @@ public:
 	window_t(window_t&&) noexcept;
 	~window_t() noexcept;
 
-	window_t(size_t width, size_t height, const char* title = "", context_settings settings = {}, style_t style = style_t::default_style) noexcept;
-	window_t(size_t width, size_t height, const wchar_t* title, context_settings settings = {}, style_t style = style_t::default_style) noexcept;
+	window_t(uint16_t width, uint16_t height, const char* title = "", context_settings settings = {}, style_t style = style_t::default_style) noexcept;
+	window_t(uint16_t width, uint16_t height, const wchar_t* title, context_settings settings = {}, style_t style = style_t::default_style) noexcept;
 
-	bool open(size_t width, size_t height, const char* title = "", context_settings settings = {}, style_t style = style_t::default_style) noexcept;
-	bool open(size_t width, size_t height, const wchar_t* title, context_settings settings = {}, style_t style = style_t::default_style) noexcept;
+	error_t open(uint16_t width, uint16_t height, const char* title = "", context_settings settings = {}, style_t style = style_t::default_style) noexcept;
+	error_t open(uint16_t width, uint16_t height, const wchar_t* title, context_settings settings = {}, style_t style = style_t::default_style) noexcept;
 
 	void close() noexcept;
 
-	bool poll_event(event_t&) noexcept;
-	bool wait_event(event_t&) noexcept;
+	bool poll_event(event_t&) const noexcept;
+	bool wait_event(event_t&) const noexcept;
 
-	bool poll_native_event(native_event_t&) noexcept;
-	bool wait_native_event(native_event_t&) noexcept;
+	bool poll_native_event(native_event_t&) const noexcept;
+	bool wait_native_event(native_event_t&) const noexcept;
+
+	bool is_open() const noexcept;
 
 };
 
