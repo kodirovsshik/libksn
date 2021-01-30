@@ -24,7 +24,7 @@ _KSN_BEGIN
 
 class window_t
 {
-private:
+public:
 	
 	class _window_impl;
 
@@ -34,9 +34,9 @@ public:
 
 #ifdef _WIN32
 	#ifdef _WIN64
-		ksn::fast_pimpl<_window_impl, 32, 8, true, true, true, true> m_impl;
+		ksn::fast_pimpl<_window_impl, 24, 8, true, true, true, true> m_impl;
 	#else
-		ksn::fast_pimpl<_window_impl, 16, 4, true, true, true, true> m_impl;
+		ksn::fast_pimpl<_window_impl, 12, 4, true, true, true, true> m_impl;
 	#endif
 #else
 
@@ -106,8 +106,8 @@ public:
 		{
 			enum button_t : uint8_t
 			{
-				unknown = -1,
-				a,
+				unknown = uint8_t(-1),
+				a = 0,
 				b,
 				c,
 				d,

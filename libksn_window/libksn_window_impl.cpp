@@ -19,6 +19,7 @@
 _KSN_BEGIN
 
 
+
 class window_t::_window_impl
 {
 
@@ -47,12 +48,10 @@ public:
 
 	static HDC s_screen_hdc;
 	static bool glew_initialized;
-	static std::atomic_size_t window_counter;
 
 	HWND m_window;
 	HGLRC m_context;
 	HDC m_hdc;
-	size_t m_number;
 
 
 
@@ -91,7 +90,6 @@ public:
 		this->m_window = nullptr;
 		this->m_hdc = nullptr;
 		this->m_context = nullptr;
-		this->m_number = 0;
 	}
 	~_window_impl() noexcept
 	{
@@ -115,13 +113,6 @@ public:
 		{
 			DestroyWindow(this->m_window);
 			this->m_window = nullptr;
-		}
-		if (this->m_number)
-		{
-			char buffer[32];
-			snprintf(buffer, 32, "__KSNWINDOW_%016zX", this->m_number);
-			UnregisterClassA(buffer, GetModuleHandleA(nullptr));
-			this->m_number = 0;
 		}
 	}
 
@@ -170,44 +161,8 @@ public:
 		constexpr static bool is_wide = std::is_same_v<wchar_t, char_t>;
 		static_assert(std::is_same_v<char_t, char> || std::is_same_v<char_t, wchar_t>);
 
-		char_t class_name[32]; //a new window class is created every time window is opened
-
-
 		if (style & window_t::style_t::fullscreen) return error_t::unimplemented; //TODO
 
-		//WNDCLASSA for char and WNDCLASSW for wchar_t
-		std::conditional_t<!is_wide, WNDCLASSA, WNDCLASSW> wc{};
-		wc.lpszClassName = class_name;
-		wc.hCursor = LoadCursorA(nullptr, (LPCSTR)IDC_ARROW);
-		if constexpr (!is_wide)
-		{
-			wc.lpfnWndProc = &__ksn_wnd_procA;
-		}
-		else
-		{
-			wc.lpfnWndProc = &__ksn_wnd_procW;
-		}
-
-		this->m_number = ++my_t::window_counter; //Obtain new unique class/window number from global atomic counter
-		if constexpr (!is_wide)
-		{
-			sprintf_s(class_name, 32, "__KSNWINDOW_%016zX", this->m_number);
-		}
-		else
-		{
-			swprintf_s(class_name, 32, L"__KSNWINDOW_%016zX", this->m_number);
-		}
-
-		ATOM register_result; //Why tf this type has to be named atom
-		if constexpr (!is_wide)
-		{
-			register_result = RegisterClassA(&wc);
-		}
-		else
-		{
-			register_result = RegisterClassW(&wc);
-		}
-		if (register_result == 0) return error_t::system_error;
 
 		constexpr static UINT winapi_flags[] =
 		{
@@ -236,11 +191,11 @@ public:
 		
 		if constexpr (!is_wide)
 		{
-			this->m_window = CreateWindowA(class_name, window_name, winapi_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
+			this->m_window = CreateWindowA("_LIBKSN_windowA", window_name, winapi_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
 		}
 		else
 		{
-			this->m_window = CreateWindowW(class_name, window_name, winapi_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
+			this->m_window = CreateWindowW(L"_LIBKSN_windowW", window_name, winapi_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
 		}
 
 		if (this->m_window == nullptr) return error_t::window_creation_error;
@@ -332,7 +287,27 @@ public:
 
 HDC window_t::_window_impl::s_screen_hdc = GetDC(nullptr);
 bool window_t::_window_impl::glew_initialized = false;
-std::atomic_size_t window_t::_window_impl::window_counter = 0;
+
+
+static int __library_constructor = []() -> int
+{
+	WNDCLASSA wcA{};
+	WNDCLASSW wcW{};
+
+	wcA.lpszClassName = "_LIBKSN_windowA";
+	wcW.lpszClassName = L"_LIBKSN_windowW";
+
+	wcA.hCursor = LoadCursorA(nullptr, (LPCSTR)IDC_ARROW);
+	wcW.hCursor = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
+
+	wcA.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procA;
+	wcW.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procW;
+
+	RegisterClassA(&wcA);
+	RegisterClassW(&wcW);
+
+	return 0;
+}();
 
 
 
