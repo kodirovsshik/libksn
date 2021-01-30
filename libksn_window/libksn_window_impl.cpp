@@ -12,7 +12,7 @@
 
 
 
-//#pragma warning(disable : 26812 4996 26451 6001)
+#pragma warning(disable : 26812) //Unscoped enum
 
 
 
@@ -321,8 +321,10 @@ public:
 
 	bool is_open() const noexcept
 	{
-		WINDOWINFO _;
-		return GetWindowInfo(this->m_window, &_) == TRUE;
+		//TODO: find a more efficient way
+		WINDOWINFO info_struct;
+		info_struct.cbSize = sizeof(WINDOWINFO);
+		return GetWindowInfo(this->m_window, &info_struct) == TRUE;
 	}
 };
 
