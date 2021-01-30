@@ -31,18 +31,10 @@ _KSN_END
 
 int main()
 {
-	FILE* f = fopen("f.txt", "w");
-	fwrite("\xd\xa", 1, 2, f);
-	fclose(f);
-
-	fflush(f);
-
-	setlocale(0, "");
-
 	ksn::window_t win;
 	ksn::window_t::context_settings settings;
-	settings.ogl_version_major = 3;
-	settings.ogl_version_minor = 2;
+	//settings.ogl_version_major = 3;
+	//settings.ogl_version_minor = 2;
 
 	auto* pname = L"libKSN window system";
 
@@ -59,7 +51,8 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 	}
 	else
 	{
-		printf("Running OpenGL %s on %s", glGetString(GL_VERSION), /*glGetString(GL_VENDOR),*/ glGetString(GL_RENDERER));
+		win.make_current();
+		printf("Running OpenGL %s on %s\n", glGetString(GL_VERSION), /*glGetString(GL_VENDOR),*/ glGetString(GL_RENDERER));
 	}
 
 	//SetWindowTextW(win.window_native_handle(), L"♪♪♪　こんぺこ～!!!　♪♪♪");
