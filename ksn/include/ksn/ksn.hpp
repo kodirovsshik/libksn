@@ -79,6 +79,10 @@
 		#define _KSN_IS_DEBUG_BUILD 0
 	#endif
 
+	#define _NOMINMAX
+	#undef min
+	#undef max
+
 #elif defined _KSN_COMPILER_GCC
 
 #ifndef _KSN_IS_64

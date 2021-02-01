@@ -134,10 +134,8 @@ _KSN_DETAIL_END
 template<typename int_type>
 int_type fp_int_cast(long double x, unsigned precision = LDBL_DECIMAL_DIG - 2)
 {
-#undef min
-#undef max
 
-	if _KSN_CONSTEXPR_CONDITION(!std::is_integral_v<int_type>)
+	if constexpr(!std::is_integral_v<int_type>)
 	{
 		return int_type(x);
 	}
@@ -226,7 +224,7 @@ Stigling number of the first kind
 template<typename return_type = long long>
 return_type stirling_s1(size_t n, size_t m)
 {
-	if _KSN_CONSTEXPR_CONDITION(!(std::is_integral_v<return_type> || std::is_floating_point_v<return_type>) || std::is_same_v<return_type, bool>)
+	if constexpr(!(std::is_integral_v<return_type> || std::is_floating_point_v<return_type>) || std::is_same_v<return_type, bool>)
 	{
 		_KSN_RAISE(_STD invalid_argument("Incorrect return type passed to stirling_s1"));
 	}
@@ -234,7 +232,7 @@ return_type stirling_s1(size_t n, size_t m)
 	{
 		if (m > n)
 		{
-			throw _STD invalid_argument("stirling_s1: m must be <= n");
+			_KSN_RAISE(_STD invalid_argument("stirling_s1: m must be <= n"));
 		}
 
 		if (m == 0)

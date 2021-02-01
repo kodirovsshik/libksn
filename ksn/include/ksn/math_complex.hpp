@@ -85,7 +85,7 @@ public:
 
 
 
-	void ensure_algebraic() noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_destructible_v<T>&& std::is_nothrow_constructible_v<T> && noexcept(sin(std::declval<T>())) && noexcept(cos(std::declval<T>())) && noexcept(sqrt(std::declval<T>())))
+	constexpr void ensure_algebraic() noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_destructible_v<T>&& std::is_nothrow_constructible_v<T> && noexcept(sin(std::declval<T>())) && noexcept(cos(std::declval<T>())) && noexcept(sqrt(std::declval<T>())))
 	{
 		if (this->is_polar)
 		{
@@ -106,7 +106,7 @@ public:
 		}
 	}
 
-	void ensure_polar() noexcept(std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_destructible_v<T>&& std::is_nothrow_constructible_v<T> && noexcept(std::declval<T>() * std::declval<T>()) && noexcept(atan2(std::declval<T>(), std::declval<T>())))
+	constexpr void ensure_polar() noexcept(std::is_nothrow_move_constructible_v<T>&& std::is_nothrow_destructible_v<T>&& std::is_nothrow_constructible_v<T> && noexcept(std::declval<T>() * std::declval<T>()) && noexcept(atan2(std::declval<T>(), std::declval<T>())))
 	{
 		if (this->is_polar == false)
 		{
@@ -125,7 +125,7 @@ public:
 
 
 
-	_KSN_CONSTEXPR complex() noexcept(std::is_nothrow_default_constructible_v<T>)
+	constexpr complex() noexcept(std::is_nothrow_default_constructible_v<T>)
 		: is_polar(true)
 	{
 		std::construct_at(&this_n);
@@ -133,7 +133,7 @@ public:
 	}
 
 	template<class T1>
-	_KSN_CONSTEXPR complex(T1 real_part) noexcept(std::is_nothrow_default_constructible_v<T> && std::is_nothrow_move_constructible_v<T>)
+	constexpr complex(T1 real_part) noexcept(std::is_nothrow_default_constructible_v<T> && std::is_nothrow_move_constructible_v<T>)
 		 : is_polar(false)
 	{
 		std::construct_at(&this_x, std::forward<T>(real_part));
@@ -141,7 +141,7 @@ public:
 	}
 
 	template<class T1, class T2>
-	_KSN_CONSTEXPR complex(T1&& real, T2&& imag) noexcept : is_polar(false)
+	constexpr complex(T1&& real, T2&& imag) noexcept : is_polar(false)
 	{
 		std::construct_at(&this_x, std::forward<T>(real));
 		std::construct_at(&this_y, std::forward<T>(imag));
@@ -150,7 +150,7 @@ public:
 //I hope it will compile without <complex> header due to instantiation principles
 #if false && (defined _COMPLEX_ || defined _GLIBCXX_COMPLEX_ || defined KSN_COMPLEX_STD)
 	template <typename float_type>
-	_KSN_CONSTEXPR complex(const std::complex<float_type>& other) noexcept : is_polar(true)
+	constexpr complex(const std::complex<float_type>& other) noexcept : is_polar(true)
 	{
 		std::construct_at(&this_n, std::norm(other));
 		std::construct_at(&this_a, std::arg(other));
@@ -160,7 +160,7 @@ public:
 
 
 	template<class T1>
-	_KSN_CONSTEXPR complex(const complex<T1>& other) noexcept : is_polar(other.is_polar)
+	constexpr complex(const complex<T1>& other) noexcept : is_polar(other.is_polar)
 	{
 		if (!other.is_polar)
 		{
@@ -175,7 +175,7 @@ public:
 	}
 
 	template<class T1>
-	_KSN_CONSTEXPR complex(complex<T1>&& other) noexcept : is_polar(other.is_polar)
+	constexpr complex(complex<T1>&& other) noexcept : is_polar(other.is_polar)
 	{
 		if (!other.is_polar)
 		{
@@ -195,7 +195,7 @@ public:
 #pragma warning(push)
 #pragma warning(disable : 26495)
 #endif
-	_KSN_CONSTEXPR complex(uninitialized_t) noexcept {}
+	constexpr complex(uninitialized_t) noexcept {}
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(pop)
 #endif
@@ -234,11 +234,11 @@ public:
 
 
 
-	_KSN_CONSTEXPR complex<T> operator+() const noexcept
+	constexpr complex<T> operator+() const noexcept
 	{
 		return *this;
 	}
-	_KSN_CONSTEXPR complex<T> operator-() const noexcept
+	constexpr complex<T> operator-() const noexcept
 	{
 		my_t result(*this);
 
@@ -256,57 +256,57 @@ public:
 	}
 
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator+(const complex<T1>& left, const complex<T2>& right) noexcept;
+	constexpr friend complex operator+(const complex<T1>& left, const complex<T2>& right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator+(const complex<T1>& left, complex<T2>& right) noexcept;
+	constexpr friend complex operator+(const complex<T1>& left, complex<T2>& right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator-(const complex<T1>& left, const complex<T2>& right) noexcept;
+	constexpr friend complex operator-(const complex<T1>& left, const complex<T2>& right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator*(const complex<T1>& left, const complex<T2>& right) noexcept;
+	constexpr friend complex operator*(const complex<T1>& left, const complex<T2>& right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator/(const complex<T1>& left, const complex<T2>& right) noexcept;
+	constexpr friend complex operator/(const complex<T1>& left, const complex<T2>& right) noexcept;
 
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator+(const complex<T1>& left, T2 right) noexcept;
+	constexpr friend complex operator+(const complex<T1>& left, T2 right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator-(const complex<T1>& left, T2 right) noexcept;
+	constexpr friend complex operator-(const complex<T1>& left, T2 right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator*(const complex<T1>& left, T2 right) noexcept;
+	constexpr friend complex operator*(const complex<T1>& left, T2 right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator/(const complex<T1>& left, T2 right) noexcept;
+	constexpr friend complex operator/(const complex<T1>& left, T2 right) noexcept;
 
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator+(T1 left, const complex<T2>& right) noexcept;
+	constexpr friend complex operator+(T1 left, const complex<T2>& right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator-(T1 left, const complex<T2>& right) noexcept;
+	constexpr friend complex operator-(T1 left, const complex<T2>& right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator*(T1 left, const complex<T2>& right) noexcept;
+	constexpr friend complex operator*(T1 left, const complex<T2>& right) noexcept;
 	template<class T1, class T2>
-	_KSN_CONSTEXPR friend complex operator/(T1 left, const complex<T2>& right) noexcept;
+	constexpr friend complex operator/(T1 left, const complex<T2>& right) noexcept;
 
 
 
 	template<class T1>
-	_KSN_CONSTEXPR complex<T>& operator+=(const complex<T1>& other) noexcept;
+	constexpr complex<T>& operator+=(const complex<T1>& other) noexcept;
 	template<class T1>
-	_KSN_CONSTEXPR complex<T>& operator-=(const complex<T1>& other) noexcept;
+	constexpr complex<T>& operator-=(const complex<T1>& other) noexcept;
 	template<class T1>
-	_KSN_CONSTEXPR complex<T>& operator*=(const complex<T1>& other) noexcept;
+	constexpr complex<T>& operator*=(const complex<T1>& other) noexcept;
 	template<class T1>
-	_KSN_CONSTEXPR complex<T>& operator/=(const complex<T1>& other) noexcept;
+	constexpr complex<T>& operator/=(const complex<T1>& other) noexcept;
 
 	template<class T1>
-	_KSN_CONSTEXPR complex<T>& operator+=(T1 x) noexcept;
+	constexpr complex<T>& operator+=(T1 x) noexcept;
 	template<class T1>
-	_KSN_CONSTEXPR complex<T>& operator-=(T1 x) noexcept;
+	constexpr complex<T>& operator-=(T1 x) noexcept;
 	template<class T1>
-	_KSN_CONSTEXPR complex<T>& operator*=(T1 x) noexcept;
+	constexpr complex<T>& operator*=(T1 x) noexcept;
 	template<class T1>
-	_KSN_CONSTEXPR complex<T>& operator/=(T1 x) noexcept;
+	constexpr complex<T>& operator/=(T1 x) noexcept;
 
 
 
-	_KSN_CONSTEXPR T real() const noexcept
+	constexpr T real() const noexcept
 	{
 		if (this->is_polar)
 		{
@@ -314,7 +314,7 @@ public:
 		}
 		return this_x;
 	}
-	_KSN_CONSTEXPR T imag() const noexcept
+	constexpr T imag() const noexcept
 	{
 		if (this->is_polar)
 		{
@@ -323,17 +323,17 @@ public:
 		return this_y;
 	}
 
-	_KSN_CONSTEXPR T length() noexcept
+	constexpr T length() noexcept
 	{
 		this->ensure_polar();
 		return sqrt(this_n);
 	}
-	_KSN_CONSTEXPR T norm() const noexcept
+	constexpr T norm() const noexcept
 	{
 		this->ensure_polar();
 		return this_n;
 	}
-	_KSN_CONSTEXPR T argument() const noexcept
+	constexpr T argument() const noexcept
 	{
 		this->ensure_polar();
 		return this_a;
@@ -341,23 +341,23 @@ public:
 
 
 
-	_KSN_CONSTEXPR T& real_ref() noexcept
+	constexpr T& real_ref() noexcept
 	{
 		this->ensure_algebraic();
 		return this_x;
 	}
-	_KSN_CONSTEXPR T& imag_ref() noexcept
+	constexpr T& imag_ref() noexcept
 	{
 		this->ensure_algebraic();
 		return this_x;
 	}
 
-	_KSN_CONSTEXPR T& norm_ref() noexcept
+	constexpr T& norm_ref() noexcept
 	{
 		this->ensure_polar();
 		return this_n;
 	}
-	_KSN_CONSTEXPR T& argument_ref() noexcept
+	constexpr T& argument_ref() noexcept
 	{
 		this->ensure_polar();
 		return this_a;
@@ -366,7 +366,7 @@ public:
 
 
 	template<class T1>
-	_KSN_CONSTEXPR bool operator==(const complex<T1>& other) const noexcept
+	constexpr bool operator==(const complex<T1>& other) const noexcept
 	{
 		if (this->is_polar == false && other.is_polar == false)
 			return this->real() == other.real() && this->imag() == other.imag();
@@ -374,7 +374,7 @@ public:
 			return this->real2() == other.real2() && this->imag2() == other.imag2();
 	}
 	template<class T1>
-	_KSN_CONSTEXPR bool operator!=(const complex<T1>& other) const noexcept
+	constexpr bool operator!=(const complex<T1>& other) const noexcept
 	{
 		if (this->is_polar == false && other.is_polar == false)
 			return this->real() != other.real() || this->imag() != other.imag();
@@ -383,19 +383,19 @@ public:
 	}
 	
 	template<std::integral T1>
-	_KSN_CONSTEXPR bool operator==(T1 x) const noexcept;
+	constexpr bool operator==(T1 x) const noexcept;
 	template<std::floating_point T1>
-	_KSN_CONSTEXPR bool operator==(T1 x) const noexcept;
+	constexpr bool operator==(T1 x) const noexcept;
 
 	template<std::integral T1>
-	_KSN_CONSTEXPR bool operator!=(T1 x) const noexcept;
+	constexpr bool operator!=(T1 x) const noexcept;
 	template<std::floating_point T1>
-	_KSN_CONSTEXPR bool operator!=(T1 x) const noexcept;
+	constexpr bool operator!=(T1 x) const noexcept;
 
-	_KSN_CONSTEXPR bool operator==(const T&) const noexcept;
+	constexpr bool operator==(const T&) const noexcept;
 
 
-	_KSN_CONSTEXPR operator bool() const noexcept
+	constexpr operator bool() const noexcept
 	{
 		if (this->is_polar)
 		{
