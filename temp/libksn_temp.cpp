@@ -1,6 +1,7 @@
 ﻿
 #include <ksn/window.hpp>
 #include <ksn/stuff.hpp>
+#include <ksn/math_common.hpp>
 
 #include <Windows.h>
 #include <GL/GL.h>
@@ -28,17 +29,62 @@ _KSN_END
 
 #pragma warning(disable : 4996)
 
+float sine_rough(float x)
+{
+	x = fmod(x, KSN_PIf * 2);
+	bool neg;
+	if (x > KSN_PIf)
+	{
+		neg = true;
+		x -= KSN_PIf;
+	}
+	else
+	{
+		neg = false;
+	}
 
+	float result;
+	if (x < 0.54f) result = 0.96f * x;
+	else if (x < 2.65f)
+	{
+		float temp = x - KSN_PIf / 2;
+		result = -0.46f * temp * temp + 1;
+	}
+	else result = 0.95f * (KSN_PIf - x);
+
+	if (neg) return -result;
+	return result;
+}
+
+
+struct type 
+{
+	int x;
+};
+
+
+int main1()
+{
+
+	type a;
+	a.x = 1;
+
+	type* p_a = &a;
+	p_a->x = 2;
+	
+
+	return 0;
+}
+
+//GraphicsFW
 int main()
 {
 	ksn::window_t win;
-	ksn::window_t::context_settings settings;
-	//settings.ogl_version_major = 3;
-	//settings.ogl_version_minor = 2;
+	ksn::window_t::context_settings settings{ 4, 6 };
+	
+	auto* pname = "libKSN window system";
 
-	auto* pname = L"libKSN window system";
-
-	if (win.open(400, 300, pname, settings) != win.ok)
+	if (win.open(400, 300) != ksn::window_t::error::ok)
 	{
 		char buffer[256];
 		snprintf(buffer, 256, "Failed to open a window\n\n\
@@ -52,76 +98,41 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 	else
 	{
 		win.make_current();
-		printf("Running OpenGL %s on %s\n", glGetString(GL_VERSION), /*glGetString(GL_VENDOR),*/ glGetString(GL_RENDERER));
+		printf("Running OpenGL %s on %s\n", glGetString(GL_VERSION), glGetString(GL_RENDERER));
 	}
 
-	//SetWindowTextW(win.window_native_handle(), L"♪♪♪　こんぺこ～!!!　♪♪♪");
 	
-	//ksn::window_t::event_t ev;
+
+	ksn::event_t ev;
 	while (win.is_open())
 	{
-		MSG msg;
-		//printf("a");
-		while (win.wait_native_event(msg))
-		{
-			//printf("b");
-		}
-		//printf("c");
+
+
+		//Main loop
+
+
+
 		Sleep(50);
+		while (win.poll_event(ev))
+		{
+			if (ev.type != ksn::event_type_t::mouse_move) ev.dump();
+
+			//printf("m_mouse_inside = %i\n", (int32_t)bool(((uint8_t*)&win.m_impl)[78] & 32));
+
+			if (ev.type == ksn::event_type_t::close)
+			{
+				win.close();
+			}
+			else if (ev.type == ksn::event_type_t::keyboard_press)
+			{
+				if (ev.keyboard_button_data.button == ksn::event_t::keyboard_button_t::esc)
+				{
+					win.close();
+				}
+			}
+		}
 	}
 
+	return 0;
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//int main1()
-//{
-//	double x = 1;
-//	uint64_t N = 1000000000;
-//
-//	for (size_t i = 1; i < N; i++)
-//	{
-//		x *= (1 - i / 281474976710656.0);
-//	}
-//
-//	printf("%.17lf", x);
-//	return 0;
-//}
-//
-//int main()
-//{
-//
-//	ksn::window_t::context_settings settings;
-//	settings.ogl_version_major = 3;
-//	settings.ogl_version_minor = 1;
-//	settings.ogl_compatibility_profile = true;
-//	
-//	ksn::window_t window(300, 300, "", settings);
-//	const GLubyte* p;
-//	p = glGetString(GL_EXTENSIONS);
-//	p = glGetString(GL_RENDERER);
-//	p = glGetString(GL_VENDOR);
-//	p = glGetString(GL_VERSION);
-//	
-//	try
-//	{
-//		return 0;
-//	}
-//	catch (std::exception e)
-//	{
-//		printf("%s\n", e.what());
-//	}
-//}
