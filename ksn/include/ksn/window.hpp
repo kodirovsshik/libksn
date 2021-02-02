@@ -367,7 +367,7 @@ public:
 		uint8_t ogl_version_major = 1;
 		uint8_t ogl_version_minor = 1;
 		uint8_t bits_per_color = 24;
-		bool ogl_compatibility_profile : 1 = false;
+		bool ogl_compatibility_profile : 1 = true;
 		bool ogl_debug : 1 = false;
 	};
 

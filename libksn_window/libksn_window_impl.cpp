@@ -1,6 +1,6 @@
 
 #include <ksn/window.hpp>
-#include <ksn/stuff.hpp>
+//#include <ksn/stuff.hpp>
 
 #include <Windows.h>
 
@@ -646,6 +646,7 @@ public:
 			this->m_window = nullptr;
 			this->m_queue.clear();
 		}
+		this->m_is_closing = false;
 	}
 
 
@@ -659,8 +660,6 @@ public:
 
 		if (result == error::ok)
 		{
-			this->m_is_closing = false;
-
 			//Window is created hidden initially
 			ShowWindow(this->m_window, SW_SHOW);
 
@@ -803,6 +802,7 @@ public:
 				my_t::glew_initialized = true;
 			}
 
+			const auto& [v_maj, v_min, _unused1, compatibility, _unused2] = settings;
 			//If extension is available
 			if (wglCreateContextAttribsARB)
 			{
@@ -820,9 +820,59 @@ public:
 				this->m_context = wglCreateContextAttribsARB(this->m_hdc, nullptr, attributes);
 				return (this->m_context) ? error::ok : error::opengl_error;
 			}
+			else if (compatibility || v_maj < 3 || (v_maj == 3 && v_min < 2))
+			{
+				//Drivers may be nice to us and create a modern compatibitity context for us by default
+				this->m_context = wglCreateContext(this->m_hdc);
+
+				if (this->m_context == nullptr) return error::opengl_error;
+
+				HDC last_dc = wglGetCurrentDC();
+				HGLRC last_context = wglGetCurrentContext();
+				wglMakeCurrent(this->m_hdc, this->m_context);
+
+
+				int ogl_major = -1, ogl_minor = -1;
+				
+				do
+				{
+					glGetIntegerv(GL_MAJOR_VERSION, &ogl_major);
+					glGetIntegerv(GL_MINOR_VERSION, &ogl_minor);
+
+					if ((ogl_major | ogl_minor) != -1) break;
+
+
+					if (glGetInteger64v)
+					{
+						GLint64 ogl_major64, ogl_minor64;
+						glGetInteger64v(GL_MAJOR_VERSION, &ogl_major64);
+						glGetInteger64v(GL_MINOR_VERSION, &ogl_minor64);
+						ogl_major = (int)ogl_major64;
+						ogl_minor = (int)ogl_minor64;
+					}
+
+					if ((ogl_major | ogl_minor) != -1) break;
+
+					const char* version = (const char*)glGetString(GL_VERSION);
+					if (version)
+					{
+						int result = sscanf_s(version, "%i.%i", &ogl_major, &ogl_minor);
+						if (result == 2 && (ogl_major | ogl_minor) != -1) break;
+					}
+
+				} while (false);
+
+				wglMakeCurrent(last_dc, last_context);
+
+				if ((ogl_major | ogl_minor) == -1) return error::opengl_unsupported_function;
+
+				if (ogl_major > v_maj) return error::ok;
+				else if (ogl_major < v_maj) return error::opengl_error;
+				else return ogl_minor >= v_min ? error::ok : error::opengl_error;
+			}
 			else
 			{
-				//wglCreateContextAttribsARB is unavailable, no way to create context with version > 1.1
+				//wglCreateContextAttribsARB is unavailable, no way to create modern core context
 				return error::opengl_unsupported_function;
 			}
 		}
