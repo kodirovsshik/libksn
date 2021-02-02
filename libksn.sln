@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_window", "libksn_win
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "temp_linux1", "temp_linux1\temp_linux1.vcxproj", "{F539D2C9-302F-4ABC-A681-14865A4EAA2F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_graphics_engine", "libksn_graphics_engine\libksn_graphics_engine.vcxproj", "{6158271B-F19E-4731-AAE6-669F16360923}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -159,6 +161,18 @@ Global
 		{F539D2C9-302F-4ABC-A681-14865A4EAA2F}.Release|x86.ActiveCfg = Release|x86
 		{F539D2C9-302F-4ABC-A681-14865A4EAA2F}.Release|x86.Build.0 = Release|x86
 		{F539D2C9-302F-4ABC-A681-14865A4EAA2F}.Release|x86.Deploy.0 = Release|x86
+		{6158271B-F19E-4731-AAE6-669F16360923}.Debug|ARM.ActiveCfg = Debug|Win32
+		{6158271B-F19E-4731-AAE6-669F16360923}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{6158271B-F19E-4731-AAE6-669F16360923}.Debug|x64.ActiveCfg = Debug|x64
+		{6158271B-F19E-4731-AAE6-669F16360923}.Debug|x64.Build.0 = Debug|x64
+		{6158271B-F19E-4731-AAE6-669F16360923}.Debug|x86.ActiveCfg = Debug|Win32
+		{6158271B-F19E-4731-AAE6-669F16360923}.Debug|x86.Build.0 = Debug|Win32
+		{6158271B-F19E-4731-AAE6-669F16360923}.Release|ARM.ActiveCfg = Release|Win32
+		{6158271B-F19E-4731-AAE6-669F16360923}.Release|ARM64.ActiveCfg = Release|Win32
+		{6158271B-F19E-4731-AAE6-669F16360923}.Release|x64.ActiveCfg = Release|x64
+		{6158271B-F19E-4731-AAE6-669F16360923}.Release|x64.Build.0 = Release|x64
+		{6158271B-F19E-4731-AAE6-669F16360923}.Release|x86.ActiveCfg = Release|Win32
+		{6158271B-F19E-4731-AAE6-669F16360923}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
