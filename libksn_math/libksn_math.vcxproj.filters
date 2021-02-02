@@ -21,25 +21,25 @@
     <ClInclude Include="formula_instructions.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_constexpr.hpp">
+    <ClInclude Include="..\ksn\include\ksn\math.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math.hpp">
+    <ClInclude Include="..\ksn\include\ksn\math_common.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_common.hpp">
+    <ClInclude Include="..\ksn\include\ksn\math_complex.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_formula.hpp">
+    <ClInclude Include="..\ksn\include\ksn\math_constants.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_complex.hpp">
+    <ClInclude Include="..\ksn\include\ksn\math_constexpr.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_constants.hpp">
+    <ClInclude Include="..\ksn\include\ksn\math_fast.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_fast.hpp">
+    <ClInclude Include="..\ksn\include\ksn\math_formula.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,5 +1,4 @@
-﻿#pragma once
-
+﻿
 #ifndef _KSN_MATH_HPP_
 #define _KSN_MATH_HPP_
 

@@ -15,11 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\debug_utils.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="ksn_debug_utils_collecting_allocator_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -34,5 +29,10 @@
     <MASM Include="ksn_debug_utils_copy_debugger_impl_64.asm">
       <Filter>Source Files</Filter>
     </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ksn\include\ksn\debug_utils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

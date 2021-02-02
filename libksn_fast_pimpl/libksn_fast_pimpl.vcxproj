@@ -155,10 +155,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="D:\ksn\include\ksn\fast_pimpl.hpp" />
+    <ClCompile Include="__libksn_fast_pimpl_placeholder.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="__libksn_fast_pimpl_placeholder.cpp" />
+    <ClInclude Include="..\ksn\include\ksn\fast_pimpl.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

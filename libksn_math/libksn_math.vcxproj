@@ -167,13 +167,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math.hpp" />
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_common.hpp" />
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_complex.hpp" />
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_constants.hpp" />
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_constexpr.hpp" />
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_fast.hpp" />
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\math_formula.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math_common.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math_complex.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math_constants.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math_constexpr.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math_fast.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math_formula.hpp" />
     <ClInclude Include="formula_instructions.hpp" />
   </ItemGroup>
   <ItemGroup>

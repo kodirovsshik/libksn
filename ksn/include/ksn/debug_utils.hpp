@@ -1,3 +1,4 @@
+
 #pragma once
 
 #ifndef _KSN_DEBUG_UTILS_HPP_

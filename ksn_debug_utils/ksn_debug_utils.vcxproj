@@ -169,9 +169,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\debug_utils.hpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="ksn_debug_utils_collecting_allocator_impl.cpp" />
     <ClCompile Include="ksn_debug_utils_copy_debugger_impl.cpp" />
   </ItemGroup>
@@ -190,6 +187,9 @@
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ksn\include\ksn\debug_utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

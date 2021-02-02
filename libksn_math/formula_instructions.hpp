@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef _KSN_FORMULA_INSTRUCTIONS_HPP_
+#define _KSN_FORMULA_INSTRUCTIONS_HPP_
 
 //C = const
 //V = variable
@@ -74,3 +76,5 @@
 #define _KSN_MATH_FORMULA_EXTENDED_INSTRUCTION			0xFE
 
 #define _KSN_MATH_FORMULA_INVALID_INSTRUCTION				0xFF
+
+#endif //!_KSN_FORMULA_INSTRUCTIONS_HPP_

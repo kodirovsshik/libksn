@@ -1,3 +1,4 @@
+
 #ifndef  _KSN_MATH_CONSTEXPR_HPP_
 
 
