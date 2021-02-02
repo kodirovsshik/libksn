@@ -1,7 +1,7 @@
 ﻿
 #include <ksn/window.hpp>
 #include <ksn/stuff.hpp>
-#include <ksn/math_common.hpp>
+#include <ksn/math_constants.hpp>
 
 #include <Windows.h>
 #include <GL/GL.h>
@@ -15,8 +15,8 @@
 #pragma comment(lib, "glew32s.lib")
 
 #pragma comment(lib, "libksn_window.lib")
-#pragma comment(lib, "libksn_stuff.lib")
-#pragma comment(lib, "libksn_x86_instruction_set.lib")
+//#pragma comment(lib, "libksn_stuff.lib")
+//#pragma comment(lib, "libksn_x86_instruction_set.lib")
 
 
 
@@ -84,7 +84,7 @@ int main()
 	
 	auto* pname = "libKSN window system";
 
-	if (win.open(400, 300) != ksn::window_t::error::ok)
+	if (win.open(400, 300, pname, settings) != ksn::window_t::error::ok)
 	{
 		char buffer[256];
 		snprintf(buffer, 256, "Failed to open a window\n\n\
