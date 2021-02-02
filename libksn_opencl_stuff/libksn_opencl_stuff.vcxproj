@@ -155,11 +155,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\ksn\include\ksn\opencl_stuff.hpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="libksn_opencl_source_iota.cpp" />
     <ClCompile Include="libksn_opencl_stuff_impl.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ksn\include\ksn\opencl_stuff.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

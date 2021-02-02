@@ -2,7 +2,7 @@
 #include <ksn/ksn.hpp>
 #include <ksn/metapr.hpp>
 
-#include <concepts>
+//#include <concepts>
 
 
 

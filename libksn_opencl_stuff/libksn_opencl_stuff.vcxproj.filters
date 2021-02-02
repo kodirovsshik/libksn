@@ -18,16 +18,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\ksn\include\ksn\opencl_stuff.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="libksn_opencl_stuff_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="libksn_opencl_source_iota.cpp">
       <Filter>Source Files\opencl_sources</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ksn\include\ksn\opencl_stuff.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
