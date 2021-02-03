@@ -1,7 +1,9 @@
 ﻿
-#include <ksn/window.hpp>
 #include <ksn/stuff.hpp>
 #include <ksn/math_constants.hpp>
+
+#include <ksn/window.hpp>
+#include <ksn/graphics_engine.hpp>
 
 #include <Windows.h>
 #include <GL/GL.h>
@@ -12,9 +14,15 @@
 
 
 #pragma comment(lib, "opengl32.lib")
+#pragma comment(lib, "opencl.lib")
 #pragma comment(lib, "glew32s.lib")
 
+//OpenCL dependencies
+#pragma comment(lib, "RuntimeObject.lib")
+#pragma comment(lib, "Cfgmgr32.lib")
+
 #pragma comment(lib, "libksn_window.lib")
+#pragma comment(lib, "libksn_graphics_engine.lib")
 //#pragma comment(lib, "libksn_stuff.lib")
 //#pragma comment(lib, "libksn_x86_instruction_set.lib")
 
@@ -57,34 +65,20 @@ float sine_rough(float x)
 }
 
 
-struct type 
-{
-	int x;
-};
 
-
-int main1()
+int main()
 {
 
-	type a;
-	a.x = 1;
-
-	type* p_a = &a;
-	p_a->x = 2;
-	
+	int x[10];
+	auto p = std::launder(&x[0]);
+	ksn::graphics_engine_t ge;
 
 	return 0;
 }
 
 //GraphicsFW
-int main()
+int main1()
 {
-	bool b = 0;
-	b -= 1;
-
-	b = true;
-	int x = -b;
-
 	ksn::window_t win;
 	ksn::window_t::context_settings settings{ 4, 6 };
 	
