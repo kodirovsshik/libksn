@@ -14,7 +14,7 @@ Tech notes:
 */
 
 /*
-b
+
 
 
 */
@@ -23,17 +23,17 @@ class graphics_engine_t
 private:
 
 	struct _graphics_engine_impl;
-	fast_pimpl<_graphics_engine_impl, 1, 1> m_impl;
+	fast_pimpl<_graphics_engine_impl, 1, 1, true, true, true, true> m_impl;
 
 
 public:
-	graphics_engine_t() noexcept = default;
-	graphics_engine_t(const graphics_engine_t&) noexcept = delete;
-	graphics_engine_t(graphics_engine_t&&) noexcept = default;
-	~graphics_engine_t() noexcept = default;
+	graphics_engine_t() noexcept;
+	graphics_engine_t(const graphics_engine_t&) = delete;
+	graphics_engine_t(graphics_engine_t&&) noexcept;
+	~graphics_engine_t() noexcept;
 
 	graphics_engine_t& operator=(const graphics_engine_t&) noexcept = delete;
-	graphics_engine_t& operator=(graphics_engine_t&&) noexcept = default;
+	graphics_engine_t& operator=(graphics_engine_t&&) noexcept;
 
 
 
@@ -50,7 +50,12 @@ union color_t
 	constexpr color_t() noexcept;
 	constexpr color_t(uint8_t r, uint8_t g, uint8_t b) noexcept;
 	constexpr color_t(uint8_t r, uint8_t g, uint8_t b, uint8_t a) noexcept;
-	constexpr color_t(uint32_t) noexcept;
+	constexpr color_t(uint32_t hex) noexcept;
+	constexpr color_t(uint32_t alhpa_hex, int unused) noexcept;
+
+	constexpr color_t& operator=(const color_t&) noexcept = default;
+	constexpr color_t& operator=(color_t&&) noexcept = default;
+	constexpr color_t& operator=(uint32_t hex) noexcept;
 
 };
 
