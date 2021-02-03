@@ -134,7 +134,14 @@ template<arithmetic T>
 		_KSN_RAISE(excp);
 	}
 
-	return &detail::_func_kernels.emplace(std::piecewise_construct, std::tuple{ parametrized_name }, std::tuple{ prog, func_name }).first->second;
+	auto&& [iter, success] = detail::_func_kernels.emplace(
+		std::piecewise_construct,
+		std::tuple{ parametrized_name },
+		std::tuple{ prog, func_name }
+	);
+	if (!success) return nullptr;
+	auto& [inserted_kernel_name, inserted_kernel] = *iter;
+	return &inserted_kernel;
 }
 
 
