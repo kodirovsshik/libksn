@@ -39,9 +39,19 @@ public:
 
 };
 
-struct color_t
+union color_t
 {
-	uint8_t b, g, r, a;
+	struct
+	{
+		uint8_t b, g, r, a;
+	};
+	uint32_t color;
+
+	constexpr color_t() noexcept;
+	constexpr color_t(uint8_t r, uint8_t g, uint8_t b) noexcept;
+	constexpr color_t(uint8_t r, uint8_t g, uint8_t b, uint8_t a) noexcept;
+	constexpr color_t(uint32_t) noexcept;
+
 };
 
 struct vertex2_t

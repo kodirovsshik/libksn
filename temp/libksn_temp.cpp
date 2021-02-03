@@ -79,6 +79,12 @@ int main1()
 //GraphicsFW
 int main()
 {
+	bool b = 0;
+	b -= 1;
+
+	b = true;
+	int x = -b;
+
 	ksn::window_t win;
 	ksn::window_t::context_settings settings{ 4, 6 };
 	
