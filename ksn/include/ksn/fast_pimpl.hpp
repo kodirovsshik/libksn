@@ -83,21 +83,34 @@ public:
 	template<class... args_t>
 	fast_pimpl(args_t&& ...args) noexcept(is_nothrow_constructible)
 	{
-		new ((void*)this->ptr()) T{ std::forward<args_t>(args)... };
+		new ((void*)this->ptr()) T(std::forward<args_t>(args)...);
 	}
-	fast_pimpl(const fast_pimpl& other) noexcept(is_nothrow_copy_constructible)
+	fast_pimpl(const my_t& other) noexcept(is_nothrow_copy_constructible)
 	{
-		new (this->ptr()) T{*other};
+		new (this->ptr()) T{ *other };
 	}
-	fast_pimpl(fast_pimpl&& other) noexcept(is_nothrow_move_constructible)
+	fast_pimpl(my_t&& other) noexcept(is_nothrow_move_constructible)
 	{
 		new (this->ptr()) T{ std::move(*other) };
 	}
+
 	
 	~fast_pimpl() noexcept(is_nothrow_destructible)
 	{
 		my_t::validate<sizeof(T), alignof(T)>(0);
 		this->ptr()->~T();
+	}
+
+	fast_pimpl& operator=(const my_t& other)
+	{
+		*this->ptr() = *other.ptr();
+		return *this;
+	}
+
+	fast_pimpl& operator=(my_t&& other)
+	{
+		std::iter_swap(this->ptr(), other.ptr());
+		return *this;
 	}
 };
 
