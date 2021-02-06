@@ -5,9 +5,8 @@
 #pragma warning(disable : 4530) //False warning about exceptions enabled in <CL/OpenCL.hpp> but disabled in the project
 #endif
 
-
-#define CL_HPP_MINIMUM_OPENCL_VERSION 120
-#define CL_HPP_TARGET_OPENCL_VERSION 120
+#define CL_HPP_MINIMUM_OPENCL_VERSION 110
+#define CL_HPP_TARGET_OPENCL_VERSION 110
 #include <CL/opencl.hpp>
 
 #include <ksn/graphics_engine.hpp>
@@ -22,32 +21,32 @@ int ge_cl_platform_number = 0; //0 stands for none, use native CPU (but try exte
 std::vector<std::pair<cl::Platform, std::vector<cl::Device>>> ge_cl_impl;
 
 
-constexpr color_t::color_t() noexcept
-	: color(0xFF000000)
-{
-}
-constexpr color_t::color_t(uint8_t r_, uint8_t g_, uint8_t b_) noexcept
-	: a(0), r(r_), g(g_), b(b_)
-{
-}
-constexpr color_t::color_t(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_) noexcept
-	: a(a_), r(r_), g(g_), b(b_)
-{
-}
-constexpr color_t::color_t(uint32_t _hex) noexcept
-	: color((_hex & 0xFFFFFF) | 0x000000FF)
-{
-}
-constexpr color_t::color_t(uint32_t value, int) noexcept
-	: color(value)
-{
-}
-
-constexpr color_t& color_t::operator=(uint32_t value) noexcept
-{
-	this->color = (value & 0x00FFFFFF) | (uint32_t(this->a) << 24);
-	return *this;
-}
+//constexpr color_t::color_t() noexcept
+//	: color(0xFF000000)
+//{
+//}
+//constexpr color_t::color_t(uint8_t r_, uint8_t g_, uint8_t b_) noexcept
+//	: a(0), r(r_), g(g_), b(b_)
+//{
+//}
+//constexpr color_t::color_t(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_) noexcept
+//	: a(a_), r(r_), g(g_), b(b_)
+//{
+//}
+//constexpr color_t::color_t(uint32_t _hex) noexcept
+//	: color((_hex & 0xFFFFFF) | 0x000000FF)
+//{
+//}
+//constexpr color_t::color_t(uint32_t value, int) noexcept
+//	: color(value)
+//{
+//}
+//
+//constexpr color_t& color_t::operator=(uint32_t value) noexcept
+//{
+//	this->color = (value & 0x00FFFFFF) | (uint32_t(this->a) << 24);
+//	return *this;
+//}
 
 
 

@@ -15,7 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libksn_graphics_engine_impl.cpp">
+    <ClCompile Include="libksn_ge_shape_buffer_impl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="libksn_ge_graphics_engine_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

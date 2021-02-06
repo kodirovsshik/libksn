@@ -171,7 +171,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="libksn_graphics_engine_impl.cpp" />
+    <ClCompile Include="libksn_ge_graphics_engine_impl.cpp" />
+    <ClCompile Include="libksn_ge_shape_buffer_impl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ksn\include\ksn\graphics_engine.hpp" />
