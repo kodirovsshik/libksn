@@ -1,6 +1,7 @@
 ﻿
-#include <ksn/stuff.hpp>
+//#include <ksn/stuff.hpp>
 #include <ksn/math_constants.hpp>
+//#include <ksn/debug_utils.hpp>
 
 #include <ksn/window.hpp>
 #include <ksn/graphics_engine.hpp>
@@ -9,6 +10,7 @@
 #include <GL/GL.h>
 
 #include <exception>
+#include <vector>
 
 #include <stdio.h>
 
@@ -23,8 +25,9 @@
 
 #pragma comment(lib, "libksn_window.lib")
 #pragma comment(lib, "libksn_graphics_engine.lib")
-//#pragma comment(lib, "libksn_stuff.lib")
-//#pragma comment(lib, "libksn_x86_instruction_set.lib")
+
+
+#pragma warning(disable : 26451 4530)
 
 
 
@@ -37,9 +40,11 @@ _KSN_END
 
 #pragma warning(disable : 4996)
 
+
+
 float sine_rough(float x)
 {
-	x = fmod(x, KSN_PIf * 2);
+	x = fmodf(x, KSN_PIf * 2.f);
 	bool neg;
 	if (x > KSN_PIf)
 	{
@@ -69,18 +74,33 @@ float sine_rough(float x)
 int main()
 {
 
-	int x[10];
-	auto p = std::launder(&x[0]);
-	ksn::graphics_engine_t ge;
+	ksn::shape_buffer_t sb;
+	ksn::vertex3_t vertexes[3] = 
+	{
+		{ -0.5f, -0.5f, 0},
+		{ 0.5f, -0.5f, 0},
+		{ 0, 0.5f, 0},
+	};
+	uint32_t off = sb.registrate(vertexes, 3);
+	ksn::surface_indexed_t triangle_surface = { 0, 1, 2 };
+	uint32_t handle = sb.registrate(&triangle_surface, 1, off);
+
+	ksn::color_t obama_data[6];
+
+	ksn::texture_t obama;
+	obama.data = obama_data;
+	obama.w = 3;
+	obama.h = 2;
+	sb.registrate(&obama, 1);
+
+
 
 	return 0;
-}
 
-//GraphicsFW
-int main1()
-{
+
+
 	ksn::window_t win;
-	ksn::window_t::context_settings settings{ 4, 6 };
+	ksn::window_t::context_settings settings{ 4, 6, false };
 	
 	auto* pname = "libKSN window system";
 
