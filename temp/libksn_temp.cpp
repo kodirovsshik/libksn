@@ -25,6 +25,8 @@
 
 #pragma comment(lib, "libksn_window.lib")
 #pragma comment(lib, "libksn_graphics_engine.lib")
+#pragma comment(lib, "libksn_stuff.lib")
+#pragma comment(lib, "libksn_x86_instruction_set.lib")
 
 
 #pragma warning(disable : 26451 4530)
@@ -84,6 +86,8 @@ int main()
 	uint32_t off = sb.registrate(vertexes, 3);
 	ksn::surface_indexed_t triangle_surface = { 0, 1, 2 };
 	uint32_t handle = sb.registrate(&triangle_surface, 1, off);
+
+	
 
 	ksn::color_t obama_data[6];
 
