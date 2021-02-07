@@ -56,11 +56,11 @@ public:
 	}
 
 
-	static constexpr flag_t lowercase = 1 << 0;
-	static constexpr flag_t nospace = 1 << 1;
+	static constexpr flag_t lower_case = 1 << 0;
+	static constexpr flag_t no_space = 1 << 1;
 
 	
-	void operator()(const void* memory, size_t bytes, size_t bytes_per_line = -1, flag_t flags = 0, FILE* f = stdout);
+	size_t operator()(const void* memory, size_t bytes, size_t bytes_per_line = -1, flag_t flags = 0, FILE* f = stdout);
 
 } static &memory_dump = _memory_dump_t::instance();
 

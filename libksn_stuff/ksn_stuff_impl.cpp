@@ -45,13 +45,14 @@ size_t c32len(const char32_t* p)
 //Flags:
 //Bit 1 << 0 is for capital hex letters
 //Bit 1 << 1 is for separating space between bytes
-void _memory_dump_t::operator()(const void* _p, size_t bytes, size_t bytes_per_line, flag_t flags, FILE* fd)
+size_t _memory_dump_t::operator()(const void* _p, size_t bytes, size_t bytes_per_line, flag_t flags, FILE* fd)
 {
 	uint8_t* p = (uint8_t*)_p, * pe = p + bytes;
 	size_t byte_in_line = 0;
 	char hex_a = flags & 1 ? 'a' : 'A';
 	char buffer[4] = { 0 };
 	size_t len = flags & 2 ? 2 : 3;
+	size_t result = 0;
 
 	while (p != pe)
 	{
@@ -79,16 +80,18 @@ void _memory_dump_t::operator()(const void* _p, size_t bytes, size_t bytes_per_l
 		{
 			byte_in_line = 0;
 			buffer[2] = '\n';
-			fwrite(buffer, sizeof(char), 3, fd);
+			result += fwrite(buffer, sizeof(char), 3, fd);
 			buffer[2] = ' ';
 		}
 		else _KSN_LIKELY
 		{
-			fwrite(buffer, sizeof(char), len, fd);
+			result += fwrite(buffer, sizeof(char), len, fd);
 		}
 
 		++p;
 	}
+
+	return result;
 }
 
 
