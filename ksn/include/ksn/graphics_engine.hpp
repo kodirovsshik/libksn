@@ -3,6 +3,19 @@
 #include <ksn/fast_pimpl.hpp>
 
 
+
+static_assert(sizeof(uint8_t) == 1, "Strict integer sizes compliance required");
+static_assert(sizeof(uint16_t) == 2, "Strict integer sizes compliance required");
+static_assert(sizeof(uint32_t) == 4, "Strict integer sizes compliance required"); //-V112
+static_assert(sizeof(uint64_t) == 8, "Strict integer sizes compliance required");
+
+static_assert(sizeof(int8_t) == 1, "Strict integer sizes compliance required");
+static_assert(sizeof(int16_t) == 2, "Strict integer sizes compliance required");
+static_assert(sizeof(int32_t) == 4, "Strict integer sizes compliance required"); //-V112
+static_assert(sizeof(int64_t) == 8, "Strict integer sizes compliance required");
+
+
+
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4530) //Exceptions
@@ -12,26 +25,6 @@
 _KSN_BEGIN
 
 
-class graphics_engine_t
-{
-private:
-
-	struct _graphics_engine_impl;
-	fast_pimpl<_graphics_engine_impl, 1, 1, true, true, true, true> m_impl;
-
-
-public:
-	graphics_engine_t() noexcept;
-	graphics_engine_t(const graphics_engine_t&) = delete;
-	graphics_engine_t(graphics_engine_t&&) noexcept;
-	~graphics_engine_t() noexcept;
-
-	graphics_engine_t& operator=(const graphics_engine_t&) noexcept = delete;
-	graphics_engine_t& operator=(graphics_engine_t&&) noexcept;
-
-
-
-};
 
 union color_t
 {
@@ -131,11 +124,35 @@ public:
 	//Clears its state and deallocates the memory
 	void free() noexcept;
 
-	//void reset_vertexes() noexcept;
-	
-	//void replace(size_t, surface_t&) noexcept;
+	void invalidate_buffers() noexcept;
 
 };
+
+
+
+class graphics_engine_t
+{
+private:
+
+	struct _graphics_engine_impl;
+	fast_pimpl<_graphics_engine_impl, 1, 1, true, true, true, true> m_impl;
+
+
+public:
+	graphics_engine_t() noexcept;
+	graphics_engine_t(const graphics_engine_t&) = delete;
+	graphics_engine_t(graphics_engine_t&&) noexcept;
+	~graphics_engine_t() noexcept;
+
+	graphics_engine_t& operator=(const graphics_engine_t&) noexcept = delete;
+	graphics_engine_t& operator=(graphics_engine_t&&) noexcept;
+
+
+
+};
+
+
+
 
 
 

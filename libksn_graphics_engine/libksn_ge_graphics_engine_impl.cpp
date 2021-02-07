@@ -54,16 +54,13 @@ struct graphics_engine_t::_graphics_engine_impl
 {
 	_graphics_engine_impl() noexcept
 	{
-
 	}
 	_graphics_engine_impl(const _graphics_engine_impl&) = delete;
 	_graphics_engine_impl(_graphics_engine_impl&&) noexcept
 	{
-
 	}
 	~_graphics_engine_impl() noexcept
 	{
-
 	}
 
 	_graphics_engine_impl& operator=(const _graphics_engine_impl&) = delete;

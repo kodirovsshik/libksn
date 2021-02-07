@@ -1,24 +1,205 @@
-
+﻿
 #include <ksn/ksn.hpp>
 
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(disable : 4530) //Exceptions
+#pragma warning(disable : 4996) // >:cc
 #endif
 
 #include <ksn/graphics_engine.hpp>
+#include <ksn/stuff.hpp>
 
 #define CL_HPP_MINIMUM_OPENCL_VERSION 110
 #define CL_HPP_TARGET_OPENCL_VERSION 110
 
 #include <CL/opencl.hpp>
 
-
+//
 
 #include <numeric>
+#include <vector>
+#include <random>
 
 
 
 _KSN_BEGIN
+
+
+namespace
+{
+	std::vector<cl_platform_id> _ge_cl_platforms;
+	std::vector<std::vector<cl_device_id>> _ge_cl_devices;
+	cl_context _ge_cl_context = nullptr;
+	int _ge_cl_init_result;
+	size_t _ge_cl_platform_index = 0;
+	uint64_t _ge_cl_device_bitset = CL_DEVICE_TYPE_ALL;
+
+	void ge_cl_notifier(const char* error_info, const void* private_info, size_t private_size, void* p)
+	{
+		fprintf(stderr, "\aOpenCL context error callback invoked\n%s\n", error_info);
+
+		std::mt19937_64 engine;
+		engine.seed(time(nullptr));
+		
+		static constexpr size_t max_tries = 128;
+
+		auto binary_writer = [&]
+		(FILE* fd) -> size_t
+		{
+			return fwrite(private_info, 1, private_size, fd);
+		};
+
+		auto text_writer = [&]
+		(FILE* fd) -> size_t
+		{
+			return ksn::memory_dump(private_info, private_size, 16, 0, fd);
+		};
+
+		auto try_write = [&]
+		(bool binary) -> bool
+		{
+			size_t tries = max_tries;
+			char buffer[_MAX_PATH];
+			FILE* fd;
+
+			while (tries--)
+			{
+				unsigned long long val = engine();
+				sprintf_s(buffer, _MAX_PATH, "dump%llu.%s", val, binary ? "bin" : "txt");
+				if ((fd = fopen(buffer, binary ? "w" : "wb")) == nullptr) continue;
+
+				size_t wrote = binary ? binary_writer(fd) : text_writer(fd);
+				fclose(fd);
+				if (wrote != private_size)
+				{
+					remove(buffer);
+					continue;
+				}
+				fprintf(stderr, "OpenCL data %s dump saved to %s\n", binary ? "binary" : "text", buffer);
+				return true;
+			}
+
+			fprintf(stderr, "OpenCL data %s dump save failure\n", binary ? "binary" : "text");
+			return false;
+		};
+
+
+		int ok = 0;
+		if (try_write(false)) ok |= 1;
+		if (try_write(true)) ok |= 2;
+		if (ok == 0)
+		{
+			fwrite("OpenCL data dump:\n", 1, 18, stderr);
+			ksn::memory_dump(private_info, private_size, 16, 0, stderr);
+			fputc('\n', stderr);
+		}
+	}
+
+	void _ge_cl_load_system_info()
+	{
+		_ge_cl_platforms.clear();
+		_ge_cl_devices.clear();
+
+		uint32_t num_platforms;
+		clGetPlatformIDs(0, nullptr, &num_platforms);
+		_ge_cl_platforms.resize(num_platforms);
+		_ge_cl_devices.resize(num_platforms);
+		clGetPlatformIDs(num_platforms, _ge_cl_platforms.data(), &num_platforms);
+
+		for (uint32_t i = 0; i < num_platforms; ++i)
+		{
+			uint32_t num_devices;
+			clGetDeviceIDs(_ge_cl_platforms[i], _ge_cl_device_bitset, 0, nullptr, &num_devices);
+			_ge_cl_devices[i].resize(num_devices);
+			clGetDeviceIDs(_ge_cl_platforms[i], _ge_cl_device_bitset, num_devices, _ge_cl_devices[i].data(), &num_devices);
+		}
+	};
+
+}
+
+int ge_cl_get_init_result() noexcept
+{
+	return _ge_cl_init_result;
+}
+
+int ge_cl_initialize() noexcept
+{
+	cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)_ge_cl_platforms[_ge_cl_platform_index], 0};
+	const auto& devices = _ge_cl_devices[_ge_cl_platform_index];
+
+	_ge_cl_context = clCreateContext(properties, (uint32_t)devices.size(), devices.data(), ge_cl_notifier, nullptr, &_ge_cl_init_result);
+	return _ge_cl_init_result;
+}
+
+void ge_cl_deinitialize() noexcept
+{
+	if (_ge_cl_context) clReleaseContext(_ge_cl_context);
+	_ge_cl_context = nullptr;
+}
+
+int ge_cl_reinitialize() noexcept
+{
+	ge_cl_deinitialize();
+	return ge_cl_initialize();
+}
+
+int ge_cl_pick_devices(uint64_t mask) noexcept
+{
+	if (_ge_cl_device_bitset != mask)
+	{
+		clReleaseContext(_ge_cl_context);
+		_ge_cl_device_bitset = mask;
+		_ge_cl_load_system_info();
+		return ge_cl_reinitialize();
+	}
+	return _ge_cl_init_result;
+}
+
+int ge_cl_pick_platform(size_t n) noexcept
+{
+	if (n >= _ge_cl_platforms.size()) return 1;
+	if (_ge_cl_platform_index != n)
+	{
+		clReleaseContext(_ge_cl_context);
+		_ge_cl_platform_index = n;
+		return ge_cl_reinitialize();
+	}
+	return _ge_cl_init_result;
+}
+
+int ge_cl_pick(size_t platform, uint64_t mask) noexcept
+{
+	if (_ge_cl_platform_index != platform || _ge_cl_device_bitset != mask)
+	{
+		clReleaseContext(_ge_cl_context);
+		_ge_cl_platform_index = platform;
+		_ge_cl_device_bitset = mask;
+		if (_ge_cl_device_bitset != mask) _ge_cl_load_system_info();
+		return ge_cl_reinitialize();
+	}
+	return _ge_cl_init_result;
+}
+
+
+
+
+namespace
+{
+	struct __lib_constructor_t
+	{
+		__lib_constructor_t()
+		{
+			_ge_cl_load_system_info();
+			ge_cl_initialize();
+		}
+		~__lib_constructor_t()
+		{
+			ge_cl_deinitialize();
+		}
+	} static __lib_constructor;
+}
+
+
 
 
 
@@ -202,9 +383,9 @@ struct shape_buffer_t::_shape_buffer_impl
 
 	int flush(bool b) noexcept
 	{
-		abort(); //TODO
 
 		if (b) this->reset();
+		return -1;
 	}
 	void reset() noexcept
 	{
@@ -317,7 +498,6 @@ bool shape_buffer_t::reserve_textures(size_t n) noexcept
 {
 	return this->m_impl->reserve_textures(n);
 }
-
 
 
 
