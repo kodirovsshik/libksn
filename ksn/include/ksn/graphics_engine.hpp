@@ -96,7 +96,7 @@ struct texture_t
 class shape_buffer_t
 {
 	struct _shape_buffer_impl;
-	ksn::fast_pimpl<_shape_buffer_impl, 136, sizeof(void*), true, true, true, true> m_impl;
+	ksn::fast_pimpl<_shape_buffer_impl, 4*4*sizeof(void*) + 2*sizeof(void*) + 4, sizeof(void*), true, true, true, true> m_impl;
 
 public:
 

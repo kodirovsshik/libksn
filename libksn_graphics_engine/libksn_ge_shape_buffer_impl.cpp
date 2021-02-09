@@ -14,7 +14,61 @@
 
 #include <CL/opencl.hpp>
 
+
+
+//struct _cl_mem {};
+//struct _cl_context {};
+//struct _cl_platform_id {};
+//struct _cl_device_id {};
 //
+//typedef _cl_mem* cl_mem;
+//typedef _cl_context* cl_context;
+//typedef _cl_platform_id* cl_platform_id;
+//typedef _cl_device_id* cl_device_id;
+//
+//typedef uint64_t cl_bitset;
+//typedef uint64_t cl_context_properties;
+//typedef int32_t cl_int;
+//typedef uint32_t cl_uint;
+//
+//#define CL_DEVICE_TYPE_ALL uint64_t(-1)
+//#define CL_CONTEXT_PLATFORM -1
+//
+//cl_context clCreateContext(cl_context_properties*, cl_uint devices_number, const cl_device_id*,
+//	void (*p_callback)(const char*, const void*, size_t, void* user_data)
+//	, void* callback_data, cl_int* err)
+//{
+//	*err = 0;
+//	char data[] = "konpeko konpeko konpeko, hororaifu san-kisei no usada pekora peko doumo, doumo, doumo";
+//	p_callback("Not imlemented", data, sizeof(data), callback_data);
+//	return nullptr;
+//}
+//cl_int clReleaseContext(cl_context)
+//{
+//	return 0;
+//}
+//cl_int clReleaseBuffer(cl_mem)
+//{
+//	return 0;
+//}
+//cl_int clGetPlatformIDs(cl_uint num_entries, cl_platform_id* p, cl_uint* actual_num)
+//{
+//	if (actual_num) *actual_num = 1;
+//	if (num_entries == 0) return 0;
+//	if (p) *p = (cl_platform_id)1;
+//	return 0;
+//}
+//cl_int clGetDeviceIDs(cl_platform_id, cl_bitset device_types, cl_uint num_entries, cl_device_id* p, cl_uint* actual_num)
+//{
+//	if (actual_num) *actual_num = 1;
+//	if (num_entries == 0) return 0;
+//	if (p) *p = (cl_device_id)2;
+//	return 0;
+//}
+
+
+
+
 
 #include <numeric>
 #include <vector>
@@ -24,182 +78,66 @@
 
 _KSN_BEGIN
 
-
-namespace
+static void ge_cl_notifier(const char* error_info, const void* private_info, size_t private_size, void* p)
 {
-	std::vector<cl_platform_id> _ge_cl_platforms;
-	std::vector<std::vector<cl_device_id>> _ge_cl_devices;
-	cl_context _ge_cl_context = nullptr;
-	int _ge_cl_init_result;
-	size_t _ge_cl_platform_index = 0;
-	uint64_t _ge_cl_device_bitset = CL_DEVICE_TYPE_ALL;
+	fprintf(stderr, "\aOpenCL context error callback invoked\n%s\n", error_info);
 
-	void ge_cl_notifier(const char* error_info, const void* private_info, size_t private_size, void* p)
-	{
-		fprintf(stderr, "\aOpenCL context error callback invoked\n%s\n", error_info);
-
-		std::mt19937_64 engine;
-		engine.seed(time(nullptr));
+	std::mt19937_64 engine;
+	engine.seed(time(nullptr));
 		
-		static constexpr size_t max_tries = 128;
+	static constexpr size_t max_tries = 128;
 
-		auto binary_writer = [&]
-		(FILE* fd) -> size_t
-		{
-			return fwrite(private_info, 1, private_size, fd);
-		};
-
-		auto text_writer = [&]
-		(FILE* fd) -> size_t
-		{
-			return ksn::memory_dump(private_info, private_size, 16, 0, fd);
-		};
-
-		auto try_write = [&]
-		(bool binary) -> bool
-		{
-			size_t tries = max_tries;
-			char buffer[_MAX_PATH];
-			FILE* fd;
-
-			while (tries--)
-			{
-				unsigned long long val = engine();
-				sprintf_s(buffer, _MAX_PATH, "dump%llu.%s", val, binary ? "bin" : "txt");
-				if ((fd = fopen(buffer, binary ? "w" : "wb")) == nullptr) continue;
-
-				size_t wrote = binary ? binary_writer(fd) : text_writer(fd);
-				fclose(fd);
-				if (wrote != private_size)
-				{
-					remove(buffer);
-					continue;
-				}
-				fprintf(stderr, "OpenCL data %s dump saved to %s\n", binary ? "binary" : "text", buffer);
-				return true;
-			}
-
-			fprintf(stderr, "OpenCL data %s dump save failure\n", binary ? "binary" : "text");
-			return false;
-		};
-
-
-		int ok = 0;
-		if (try_write(false)) ok |= 1;
-		if (try_write(true)) ok |= 2;
-		if (ok == 0)
-		{
-			fwrite("OpenCL data dump:\n", 1, 18, stderr);
-			ksn::memory_dump(private_info, private_size, 16, 0, stderr);
-			fputc('\n', stderr);
-		}
-	}
-
-	void _ge_cl_load_system_info()
+	auto binary_writer = [&]
+	(FILE* fd) -> size_t
 	{
-		_ge_cl_platforms.clear();
-		_ge_cl_devices.clear();
-
-		uint32_t num_platforms;
-		clGetPlatformIDs(0, nullptr, &num_platforms);
-		_ge_cl_platforms.resize(num_platforms);
-		_ge_cl_devices.resize(num_platforms);
-		clGetPlatformIDs(num_platforms, _ge_cl_platforms.data(), &num_platforms);
-
-		for (uint32_t i = 0; i < num_platforms; ++i)
-		{
-			uint32_t num_devices;
-			clGetDeviceIDs(_ge_cl_platforms[i], _ge_cl_device_bitset, 0, nullptr, &num_devices);
-			_ge_cl_devices[i].resize(num_devices);
-			clGetDeviceIDs(_ge_cl_platforms[i], _ge_cl_device_bitset, num_devices, _ge_cl_devices[i].data(), &num_devices);
-		}
+		return fwrite(private_info, 1, private_size, fd);
 	};
 
-}
-
-int ge_cl_get_init_result() noexcept
-{
-	return _ge_cl_init_result;
-}
-
-int ge_cl_initialize() noexcept
-{
-	cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)_ge_cl_platforms[_ge_cl_platform_index], 0};
-	const auto& devices = _ge_cl_devices[_ge_cl_platform_index];
-
-	_ge_cl_context = clCreateContext(properties, (uint32_t)devices.size(), devices.data(), ge_cl_notifier, nullptr, &_ge_cl_init_result);
-	return _ge_cl_init_result;
-}
-
-void ge_cl_deinitialize() noexcept
-{
-	if (_ge_cl_context) clReleaseContext(_ge_cl_context);
-	_ge_cl_context = nullptr;
-}
-
-int ge_cl_reinitialize() noexcept
-{
-	ge_cl_deinitialize();
-	return ge_cl_initialize();
-}
-
-int ge_cl_pick_devices(uint64_t mask) noexcept
-{
-	if (_ge_cl_device_bitset != mask)
+	auto text_writer = [&]
+	(FILE* fd) -> size_t
 	{
-		clReleaseContext(_ge_cl_context);
-		_ge_cl_device_bitset = mask;
-		_ge_cl_load_system_info();
-		return ge_cl_reinitialize();
-	}
-	return _ge_cl_init_result;
-}
+		return ksn::memory_dump(private_info, private_size, 16, 0, fd);
+	};
 
-int ge_cl_pick_platform(size_t n) noexcept
-{
-	if (n >= _ge_cl_platforms.size()) return 1;
-	if (_ge_cl_platform_index != n)
+	auto try_write = [&]
+	(bool binary) -> bool
 	{
-		clReleaseContext(_ge_cl_context);
-		_ge_cl_platform_index = n;
-		return ge_cl_reinitialize();
-	}
-	return _ge_cl_init_result;
-}
+		size_t tries = max_tries;
+		char buffer[_MAX_PATH];
+		FILE* fd;
 
-int ge_cl_pick(size_t platform, uint64_t mask) noexcept
-{
-	if (_ge_cl_platform_index != platform || _ge_cl_device_bitset != mask)
-	{
-		clReleaseContext(_ge_cl_context);
-		_ge_cl_platform_index = platform;
-		_ge_cl_device_bitset = mask;
-		if (_ge_cl_device_bitset != mask) _ge_cl_load_system_info();
-		return ge_cl_reinitialize();
-	}
-	return _ge_cl_init_result;
-}
-
-
-
-
-namespace
-{
-	struct __lib_constructor_t
-	{
-		__lib_constructor_t()
+		while (tries--)
 		{
-			_ge_cl_load_system_info();
-			ge_cl_initialize();
+			unsigned long long val = engine();
+			sprintf_s(buffer, _MAX_PATH, "dump%llu.%s", val, binary ? "bin" : "txt");
+			if ((fd = fopen(buffer, binary ? "w" : "wb")) == nullptr) continue;
+
+			size_t wrote = binary ? binary_writer(fd) : text_writer(fd);
+			fclose(fd);
+			if (wrote < private_size)
+			{
+				remove(buffer);
+				continue;
+			}
+			fprintf(stderr, "OpenCL data %s dump saved to %s\n", binary ? "binary" : "text", buffer);
+			return true;
 		}
-		~__lib_constructor_t()
-		{
-			ge_cl_deinitialize();
-		}
-	} static __lib_constructor;
+
+		fprintf(stderr, "OpenCL data %s dump save failure\n", binary ? "binary" : "text");
+		return false;
+	};
+
+
+	int ok = 0;
+	if (try_write(false)) ok |= 1;
+	if (try_write(true)) ok |= 2;
+	if (ok == 0)
+	{
+		fwrite("OpenCL data dump:\n", 1, 18, stderr);
+		ksn::memory_dump(private_info, private_size, 16, 0, stderr);
+		fputc('\n', stderr);
+	}
 }
-
-
 
 
 
@@ -217,224 +155,84 @@ struct shape_buffer_t::_shape_buffer_impl
 	static_assert(sizeof(surface_data) == 68);
 	static_assert(alignof(surface_data) == 4);
 
+	template<typename T>
+	struct cl_buffer_adapter_t
+	{
+		T* m_data;
+		size_t m_count, m_capacity;
+		cl_mem m_cl;
+
+		bool reserve(size_t new_capacity) noexcept
+		{
+			if (new_capacity <= this->m_capacity) return true;
+
+			size_t memsize = new_capacity * sizeof(T);
+			T* new_ptr = (T*)malloc(memsize);
+			if (new_ptr == nullptr) return false;
+			
+			memcpy(new_ptr, this->m_data, this->m_count * sizeof(T));
+			this->m_data = p;
+			this->m_capacity = new_capacity;
+			return true;
+		}
+	};
+
 	_shape_buffer_impl() noexcept
 	{
 		memset(this, 0, sizeof(*this));
+		this->m_cl_device_types = CL_DEVICE_TYPE_ALL;
 	}
 	~_shape_buffer_impl() noexcept
 	{
-		::free(this->m_surface_buffer);
-		::free(this->m_texture_data_buffer);
-		::free(this->m_texture_offset_buffer);
-		::free(this->m_vertex_buffer);
 	}
 
+	uint64_t m_cl_device_types;
+	cl_context m_cl_context;
+	cl_buffer_adapter_t<surface_data> m_surface_buffer;
+	cl_buffer_adapter_t<vertex3_t> m_vertex_buffer;
+	cl_buffer_adapter_t<uint64_t> m_texture_descriptor_buffer;
+	cl_buffer_adapter_t<color_t> m_texture_data_buffer;
+	uint32_t m_cl_platform_number;
 
-	surface_data* m_surface_buffer;
-	size_t m_surface_capacity;
-	size_t m_surface_count;
-	cl_mem m_surface_cl_buffer;
-
-	vertex3_t* m_vertex_buffer;
-	size_t m_vertex_capacity;
-	size_t m_vertex_count;
-	cl_mem m_vertex_cl_buffer;
-
-	uint32_t* m_texture_offset_buffer;
-	uint32_t* m_texture_size_buffer;
-	size_t m_texture_capacity;
-	size_t m_texture_count;
-	cl_mem m_texture_cl_buffer;
-
-	color_t* m_texture_data_buffer;
-	size_t m_texture_data_capacity;
-	size_t m_texture_data_count;
-	cl_mem m_texture_data_cl_buffer;
-
-	template<typename T>
-	bool reserve(T*& p, size_t& cap, size_t sz, size_t ncap)
-	{
-		if (ncap <= cap) return true;
-
-		size_t diff = (ncap - cap) * sizeof(T);
-		//No more than ~8 MB memory over what we actually have been requested for
-		if constexpr (std::is_same_v<T, surface_data>)
-		{ //as a first approximation, sizeof(surface_data) = 64
-			ncap += (diff > 1024 * 1024 / 8 ? 1024 * 1024 / 8 : diff) / sizeof(T);
-		}
-		else
-		{
-			ncap += (diff > 1024 * 1024 * 8 ? 1024 * 1024 * 8 : diff) / sizeof(T);
-		}
-		T* new_p = (T*)malloc(sizeof(T) * ncap);
-		if (new_p == nullptr)
-		{
-			new_p = (T*)malloc(sizeof(T) * ncap);
-			if (new_p == nullptr) return false;
-		}
-		memcpy(new_p, p, sz * sizeof(T));
-
-		::free(p);
-		p = new_p;
-		cap = ncap;
-		return true;
-	}
-
-
-
-
-
+	
 #define validate_return(nonzero, return_value) if (!(nonzero)) return return_value; ((void)0)
+
 
 	uint32_t registrate(const surface_vectorized_t* p, size_t sz) noexcept
 	{
-		if (sz == 0) return uint32_t(-1);
-
-		uint32_t result = (uint32_t)this->m_surface_count;
-
-		validate_return(this->reserve_surfaces(this->m_surface_count + sz), -1);
-		validate_return(this->reserve_vertexes(this->m_vertex_count + sz * 3), -1);
-
-		vertex3_t* vb = this->m_vertex_buffer + this->m_vertex_count;
-		while (sz--)
-		{
-			vb[0] = p->v[0];
-			vb[1] = p->v[1];
-			vb[2] = p->v[2];
-
-			surface_data* ps = &this->m_surface_buffer[this->m_surface_count++];
-			ps->vertexes[0] = uint32_t(this->m_vertex_count + 0);
-			ps->vertexes[1] = uint32_t(this->m_vertex_count + 1);
-			ps->vertexes[2] = uint32_t(this->m_vertex_count + 2);
-
-			this->m_vertex_count += 3;
-			vb += 3;
-		}
-
-		return result;
 	}
 	uint32_t registrate(const vertex2_t* vertex_ptr, size_t vertex_counter) noexcept
 	{
-		return this->registrate_vertexes<vertex2_t>(vertex_ptr, vertex_counter);
 	}
 	uint32_t registrate(const vertex3_t* vertex_ptr, size_t vertex_counter) noexcept
 	{
-		return this->registrate_vertexes<vertex3_t>(vertex_ptr, vertex_counter);
 	}
 	uint32_t registrate(const surface_indexed_t* surfaces_ptr, size_t surfaces_count, size_t vertex_offset) noexcept
 	{
-		if (surfaces_count == 0) return -1;
-
-		validate_return(this->reserve_surfaces(this->m_surface_count + surfaces_count), -1);
-
-		for (size_t i = 0; i < surfaces_count; ++i)
-		{
-			surface_data* p = &this->m_surface_buffer[i + this->m_surface_count];
-			p->vertexes[0] = uint32_t(surfaces_ptr[i].ndx[0] + vertex_offset);
-			p->vertexes[1] = uint32_t(surfaces_ptr[i].ndx[1] + vertex_offset);
-			p->vertexes[2] = uint32_t(surfaces_ptr[i].ndx[2] + vertex_offset);
-		}
-
-		return (uint32_t)((this->m_surface_count += surfaces_count) - surfaces_count);
 	}
 	uint32_t registrate(const texture_t* p, size_t sz) noexcept
 	{
 		validate_return(sz != 0, -1);
-		validate_return(this->reserve_textures(this->m_texture_count + sz), -1);
+		//validate_return(this->reserve_textures(this->m_texture_count + sz), -1);
 
 		size_t total_pixels = std::accumulate(p, p + sz, (size_t)0, [](size_t last, const texture_t& p) { return last + size_t(p.w) * p.h; });
 
-		validate_return(this->reserve_texture_data(this->m_texture_data_count + total_pixels), -1);
-
-		for (size_t i = 0; i < sz; ++i)
-		{
-			size_t current_size = size_t(p->w) * p->h;
-
-			memcpy(this->m_texture_data_buffer + this->m_texture_data_count, p->data, current_size * sizeof(color_t));
-			this->m_texture_offset_buffer[i + this->m_texture_count] = (uint32_t)this->m_texture_data_count;
-			this->m_texture_data_count += current_size;
-
-			this->m_texture_size_buffer[i + this->m_texture_count] = p->w | uint32_t(p->h << 16); //Place w in low word, h in high
-		}
-		return uint32_t((this->m_texture_count += sz) - sz);
+		//validate_return(this->reserve_texture_data(this->m_texture_data_count + total_pixels), -1);
 	}
 
 	template<class vertex_t>
 	uint32_t registrate_vertexes(const vertex_t* p, size_t size)
 	{
-		validate_return(this->reserve_vertexes(this->m_vertex_count + size), -1);
-
-		uint32_t result = (uint32_t)this->m_vertex_count;
-		if constexpr (std::is_same_v<vertex_t, vertex3_t>)
-		{
-			memcpy(this->m_vertex_buffer + this->m_vertex_count, p, sizeof(vertex3_t) * size);
-		}
-		else
-		{
-			for (size_t i = 0; i < size; ++i)
-			{
-				this->m_vertex_buffer[i + this->m_vertex_count] = { p[i].x, p[i].y, 0 };
-			}
-			this->m_vertex_count += size;
-		}
-
-		return result;
+		//if constexpr (std::is_same_v<vertex_t, vertex3_t>)
 	}
 
 	int flush(bool b) noexcept
 	{
+		int temp_result;
+		static constexpr cl_mem_flags flags = CL_MEM_READ_ONLY;
 
 		if (b) this->reset();
-		return -1;
-	}
-	void reset() noexcept
-	{
-		this->m_surface_count = 0;
-		this->m_texture_count = 0;
-		this->m_texture_data_count = 0;
-		this->m_vertex_count = 0;
-	}
-	void free() noexcept
-	{
-		::free(this->m_surface_buffer);
-		::free(this->m_texture_data_buffer);
-		::free(this->m_texture_offset_buffer);
-		::free(this->m_vertex_buffer);
-
-		memset(this, 0, sizeof(*this));
-	}
-
-	bool reserve_surfaces(size_t n) noexcept
-	{
-		return this->reserve(this->m_surface_buffer, this->m_surface_capacity, this->m_surface_count, n);
-	}
-	bool reserve_textures(size_t n) noexcept
-	{
-		if (n <= this->m_texture_capacity) return true;
-
-		uint8_t* mem = (uint8_t*)malloc(8 * n);
-		if (!mem) return false;
-		uint32_t* p1 = (uint32_t*)mem;
-		uint32_t* p2 = (uint32_t*)(mem + 4 * n);
-
-		memcpy(p1, this->m_texture_offset_buffer, 4 * this->m_texture_count);
-		memcpy(p2, this->m_texture_size_buffer, 4 * this->m_texture_count);
-
-		::free(this->m_texture_offset_buffer);
-		::free(this->m_texture_size_buffer);
-
-		this->m_texture_offset_buffer = p1;
-		this->m_texture_size_buffer = p2;
-
-		return true;
-	}
-	bool reserve_texture_data(size_t n) noexcept
-	{
-		return this->reserve(this->m_texture_data_buffer, this->m_texture_data_capacity, this->m_texture_data_count, n);
-	}
-	bool reserve_vertexes(size_t n)
-	{
-		return this->reserve(this->m_vertex_buffer, this->m_vertex_capacity, this->m_vertex_count, n);
+		return 0;
 	}
 };
 
