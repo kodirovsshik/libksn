@@ -72,6 +72,7 @@ float sine_rough(float x)
 }
 
 
+//niffleheim
 
 int main()
 {
@@ -85,7 +86,7 @@ int main()
 	};
 	uint32_t off = sb.registrate(vertexes, 3);
 	ksn::surface_indexed_t triangle_surface = { 0, 1, 2 };
-	uint32_t handle = sb.registrate(&triangle_surface, 1, off);
+	uint32_t triangle_handle = sb.registrate(&triangle_surface, 1, off);
 
 	
 
@@ -95,9 +96,9 @@ int main()
 	obama.data = obama_data;
 	obama.w = 3;
 	obama.h = 2;
-	sb.registrate(&obama, 1);
+	uint32_t obama_handle = sb.registrate(&obama, 1);
 
-
+	sb.flush();
 
 	return 0;
 
