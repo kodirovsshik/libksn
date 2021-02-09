@@ -50,7 +50,7 @@ size_t _memory_dump_t::operator()(const void* _p, size_t bytes, size_t bytes_per
 	uint8_t* p = (uint8_t*)_p, * pe = p + bytes;
 	size_t byte_in_line = 0;
 	char hex_a = flags & 1 ? 'a' : 'A';
-	char buffer[4] = { 0 };
+	char buffer[4] = { 'x', 'x', ' ', 0};
 	size_t len = flags & 2 ? 2 : 3;
 	size_t result = 0;
 
