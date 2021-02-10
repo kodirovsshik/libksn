@@ -15,6 +15,8 @@
 
 _KSN_BEGIN
 
+_KSN_GRAPHICS_BEGIN
+
 
 
 struct graphics_engine_t::_graphics_engine_impl
@@ -57,5 +59,7 @@ graphics_engine_t& graphics_engine_t::operator=(graphics_engine_t&& other) noexc
 
 
 
+
+_KSN_GRAPHICS_END
 
 _KSN_END

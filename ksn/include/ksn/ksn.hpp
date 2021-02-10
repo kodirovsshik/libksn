@@ -22,6 +22,8 @@
 #define _KSN ::ksn::
 #define _KSN_BEGIN namespace ksn{
 #define _KSN_END }
+#define _KSN_GRAPHICS_BEGIN namespace graphics{
+#define _KSN_GRAPHICS_END }
 #define _KSN_DETAIL_BEGIN namespace detail{
 #define _KSN_DETAIL_END }
 #define _KSN_CL_BEGIN namespace cl{

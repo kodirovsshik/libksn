@@ -78,6 +78,9 @@
 
 _KSN_BEGIN
 
+
+_KSN_GRAPHICS_BEGIN
+
 static void ge_cl_notifier(const char* error_info, const void* private_info, size_t private_size, void* p)
 {
 	fprintf(stderr, "\aOpenCL context error callback invoked\n%s\n", error_info);
@@ -140,6 +143,64 @@ static void ge_cl_notifier(const char* error_info, const void* private_info, siz
 }
 
 
+static constexpr uint32_t ge_cl_platforms_static_count = 64;
+static cl_platform_id ge_cl_platforms_static[ge_cl_platforms_static_count];
+static cl_platform_id* ge_cl_platforms;
+
+
+
+namespace
+{
+	error_t ge_cl_platforms_load() noexcept
+	{
+		error_t result = error::ok;
+
+		uint32_t n;
+		clGetPlatformIDs(0, nullptr, &n);
+		if (n > ge_cl_platforms_static_count)
+		{
+			ge_cl_platforms = (cl_platform_id*)malloc(sizeof(cl_platform_id) * n);
+			if (ge_cl_platforms == nullptr)
+			{
+				ge_cl_platforms = ge_cl_platforms_static;
+				n = ge_cl_platforms_static_count;
+				result = error::out_of_memory;
+			}
+		}
+		else
+		{
+			ge_cl_platforms = ge_cl_platforms_static;
+		}
+		clGetPlatformIDs(n, ge_cl_platforms, &n);
+		return result;
+	}
+
+	void ge_cl_platforms_unload() noexcept
+	{
+		if (ge_cl_platforms != ge_cl_platforms_static) free(ge_cl_platforms);
+		ge_cl_platforms = nullptr;
+	}
+
+	struct __lib_constructor
+	{
+		__lib_constructor() noexcept
+		{
+			ge_cl_platforms_load();
+		}
+		~__lib_constructor() noexcept
+		{
+			ge_cl_platforms_unload();
+		}
+	} static constructor;
+}
+
+int ge_cl_reload_platforms() noexcept
+{
+	ge_cl_platforms_unload();
+	return ge_cl_platforms_load();
+}
+
+
 
 struct shape_buffer_t::_shape_buffer_impl
 {
@@ -158,6 +219,8 @@ struct shape_buffer_t::_shape_buffer_impl
 	template<typename T>
 	struct cl_buffer_adapter_t
 	{
+		using type = T;
+
 		T* m_data;
 		size_t m_count, m_capacity;
 		cl_mem m_cl;
@@ -171,68 +234,198 @@ struct shape_buffer_t::_shape_buffer_impl
 			if (new_ptr == nullptr) return false;
 			
 			memcpy(new_ptr, this->m_data, this->m_count * sizeof(T));
-			this->m_data = p;
+			this->m_data = new_ptr;
 			this->m_capacity = new_capacity;
 			return true;
 		}
+
+		bool reserve_more(size_t additional_units) noexcept
+		{
+			return this->reserve(this->m_count + additional_units);
+		}
+
+		int cl_create(cl_context context, cl_mem_flags flags) noexcept
+		{
+			if (this->m_cl) return 0;
+			
+			int err;
+			this->m_cl = clCreateBuffer(context, flags, this->m_count, nullptr, &err);
+			return err;
+		}
+
+		int cl_invalidate() noexcept
+		{
+			if (this->m_cl == nullptr) return 0;
+			
+			return clReleaseMemObject(this->m_cl);
+		}
+
+		void free()
+		{
+			::free(this->m_data);
+			this->m_data = nullptr;
+			this->m_capacity = 0;
+		}
 	};
 
-	_shape_buffer_impl() noexcept
+	_shape_buffer_impl(uint32_t cl_platform_number = 0, cl_bitfield cl_device_types = CL_DEVICE_TYPE_ALL, int* err = nullptr) noexcept
 	{
 		memset(this, 0, sizeof(*this));
-		this->m_cl_device_types = CL_DEVICE_TYPE_ALL;
+		this->create_context(cl_platform_number, cl_device_types, err);
 	}
 	~_shape_buffer_impl() noexcept
 	{
 	}
 
-	uint64_t m_cl_device_types;
+
 	cl_context m_cl_context;
 	cl_buffer_adapter_t<surface_data> m_surface_buffer;
 	cl_buffer_adapter_t<vertex3_t> m_vertex_buffer;
 	cl_buffer_adapter_t<uint64_t> m_texture_descriptor_buffer;
 	cl_buffer_adapter_t<color_t> m_texture_data_buffer;
-	uint32_t m_cl_platform_number;
+	
 
 	
 #define validate_return(nonzero, return_value) if (!(nonzero)) return return_value; ((void)0)
+#define validate_zero(errcode) { auto __ = errcode; if (__) return __; } ((void)0)
+#define validate_value(errcode, success) { auto __ = errcode; if (__ != success) return __; } ((void)0)
 
 
-	uint32_t registrate(const surface_vectorized_t* p, size_t sz) noexcept
+	void create_context(uint32_t platform, cl_bitfield devices, int* err) noexcept
 	{
+		cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties)ge_cl_platforms[platform], 0};
+
+		this->m_cl_context = clCreateContextFromType(props, devices, ge_cl_notifier, nullptr, err);
 	}
-	uint32_t registrate(const vertex2_t* vertex_ptr, size_t vertex_counter) noexcept
+
+	int create_context(uint32_t platform, cl_bitfield devices)
 	{
+		int result;
+		this->create_context(platform, devices, &result);
+		return result;
 	}
-	uint32_t registrate(const vertex3_t* vertex_ptr, size_t vertex_counter) noexcept
+
+	error_t registrate(const surface_vectorized_t* p, size_t sz, uint32_t& result) noexcept
 	{
+		return -1;
 	}
-	uint32_t registrate(const surface_indexed_t* surfaces_ptr, size_t surfaces_count, size_t vertex_offset) noexcept
+	error_t registrate(const vertex2_t* vertex_ptr, size_t vertex_counter, uint32_t& result) noexcept
 	{
+		return this->registrate_vertexes<vertex2_t>(vertex_ptr, vertex_counter);
 	}
-	uint32_t registrate(const texture_t* p, size_t sz) noexcept
+	error_t registrate(const vertex3_t* vertex_ptr, size_t vertex_counter, uint32_t& result) noexcept
 	{
-		validate_return(sz != 0, -1);
-		//validate_return(this->reserve_textures(this->m_texture_count + sz), -1);
+		return this->registrate_vertexes<vertex3_t>(vertex_ptr, vertex_counter);
+	}
+	error_t registrate(const surface_indexed_t* surfaces_ptr, size_t surfaces_count, size_t vertex_offset, uint32_t& result) noexcept
+	{
+		return -1;
+	}
+	error_t registrate(const texture_t* p, size_t sz, uint32_t& result) noexcept
+	{
+		validate_return(sz != 0, error::invalid_argument);
+		validate_return(this->m_texture_descriptor_buffer.reserve_more(sz), error::out_of_memory);
 
 		size_t total_pixels = std::accumulate(p, p + sz, (size_t)0, [](size_t last, const texture_t& p) { return last + size_t(p.w) * p.h; });
 
-		//validate_return(this->reserve_texture_data(this->m_texture_data_count + total_pixels), -1);
-	}
+		validate_return(this->m_texture_data_buffer.reserve_more(total_pixels), error::out_of_memory);
 
+		auto& descriptor_buffer = this->m_texture_descriptor_buffer;
+		auto& data_buffer = this->m_texture_data_buffer;
+		result = descriptor_buffer.m_count;
+
+		const texture_t* pe = p + sz;
+		while (p != pe)
+		{
+			descriptor_buffer.m_data[descriptor_buffer.m_count++] = (uint32_t)data_buffer.m_count | ((uint64_t)p->w << 32) | ((uint64_t)p->h << 48);
+
+			size_t size = p->w * p->h;
+			memcpy(data_buffer.m_data + data_buffer.m_count, p->data, size * sizeof(color_t));
+			data_buffer.m_count += size;
+			
+			++p;
+		}
+
+		return error::ok;
+	}
 	template<class vertex_t>
-	uint32_t registrate_vertexes(const vertex_t* p, size_t size)
+	error_t registrate_vertexes(const vertex_t* p, size_t size, uint32_t& result)
 	{
 		//if constexpr (std::is_same_v<vertex_t, vertex3_t>)
+		return -1;
 	}
 
-	int flush(bool b) noexcept
+	error_t flush(bool _reset) noexcept
 	{
 		int temp_result;
 		static constexpr cl_mem_flags flags = CL_MEM_READ_ONLY;
 
-		if (b) this->reset();
+
+		validate_zero(this->m_surface_buffer.cl_create(this->m_cl_context, flags));
+		validate_zero(this->m_texture_data_buffer.cl_create(this->m_cl_context, flags));
+		validate_zero(this->m_texture_descriptor_buffer.cl_create(this->m_cl_context, flags));
+		validate_zero(this->m_vertex_buffer.cl_create(this->m_cl_context, flags));
+
+		cl_device_id* devices = nullptr;
+		temp_result = clGetContextInfo(this->m_cl_context, CL_CONTEXT_DEVICES, sizeof(cl_device_id*), &devices, nullptr);
+		validate_return(devices, temp_result);
+
+		cl_command_queue q = clCreateCommandQueue(this->m_cl_context, devices[0], 0, &temp_result);
+		validate_return(q, temp_result);
+
+#define flush_buffer(buffer) validate_zero(clEnqueueWriteBuffer(q, (buffer).m_cl, CL_FALSE, 0, (buffer).m_count * sizeof(decltype(buffer)::type), (buffer).m_data, 0, nullptr, nullptr));
+		flush_buffer(this->m_surface_buffer);
+		flush_buffer(this->m_texture_data_buffer);
+		flush_buffer(this->m_texture_descriptor_buffer);
+		flush_buffer(this->m_vertex_buffer);
+#undef flush_buffer
+
+		validate_return(clFinish(q) == 0, error::out_of_memory);
+
+		if (_reset) this->reset();
 		return 0;
+	}
+
+	void reset() noexcept
+	{
+		this->m_surface_buffer.m_count = 0;
+		this->m_vertex_buffer.m_count = 0;
+		this->m_texture_data_buffer.m_count = 0;
+		this->m_texture_descriptor_buffer.m_count = 0;
+	}
+
+	void free()
+	{
+		this->m_surface_buffer.free();
+		this->m_texture_data_buffer.free();
+		this->m_texture_descriptor_buffer.free();
+		this->m_vertex_buffer.free();
+		this->reset();
+	}
+
+	void invalidate_buffers() noexcept
+	{
+		this->m_surface_buffer.cl_invalidate();
+		this->m_texture_data_buffer.cl_invalidate();
+		this->m_texture_descriptor_buffer.cl_invalidate();
+		this->m_vertex_buffer.cl_invalidate();
+	}
+
+	bool reserve_surfaces(size_t new_cap) noexcept
+	{
+		return this->m_surface_buffer.reserve(new_cap);
+	}
+	bool reserve_textures(size_t new_cap) noexcept
+	{
+		return this->m_texture_descriptor_buffer.reserve(new_cap);
+	}
+	bool reserve_texture_data(size_t new_cap) noexcept
+	{
+		return this->m_texture_data_buffer.reserve(new_cap);
+	}
+	bool reserve_vertexes(size_t new_cap) noexcept
+	{
+		return this->m_vertex_buffer.reserve(new_cap);
 	}
 };
 
@@ -298,7 +491,31 @@ bool shape_buffer_t::reserve_textures(size_t n) noexcept
 }
 
 
+void shape_buffer_t::invalidate_buffers() noexcept
+{
+	this->m_impl->invalidate_buffers();
+}
+
+bool shape_buffer_t::reserve_surfaces_add(size_t add) noexcept
+{
+	return this->m_impl->m_surface_buffer.reserve_more(add);
+}
+bool shape_buffer_t::reserve_textures_add(size_t add) noexcept
+{
+	return this->m_impl->m_texture_descriptor_buffer.reserve_more(add);
+}
+bool shape_buffer_t::reserve_texture_data_add(size_t add) noexcept
+{
+	return this->m_impl->m_texture_data_buffer.reserve_more(add);
+}
+bool shape_buffer_t::reserve_vertexes_add(size_t add) noexcept
+{
+	return this->m_impl->m_vertex_buffer.reserve_more(add);
+}
 
 
+
+
+_KSN_GRAPHICS_END
 
 _KSN_END

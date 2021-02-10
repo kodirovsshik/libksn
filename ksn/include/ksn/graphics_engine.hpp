@@ -16,15 +16,32 @@ static_assert(sizeof(int64_t) == 8, "Strict integer sizes compliance required");
 
 
 
+
+
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4530) //Exceptions
 #endif
 
 
+
+
+
 _KSN_BEGIN
 
+_KSN_GRAPHICS_BEGIN
 
+
+
+using error_t = int;
+struct error
+{
+	static constexpr error_t ok = 0;
+	static constexpr error_t invalid_argument = 1;
+	static constexpr error_t out_of_memory = 2;
+	static constexpr error_t cl_no_such_platform = 3;
+	static constexpr error_t cl_no_such_devices = 4;
+};
 
 union color_t
 {
@@ -96,7 +113,7 @@ struct texture_t
 class shape_buffer_t
 {
 	struct _shape_buffer_impl;
-	ksn::fast_pimpl<_shape_buffer_impl, 4*4*sizeof(void*) + 2*sizeof(void*) + 4, sizeof(void*), true, true, true, true> m_impl;
+	ksn::fast_pimpl<_shape_buffer_impl, 4*4*sizeof(void*) + sizeof(void*), sizeof(void*), true, true, true, true> m_impl;
 
 public:
 
@@ -109,7 +126,7 @@ public:
 	uint32_t registrate(const vertex2_t*, size_t) noexcept;
 	uint32_t registrate(const vertex3_t*, size_t) noexcept;
 	uint32_t registrate(const surface_vectorized_t*, size_t) noexcept;
-	uint32_t registrate(const surface_indexed_t*, size_t, size_t index_registred_offset) noexcept;
+	uint32_t registrate(const surface_indexed_t*, size_t, size_t vertex_index_offset) noexcept;
 	uint32_t registrate(const texture_t*, size_t) noexcept;
 
 	bool reserve_surfaces(size_t) noexcept;
@@ -117,11 +134,17 @@ public:
 	bool reserve_texture_data(size_t pixels) noexcept;
 	bool reserve_vertexes(size_t) noexcept;
 
+	bool reserve_surfaces_add(size_t) noexcept;
+	bool reserve_textures_add(size_t) noexcept;
+	bool reserve_texture_data_add(size_t pixels) noexcept;
+	bool reserve_vertexes_add(size_t) noexcept;
+
 	//Sends all accumulated data and state to a videocard and preprocesses it
 	int flush(bool reset = false) noexcept;
-	//Clears its state
+	//Clears local buffers state
 	void reset() noexcept;
-	//Clears its state and deallocates the memory
+	//Clears all the state and deallocates the memory
+	//i.e. bring to default-constructed state
 	void free() noexcept;
 
 	void invalidate_buffers() noexcept;
@@ -146,9 +169,6 @@ public:
 
 	graphics_engine_t& operator=(const graphics_engine_t&) noexcept = delete;
 	graphics_engine_t& operator=(graphics_engine_t&&) noexcept;
-
-
-
 };
 
 
@@ -157,6 +177,8 @@ public:
 
 
 //b -> rb -> r -> rg -> g -> gb -> ...
+
+_KSN_GRAPHICS_END
 
 _KSN_END
 
