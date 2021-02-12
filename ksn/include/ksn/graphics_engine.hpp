@@ -123,11 +123,11 @@ public:
 	~shape_buffer_t() noexcept;
 
 	
-	uint32_t registrate(const vertex2_t*, size_t) noexcept;
-	uint32_t registrate(const vertex3_t*, size_t) noexcept;
-	uint32_t registrate(const surface_vectorized_t*, size_t) noexcept;
-	uint32_t registrate(const surface_indexed_t*, size_t, size_t vertex_index_offset) noexcept;
-	uint32_t registrate(const texture_t*, size_t) noexcept;
+	uint32_t registrate(const vertex2_t*, size_t, error_t* = nullptr) noexcept;
+	uint32_t registrate(const vertex3_t*, size_t, error_t* = nullptr) noexcept;
+	uint32_t registrate(const surface_vectorized_t*, size_t, error_t* = nullptr) noexcept;
+	uint32_t registrate(const surface_indexed_t*, size_t, size_t vertex_index_offset, error_t* = nullptr) noexcept;
+	uint32_t registrate(const texture_t*, size_t, error_t* = nullptr) noexcept;
 
 	bool reserve_surfaces(size_t) noexcept;
 	bool reserve_textures(size_t) noexcept;

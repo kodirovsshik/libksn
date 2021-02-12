@@ -311,11 +311,11 @@ struct shape_buffer_t::_shape_buffer_impl
 	}
 	error_t registrate(const vertex2_t* vertex_ptr, size_t vertex_counter, uint32_t& result) noexcept
 	{
-		return this->registrate_vertexes<vertex2_t>(vertex_ptr, vertex_counter);
+		return this->registrate_vertexes<vertex2_t>(vertex_ptr, vertex_counter, result);
 	}
 	error_t registrate(const vertex3_t* vertex_ptr, size_t vertex_counter, uint32_t& result) noexcept
 	{
-		return this->registrate_vertexes<vertex3_t>(vertex_ptr, vertex_counter);
+		return this->registrate_vertexes<vertex3_t>(vertex_ptr, vertex_counter, result);
 	}
 	error_t registrate(const surface_indexed_t* surfaces_ptr, size_t surfaces_count, size_t vertex_offset, uint32_t& result) noexcept
 	{
@@ -447,25 +447,40 @@ shape_buffer_t::~shape_buffer_t() noexcept
 {
 }
 
-uint32_t shape_buffer_t::registrate(const vertex2_t* p, size_t sz) noexcept
+uint32_t shape_buffer_t::registrate(const vertex2_t* p, size_t sz, error_t* err) noexcept
 {
-	return this->m_impl->registrate(p, sz);
+	uint32_t result;
+	error_t err_local = this->m_impl->registrate(p, sz, result);
+	if (err) *err = err_local;
+	return result;
 }
-uint32_t shape_buffer_t::registrate(const vertex3_t* p, size_t sz) noexcept
+uint32_t shape_buffer_t::registrate(const vertex3_t* p, size_t sz, error_t* err) noexcept
 {
-	return this->m_impl->registrate(p, sz);
+	uint32_t result;
+	error_t err_local = this->m_impl->registrate(p, sz, result);
+	if (err) *err = err_local;
+	return result;
 }
-uint32_t shape_buffer_t::registrate(const surface_vectorized_t* p, size_t sz) noexcept
+uint32_t shape_buffer_t::registrate(const surface_vectorized_t* p, size_t sz, error_t* err) noexcept
 {
-	return this->m_impl->registrate(p, sz);
+	uint32_t result;
+	error_t err_local = this->m_impl->registrate(p, sz, result);
+	if (err) *err = err_local;
+	return result;
 }
-uint32_t shape_buffer_t::registrate(const surface_indexed_t* p, size_t sz, size_t off) noexcept
+uint32_t shape_buffer_t::registrate(const surface_indexed_t* p, size_t sz, size_t off, error_t* err) noexcept
 {
-	return this->m_impl->registrate(p, sz, off);
+	uint32_t result;
+	error_t err_local = this->m_impl->registrate(p, sz, off, result);
+	if (err) *err = err_local;
+	return result;
 }
-uint32_t shape_buffer_t::registrate(const texture_t* p, size_t sz) noexcept
+uint32_t shape_buffer_t::registrate(const texture_t* p, size_t sz, error_t* err) noexcept
 {
-	return this->m_impl->registrate(p, sz);
+	uint32_t result;
+	error_t err_local = this->m_impl->registrate(p, sz, result);
+	if (err) *err = err_local;
+	return result;
 }
 
 int shape_buffer_t::flush(bool release) noexcept
