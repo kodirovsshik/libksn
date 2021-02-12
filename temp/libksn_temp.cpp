@@ -73,26 +73,28 @@ float sine_rough(float x)
 
 
 //niffleheim
-
+/*
+https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-mapvirtualkeya
+*/
 int main()
 {
 
-	ksn::shape_buffer_t sb;
-	ksn::vertex3_t vertexes[3] = 
+	ksn::graphics::shape_buffer_t sb;
+	ksn::graphics::vertex3_t vertexes[3] =
 	{
 		{ -0.5f, -0.5f, 0},
 		{ 0.5f, -0.5f, 0},
 		{ 0, 0.5f, 0},
 	};
 	uint32_t off = sb.registrate(vertexes, 3);
-	ksn::surface_indexed_t triangle_surface = { 0, 1, 2 };
+	ksn::graphics::surface_indexed_t triangle_surface = { 0, 1, 2 };
 	uint32_t triangle_handle = sb.registrate(&triangle_surface, 1, off);
 
 	
 
-	ksn::color_t obama_data[6];
+	ksn::graphics::color_t obama_data[6];
 
-	ksn::texture_t obama;
+	ksn::graphics::texture_t obama;
 	obama.data = obama_data;
 	obama.w = 3;
 	obama.h = 2;
