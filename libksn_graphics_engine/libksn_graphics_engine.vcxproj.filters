@@ -15,20 +15,20 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libksn_ge_shape_buffer_impl.cpp">
+    <ClCompile Include="libksn_graphics_shape_buffer_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="libksn_ge_graphics_engine_impl.cpp">
+    <ClCompile Include="libksn_graphics_graphics_engine_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ksn\include\ksn\graphics_engine.hpp">
+    <ClInclude Include="..\ksn\include\ksn\graphics.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="libksn_ge_src_surface_preprocess.cpp">
+    <None Include="libksn_graphics_src_surface_preprocess.cpp">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

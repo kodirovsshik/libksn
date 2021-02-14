@@ -7,7 +7,7 @@
 #pragma warning(disable : 26439) // >:cc
 #endif
 
-#include <ksn/graphics_engine.hpp>
+#include <ksn/graphics.hpp>
 #include <ksn/stuff.hpp>
 
 #define CL_HPP_MINIMUM_OPENCL_VERSION 120
@@ -159,7 +159,7 @@ static cl_platform_id ge_cl_platforms_static[ge_cl_platforms_static_count];
 static cl_platform_id* ge_cl_platforms;
 
 
-#include "libksn_ge_src_surface_preprocess.cpp"
+#include "libksn_graphics_src_surface_preprocess.cpp"
 
 
 static constexpr const char* ge_cl_programs[] =

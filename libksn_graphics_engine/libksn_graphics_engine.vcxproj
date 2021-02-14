@@ -24,6 +24,7 @@
     <ProjectGuid>{6158271b-f19e-4731-aae6-669f16360923}</ProjectGuid>
     <RootNamespace>libksngraphicsengine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>libksn_graphics</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -171,12 +172,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="libksn_ge_graphics_engine_impl.cpp" />
-    <ClCompile Include="libksn_ge_shape_buffer_impl.cpp" />
-    <None Include="libksn_ge_src_surface_preprocess.cpp" />
+    <ClCompile Include="libksn_graphics_graphics_engine_impl.cpp" />
+    <ClCompile Include="libksn_graphics_shape_buffer_impl.cpp" />
+    <None Include="libksn_graphics_src_surface_preprocess.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ksn\include\ksn\graphics_engine.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\graphics.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

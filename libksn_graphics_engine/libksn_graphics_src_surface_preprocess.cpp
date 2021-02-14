@@ -1,6 +1,6 @@
 
-#ifndef _LIBKSN_GE_SRC_SIRFACE_PREPROCESS_IXX_
-#define _LIBKSN_GE_SRC_SIRFACE_PREPROCESS_IXX_
+#ifndef _LIBKSN_GRAPHICS_SRC_SURFACE_PREPROCESS_IXX_
+#define _LIBKSN_GRAPHICS_SRC_SURFACE_PREPROCESS_IXX_
 
 
 
@@ -54,4 +54,4 @@ __kernel void surface_preprocess(__global surface_data* pb_s, __global float3* p
 
 )";
 
-#endif //!_LIBKSN_GE_SRC_SIRFACE_PREPROCESS_IXX_
+#endif //!_LIBKSN_GRAPHICS_SRC_SIRFACE_PREPROCESS_IXX_

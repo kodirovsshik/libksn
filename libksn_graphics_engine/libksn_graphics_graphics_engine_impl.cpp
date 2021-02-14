@@ -9,7 +9,7 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 110
 //#include <CL/opencl.hpp>
 
-#include <ksn/graphics_engine.hpp>
+#include <ksn/graphics.hpp>
 
 
 
