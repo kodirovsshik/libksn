@@ -99,6 +99,7 @@ int main()
 	obama.w = 3;
 	obama.h = 2;
 	uint32_t obama_handle = sb.registrate(&obama, 1);
+	//temp = sb.registrate(&obama, 0);
 
 	sb.flush();
 
