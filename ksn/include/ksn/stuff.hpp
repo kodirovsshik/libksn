@@ -68,6 +68,27 @@ public:
 
 
 
+struct malloc_guard
+{
+	uintptr_t* m_data;
+	size_t m_count, m_capacity;
+
+	~malloc_guard() noexcept;
+	malloc_guard() noexcept;
+	malloc_guard(const malloc_guard&) = delete;
+	malloc_guard(malloc_guard&&) noexcept;
+
+	bool reserve(size_t n_adresses) noexcept;
+	bool reserve_more(size_t n_new_adresses) noexcept;
+
+	void* alloc(size_t memsize) noexcept;
+	void free(void*) noexcept;
+};
+
+
+
+
+
 //Tests if there is any value in memory other than the one passed into the function
 const void* memnotchr(const void* block, uint8_t value, size_t length);
 

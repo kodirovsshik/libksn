@@ -18,9 +18,12 @@
     <ClCompile Include="ksn_stuff_impl.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="ksn_stuff_malloc_guard_impl.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\ksn\include\ksn\stuff.hpp">
+    <ClInclude Include="..\ksn\include\ksn\stuff.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

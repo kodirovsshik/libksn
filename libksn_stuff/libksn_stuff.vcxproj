@@ -172,9 +172,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ksn_stuff_impl.cpp" />
+    <ClCompile Include="ksn_stuff_malloc_guard_impl.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\ksn\include\ksn\stuff.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\stuff.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
