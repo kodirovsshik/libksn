@@ -90,6 +90,10 @@ struct vertex3_t
 {
 	float x, y, z;
 };
+struct vertex4_t
+{
+	float x, y, z, w;
+};
 
 struct surface_vectorized_t
 {
@@ -113,7 +117,7 @@ struct texture_t
 class shape_buffer_t
 {
 	struct _shape_buffer_impl;
-	ksn::fast_pimpl<_shape_buffer_impl, 4*4*sizeof(void*) + sizeof(void*), sizeof(void*), true, true, true, true> m_impl;
+	ksn::fast_pimpl<_shape_buffer_impl, 4*4*sizeof(void*) + 2*sizeof(void*), sizeof(void*), true, true, true, true> m_impl;
 
 public:
 

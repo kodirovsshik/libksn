@@ -4,13 +4,14 @@
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(disable : 4530) //Exceptions
 #pragma warning(disable : 4996) // >:cc
+#pragma warning(disable : 26439) // >:cc
 #endif
 
 #include <ksn/graphics_engine.hpp>
 #include <ksn/stuff.hpp>
 
-#define CL_HPP_MINIMUM_OPENCL_VERSION 110
-#define CL_HPP_TARGET_OPENCL_VERSION 110
+#define CL_HPP_MINIMUM_OPENCL_VERSION 120
+#define CL_HPP_TARGET_OPENCL_VERSION 120
 
 #include <CL/opencl.hpp>
 
@@ -73,6 +74,16 @@
 #include <numeric>
 #include <vector>
 #include <random>
+
+
+
+
+
+#define validate_return(nonzero, return_value) if (!(nonzero)) return return_value; ((void)0)
+#define validate_zero(errcode) { auto __ = errcode; if (__) return __; } ((void)0)
+#define validate_value(errcode, success) { auto __ = errcode; if (__ != success) return __; } ((void)0)
+
+
 
 
 
@@ -148,6 +159,19 @@ static cl_platform_id ge_cl_platforms_static[ge_cl_platforms_static_count];
 static cl_platform_id* ge_cl_platforms;
 
 
+#include "libksn_ge_src_surface_preprocess.cpp"
+
+
+static constexpr const char* ge_cl_programs[] =
+{
+	ge_src_surface_proprocess 
+};
+
+static constexpr size_t ge_cl_programs_lengths[sizeof(ge_cl_programs) / sizeof(*ge_cl_programs)] =
+{
+	std::char_traits<char>::length(ge_cl_programs[0])
+};
+
 
 namespace
 {
@@ -206,14 +230,13 @@ struct shape_buffer_t::_shape_buffer_impl
 {
 	struct surface_data
 	{
-		uint32_t vertexes[3];
-		uint32_t texture_index = -1;
-		float normal[3];
+		cl_float3 b_a, c_a;
+		cl_uint vertexes[3];
+		cl_uint texture_index;
 		//Some constants for barycentric coordinates
 		float bary_d00, bary_d01, bary_d11, bary_inv_denom;
-		float b_a[3]; float c_a[3];
 	};
-	static_assert(sizeof(surface_data) == 68);
+	static_assert(sizeof(surface_data) == 64);
 	static_assert(alignof(surface_data) == 4);
 
 	template<typename T>
@@ -233,7 +256,12 @@ struct shape_buffer_t::_shape_buffer_impl
 			T* new_ptr = (T*)malloc(memsize);
 			if (new_ptr == nullptr) return false;
 			
-			memcpy(new_ptr, this->m_data, this->m_count * sizeof(T));
+			if (this->m_data)
+			{
+				memcpy(new_ptr, this->m_data, this->m_count * sizeof(T));
+				::free(this->m_data);
+			}
+
 			this->m_data = new_ptr;
 			this->m_capacity = new_capacity;
 			return true;
@@ -246,10 +274,16 @@ struct shape_buffer_t::_shape_buffer_impl
 
 		int cl_create(cl_context context, cl_mem_flags flags) noexcept
 		{
-			if (this->m_cl) return 0;
-			
+			if (this->m_cl)
+			{
+				size_t buffer_capacity = 0;
+				validate_zero(clGetMemObjectInfo(this->m_cl, CL_MEM_SIZE, sizeof(size_t), &buffer_capacity, nullptr));
+				if (this->m_count * sizeof(T) <= buffer_capacity) return 0; //Already as much as needed
+			}
+
 			int err;
-			this->m_cl = clCreateBuffer(context, flags, this->m_count, nullptr, &err);
+			size_t buffer_size = this->m_count * sizeof(*this->m_data);
+			this->m_cl = clCreateBuffer(context, flags, buffer_size + bool(!buffer_size), nullptr, &err);
 			return err;
 		}
 
@@ -265,6 +299,7 @@ struct shape_buffer_t::_shape_buffer_impl
 			::free(this->m_data);
 			this->m_data = nullptr;
 			this->m_capacity = 0;
+			this->m_count = 0;
 		}
 	};
 
@@ -278,17 +313,14 @@ struct shape_buffer_t::_shape_buffer_impl
 	}
 
 
-	cl_context m_cl_context;
 	cl_buffer_adapter_t<surface_data> m_surface_buffer;
-	cl_buffer_adapter_t<vertex3_t> m_vertex_buffer;
+	cl_buffer_adapter_t<vertex4_t> m_vertex_buffer;
 	cl_buffer_adapter_t<uint64_t> m_texture_descriptor_buffer;
 	cl_buffer_adapter_t<color_t> m_texture_data_buffer;
 	
+	cl_context m_cl_context;
+	cl_program m_program;
 
-	
-#define validate_return(nonzero, return_value) if (!(nonzero)) return return_value; ((void)0)
-#define validate_zero(errcode) { auto __ = errcode; if (__) return __; } ((void)0)
-#define validate_value(errcode, success) { auto __ = errcode; if (__ != success) return __; } ((void)0)
 
 
 	void create_context(uint32_t platform, cl_bitfield devices, int* err) noexcept
@@ -307,7 +339,27 @@ struct shape_buffer_t::_shape_buffer_impl
 
 	error_t registrate(const surface_vectorized_t* p, size_t sz, uint32_t& result) noexcept
 	{
-		return -1;
+		auto& vertex_buffer = this->m_vertex_buffer;
+		auto& surface_buffer = this->m_surface_buffer;
+		
+		validate_return(surface_buffer.reserve_more(sz), error::out_of_memory);
+		validate_return(vertex_buffer.reserve_more(sz * 3), error::out_of_memory);
+
+		result = (uint32_t)surface_buffer.m_count;
+
+		memcpy(vertex_buffer.m_data + vertex_buffer.m_count, p, sizeof(vertex3_t) * sz * 3);
+
+		for (const surface_vectorized_t* pe = p + sz; p != pe; ++p)
+		{
+			surface_data* p_surface = &surface_buffer.m_data[surface_buffer.m_count++];
+			p_surface->vertexes[0] = uint32_t(vertex_buffer.m_count + 0);
+			p_surface->vertexes[1] = uint32_t(vertex_buffer.m_count + 1);
+			p_surface->vertexes[2] = uint32_t(vertex_buffer.m_count + 2);
+
+			vertex_buffer.m_count += 3;
+		}
+
+		return error::ok;
 	}
 	error_t registrate(const vertex2_t* vertex_ptr, size_t vertex_counter, uint32_t& result) noexcept
 	{
@@ -317,70 +369,148 @@ struct shape_buffer_t::_shape_buffer_impl
 	{
 		return this->registrate_vertexes<vertex3_t>(vertex_ptr, vertex_counter, result);
 	}
-	error_t registrate(const surface_indexed_t* surfaces_ptr, size_t surfaces_count, size_t vertex_offset, uint32_t& result) noexcept
+	error_t registrate(const surface_indexed_t* p, size_t sz, size_t off, uint32_t& result) noexcept
 	{
-		return -1;
+		auto& surface_buffer = this->m_surface_buffer;
+
+		validate_return(surface_buffer.reserve_more(sz), error::out_of_memory);
+		
+		result = (uint32_t)surface_buffer.m_count;
+		
+		for (const surface_indexed_t* pe = p + sz; p != pe; ++p)
+		{
+			surface_data* p_surface = &surface_buffer.m_data[surface_buffer.m_count++];
+			p_surface->vertexes[0] = uint32_t(p->ndx[0] + off);
+			p_surface->vertexes[1] = uint32_t(p->ndx[1] + off);
+			p_surface->vertexes[2] = uint32_t(p->ndx[2] + off);
+			p_surface->texture_index = -1;
+		}
+
+		return error::ok;
 	}
 	error_t registrate(const texture_t* p, size_t sz, uint32_t& result) noexcept
 	{
-		validate_return(sz != 0, error::invalid_argument);
+		//validate_return(sz != 0, error::invalid_argument);
+		auto& descriptor_buffer = this->m_texture_descriptor_buffer;
+		auto& data_buffer = this->m_texture_data_buffer;
+		
 		validate_return(this->m_texture_descriptor_buffer.reserve_more(sz), error::out_of_memory);
 
 		size_t total_pixels = std::accumulate(p, p + sz, (size_t)0, [](size_t last, const texture_t& p) { return last + size_t(p.w) * p.h; });
-
 		validate_return(this->m_texture_data_buffer.reserve_more(total_pixels), error::out_of_memory);
 
-		auto& descriptor_buffer = this->m_texture_descriptor_buffer;
-		auto& data_buffer = this->m_texture_data_buffer;
-		result = descriptor_buffer.m_count;
+		result = (uint32_t)descriptor_buffer.m_count;
 
-		const texture_t* pe = p + sz;
-		while (p != pe)
+		for (const texture_t* pe = p + sz; p != pe; ++p)
 		{
 			descriptor_buffer.m_data[descriptor_buffer.m_count++] = (uint32_t)data_buffer.m_count | ((uint64_t)p->w << 32) | ((uint64_t)p->h << 48);
 
-			size_t size = p->w * p->h;
+			size_t size = size_t(p->w) * p->h;
 			memcpy(data_buffer.m_data + data_buffer.m_count, p->data, size * sizeof(color_t));
 			data_buffer.m_count += size;
-			
-			++p;
 		}
 
 		return error::ok;
 	}
 	template<class vertex_t>
-	error_t registrate_vertexes(const vertex_t* p, size_t size, uint32_t& result)
+	error_t registrate_vertexes(const vertex_t* p, size_t sz, uint32_t& result)
 	{
-		//if constexpr (std::is_same_v<vertex_t, vertex3_t>)
-		return -1;
+		static constexpr bool is_3 = std::is_same_v<vertex3_t, vertex_t>;
+
+		auto& vertex_buffer = this->m_vertex_buffer;
+		validate_return(this->m_vertex_buffer.reserve_more(sz), error::out_of_memory);
+
+		result = (uint32_t)vertex_buffer.m_count;
+
+		for (const vertex_t* pe = p + sz; p != pe; ++p)
+		{
+			if constexpr (is_3) 
+				vertex_buffer.m_data[vertex_buffer.m_count++] = vertex4_t{ p->x, p->y, p->z };
+			else
+				vertex_buffer.m_data[vertex_buffer.m_count++] = vertex4_t{ p->x, p->y, 0 };
+		}
+
+		return error::ok;
 	}
 
 	error_t flush(bool _reset) noexcept
 	{
 		int temp_result;
 		static constexpr cl_mem_flags flags = CL_MEM_READ_ONLY;
-
+		ksn::malloc_guard mem;
 
 		validate_zero(this->m_surface_buffer.cl_create(this->m_cl_context, flags));
 		validate_zero(this->m_texture_data_buffer.cl_create(this->m_cl_context, flags));
 		validate_zero(this->m_texture_descriptor_buffer.cl_create(this->m_cl_context, flags));
 		validate_zero(this->m_vertex_buffer.cl_create(this->m_cl_context, flags));
 
-		cl_device_id* devices = nullptr;
-		temp_result = clGetContextInfo(this->m_cl_context, CL_CONTEXT_DEVICES, sizeof(cl_device_id*), &devices, nullptr);
-		validate_return(devices, temp_result);
+		size_t devices_memsize = 0;
+		clGetContextInfo(this->m_cl_context, CL_CONTEXT_DEVICES, 0, nullptr, &devices_memsize);
+
+		cl_device_id* devices = (cl_device_id*)mem.alloc(devices_memsize);
+		validate_return(devices, error::out_of_memory);
+
+		temp_result = clGetContextInfo(this->m_cl_context, CL_CONTEXT_DEVICES, devices_memsize, devices, nullptr);
+		validate_zero(temp_result);
 
 		cl_command_queue q = clCreateCommandQueue(this->m_cl_context, devices[0], 0, &temp_result);
 		validate_return(q, temp_result);
 
-#define flush_buffer(buffer) validate_zero(clEnqueueWriteBuffer(q, (buffer).m_cl, CL_FALSE, 0, (buffer).m_count * sizeof(decltype(buffer)::type), (buffer).m_data, 0, nullptr, nullptr));
+		auto _flush_buffer = [&]<typename elem_t>
+		(const cl_buffer_adapter_t<elem_t>& buffer) -> int
+		{
+			int err = 0;
+			if (buffer.m_data && buffer.m_count)
+			{
+				err = clEnqueueWriteBuffer(q, buffer.m_cl, CL_FALSE, 0, buffer.m_count * sizeof(*buffer.m_data), buffer.m_data, 0, nullptr, nullptr);
+			}
+			return err;
+		};
+		
+
+#define flush_buffer(buffer) validate_zero(_flush_buffer(buffer))
 		flush_buffer(this->m_surface_buffer);
 		flush_buffer(this->m_texture_data_buffer);
 		flush_buffer(this->m_texture_descriptor_buffer);
 		flush_buffer(this->m_vertex_buffer);
 #undef flush_buffer
 
-		validate_return(clFinish(q) == 0, error::out_of_memory);
+		if (this->m_program == nullptr)
+		{
+			this->m_program = clCreateProgramWithSource(this->m_cl_context, sizeof(ge_cl_programs) / sizeof(*ge_cl_programs), (const char**)ge_cl_programs, ge_cl_programs_lengths, &temp_result);
+			validate_zero(temp_result);
+			temp_result = clBuildProgram(this->m_program, uint32_t(devices_memsize / sizeof(cl_device_id)), devices, "-cl-std=CL1.2", nullptr, nullptr);
+			if (temp_result)
+			{
+				size_t build_log_size;
+				clGetProgramBuildInfo(this->m_program, devices[0], CL_PROGRAM_BUILD_LOG, 0, nullptr, &build_log_size);
+				build_log_size++;
+				char* build_log = (char*)mem.alloc(build_log_size);
+				if (build_log)
+				{
+					clGetProgramBuildInfo(this->m_program, devices[0], CL_PROGRAM_BUILD_LOG, build_log_size, build_log, nullptr);
+					printf("\nBUILD LOG:\n%s\n\n", build_log);
+				}
+			}
+			validate_zero(temp_result);
+		}
+
+		
+		cl_kernel preprocess_flush_kernel = clCreateKernel(this->m_program, "surface_preprocess", &temp_result);
+		validate_zero(temp_result);
+
+		clSetKernelArg(preprocess_flush_kernel, 0, sizeof(cl_mem*), &this->m_surface_buffer.m_cl);
+		clSetKernelArg(preprocess_flush_kernel, 1, sizeof(cl_mem*), &this->m_vertex_buffer.m_cl);
+
+		size_t z1 = 0;
+
+		clEnqueueNDRangeKernel(q, preprocess_flush_kernel, 1, &z1, &this->m_surface_buffer.m_count, nullptr, 0, nullptr, nullptr);
+		//clEnqueueReadBuffer(q, this->m_surface_buffer.m_cl, CL_FALSE, 0, this->m_surface_buffer.m_count * sizeof(*this->m_surface_buffer.m_data), this->m_surface_buffer.m_data, 0, 0, 0);
+
+		temp_result = clFinish(q);
+		clReleaseKernel(preprocess_flush_kernel);
+
+		validate_zero(temp_result);
 
 		if (_reset) this->reset();
 		return 0;
@@ -449,35 +579,35 @@ shape_buffer_t::~shape_buffer_t() noexcept
 
 uint32_t shape_buffer_t::registrate(const vertex2_t* p, size_t sz, error_t* err) noexcept
 {
-	uint32_t result;
+	uint32_t result = -1;
 	error_t err_local = this->m_impl->registrate(p, sz, result);
 	if (err) *err = err_local;
 	return result;
 }
 uint32_t shape_buffer_t::registrate(const vertex3_t* p, size_t sz, error_t* err) noexcept
 {
-	uint32_t result;
+	uint32_t result = -1;
 	error_t err_local = this->m_impl->registrate(p, sz, result);
 	if (err) *err = err_local;
 	return result;
 }
 uint32_t shape_buffer_t::registrate(const surface_vectorized_t* p, size_t sz, error_t* err) noexcept
 {
-	uint32_t result;
+	uint32_t result = -1;
 	error_t err_local = this->m_impl->registrate(p, sz, result);
 	if (err) *err = err_local;
 	return result;
 }
 uint32_t shape_buffer_t::registrate(const surface_indexed_t* p, size_t sz, size_t off, error_t* err) noexcept
 {
-	uint32_t result;
+	uint32_t result = -1;
 	error_t err_local = this->m_impl->registrate(p, sz, off, result);
 	if (err) *err = err_local;
 	return result;
 }
 uint32_t shape_buffer_t::registrate(const texture_t* p, size_t sz, error_t* err) noexcept
 {
-	uint32_t result;
+	uint32_t result = -1;
 	error_t err_local = this->m_impl->registrate(p, sz, result);
 	if (err) *err = err_local;
 	return result;

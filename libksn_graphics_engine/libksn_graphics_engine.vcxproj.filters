@@ -27,4 +27,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="libksn_ge_src_surface_preprocess.cpp">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>
