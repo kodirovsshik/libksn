@@ -4,7 +4,7 @@
 //#include <ksn/debug_utils.hpp>
 
 #include <ksn/window.hpp>
-#include <ksn/graphics_engine.hpp>
+#include <ksn/graphics.hpp>
 
 #include <Windows.h>
 #include <GL/GL.h>
@@ -44,34 +44,6 @@ _KSN_END
 
 
 
-float sine_rough(float x)
-{
-	x = fmodf(x, KSN_PIf * 2.f);
-	bool neg;
-	if (x > KSN_PIf)
-	{
-		neg = true;
-		x -= KSN_PIf;
-	}
-	else
-	{
-		neg = false;
-	}
-
-	float result;
-	if (x < 0.54f) result = 0.96f * x;
-	else if (x < 2.65f)
-	{
-		float temp = x - KSN_PIf / 2;
-		result = -0.46f * temp * temp + 1;
-	}
-	else result = 0.95f * (KSN_PIf - x);
-
-	if (neg) return -result;
-	return result;
-}
-
-
 //niffleheim
 /*
 https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-mapvirtualkeya
@@ -90,7 +62,7 @@ int main()
 	ksn::graphics::surface_indexed_t triangle_surface = { 0, 1, 2 };
 	uint32_t triangle_handle = sb.registrate(&triangle_surface, 1, off);
 
-	
+
 
 	ksn::graphics::color_t obama_data[6];
 
@@ -103,12 +75,19 @@ int main()
 
 	sb.flush();
 
-	return 0;
+//	return main1();
+//}
+//
+//
+//int main1()
+//{
 
 
+	//GD bonfire
 
 	ksn::window_t win;
-	ksn::window_t::context_settings settings{ 4, 6, false };
+	ksn::window_t::context_settings settings{ 3, 1, false };
+	ksn::window_t::context_settings settings11;
 	
 	auto* pname = "libKSN window system";
 
@@ -130,6 +109,8 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 	}
 
 	
+	
+
 
 	ksn::event_t ev;
 	while (win.is_open())
@@ -140,10 +121,10 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 
 
 
-		Sleep(50);
+		Sleep(100);
 		while (win.poll_event(ev))
 		{
-			if (ev.type != ksn::event_type_t::mouse_move) ev.dump();
+			//if (ev.type != ksn::event_type_t::mouse_move) ev.dump();
 
 			//printf("m_mouse_inside = %i\n", (int32_t)bool(((uint8_t*)&win.m_impl)[78] & 32));
 
@@ -159,6 +140,7 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 				}
 			}
 		}
+		
 	}
 
 	return 0;

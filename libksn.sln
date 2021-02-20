@@ -28,7 +28,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_window", "libksn_win
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "temp_linux1", "temp_linux1\temp_linux1.vcxproj", "{F539D2C9-302F-4ABC-A681-14865A4EAA2F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_graphics_engine", "libksn_graphics_engine\libksn_graphics_engine.vcxproj", "{6158271B-F19E-4731-AAE6-669F16360923}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_graphics", "libksn_graphics_engine\libksn_graphics_engine.vcxproj", "{6158271B-F19E-4731-AAE6-669F16360923}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0371B446-4D34-4E8E-B272-65A3B784D6EA} = {0371B446-4D34-4E8E-B272-65A3B784D6EA}
 	EndProjectSection
