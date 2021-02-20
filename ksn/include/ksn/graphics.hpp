@@ -179,6 +179,22 @@ public:
 
 
 
+class render_texture_t
+{
+	struct _render_texture_impl;
+	ksn::fast_pimpl< _render_texture_impl, sizeof(void*) * 3, sizeof(void*), true, true, true, true> m_impl;
+
+public:
+
+	~render_texture_t() noexcept;
+	render_texture_t() noexcept;
+	render_texture_t(const render_texture_t&) noexcept = delete;
+	render_texture_t(render_texture_t&&) noexcept;
+
+	render_texture_t& operator=(const render_texture_t&) noexcept = delete;
+	render_texture_t& operator=(render_texture_t&&) noexcept;
+};
+
 
 //b -> rb -> r -> rg -> g -> gb -> ...
 

@@ -3,8 +3,8 @@
 
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(disable : 4530) //Exceptions
-#pragma warning(disable : 4996) // >:cc
 #pragma warning(disable : 26439) // >:cc
+#pragma warning(disable : 4996) // >:cccc
 #endif
 
 #include <ksn/graphics.hpp>
@@ -505,7 +505,7 @@ struct shape_buffer_t::_shape_buffer_impl
 		size_t z1 = 0;
 
 		clEnqueueNDRangeKernel(q, preprocess_flush_kernel, 1, &z1, &this->m_surface_buffer.m_count, nullptr, 0, nullptr, nullptr);
-		//clEnqueueReadBuffer(q, this->m_surface_buffer.m_cl, CL_FALSE, 0, this->m_surface_buffer.m_count * sizeof(*this->m_surface_buffer.m_data), this->m_surface_buffer.m_data, 0, 0, 0);
+		clEnqueueReadBuffer(q, this->m_surface_buffer.m_cl, CL_FALSE, 0, this->m_surface_buffer.m_count * sizeof(*this->m_surface_buffer.m_data), this->m_surface_buffer.m_data, 0, 0, 0);
 
 		temp_result = clFinish(q);
 		clReleaseKernel(preprocess_flush_kernel);

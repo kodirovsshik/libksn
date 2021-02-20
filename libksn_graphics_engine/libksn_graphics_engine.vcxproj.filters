@@ -21,6 +21,9 @@
     <ClCompile Include="libksn_graphics_graphics_engine_impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="libksn_graphics_render_texture_impl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ksn\include\ksn\graphics.hpp">

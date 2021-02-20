@@ -173,6 +173,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="libksn_graphics_graphics_engine_impl.cpp" />
+    <ClCompile Include="libksn_graphics_render_texture_impl.cpp" />
     <ClCompile Include="libksn_graphics_shape_buffer_impl.cpp" />
     <None Include="libksn_graphics_src_surface_preprocess.cpp" />
   </ItemGroup>
