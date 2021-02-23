@@ -30,6 +30,11 @@ render_texture_t::render_texture_t(render_texture_t&& r) noexcept
 {
 
 }
+render_texture_t& render_texture_t::operator=(render_texture_t&& r) noexcept
+{
+	std::swap(this->m_impl, r.m_impl);
+	return *this;
+}
 
 
 
@@ -48,6 +53,10 @@ struct render_texture_t::_render_texture_impl
 	ksn::ppvector<q_element> m_q;//ueue
 
 
+	~_render_texture_impl() noexcept
+	{
+		this->destroy();
+	}
 	_render_texture_impl() noexcept
 		: m_data(nullptr), m_width(0), m_height(0)
 	{
@@ -58,6 +67,15 @@ struct render_texture_t::_render_texture_impl
 		: m_data(r.m_data), m_width(r.m_width), m_height(r.m_height)
 	{
 		r._render_texture_impl::_render_texture_impl();
+	}
+
+	_render_texture_impl& operator=(const _render_texture_impl&) noexcept = delete;
+	_render_texture_impl& operator=(_render_texture_impl&& r) noexcept
+	{
+		std::swap(this->m_q, r.m_q);
+		std::swap(this->m_width, r.m_width);
+		std::swap(this->m_height, r.m_height);
+		return *this;
 	}
 
 	void destroy() noexcept

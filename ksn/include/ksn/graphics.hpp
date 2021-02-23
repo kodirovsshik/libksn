@@ -182,7 +182,7 @@ public:
 class render_texture_t
 {
 	struct _render_texture_impl;
-	ksn::fast_pimpl< _render_texture_impl, sizeof(void*) * 3, sizeof(void*), true, true, true, true> m_impl;
+	ksn::fast_pimpl< _render_texture_impl, sizeof(void*) * 6, sizeof(void*), true, true, true, true> m_impl;
 
 public:
 
