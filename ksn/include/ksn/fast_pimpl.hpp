@@ -17,7 +17,9 @@ template<class T, size_t size, size_t alignment,
 	bool is_nothrow_copy_constructible = false,
 	bool is_nothrow_move_constructible = false,
 	bool is_nothrow_destructible = false,
-	bool is_nothrow_constructible = false
+	bool is_nothrow_constructible = false,
+	bool is_nothrow_copy_assignable = false,
+	bool is_nothrow_move_assignable = false
 >
 class fast_pimpl
 {
@@ -102,13 +104,13 @@ public:
 		this->ptr()->~T();
 	}
 
-	fast_pimpl& operator=(const my_t& other)
+	fast_pimpl& operator=(const my_t& other) noexcept(is_nothrow_copy_assignable)
 	{
 		*this->ptr() = *other.ptr();
 		return *this;
 	}
 
-	fast_pimpl& operator=(my_t&& other)
+	fast_pimpl& operator=(my_t&& other) noexcept(is_nothrow_move_assignable)
 	{
 		std::iter_swap(this->ptr(), other.ptr());
 		return *this;
