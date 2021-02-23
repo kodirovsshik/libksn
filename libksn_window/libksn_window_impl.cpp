@@ -1041,5 +1041,10 @@ bool window_t::is_current() const noexcept
 	return wglGetCurrentContext() == this->m_impl->m_context;
 }
 
+void window_t::swap_buffers() const noexcept
+{
+	wglSwapLayerBuffers(this->m_impl->m_hdc, PFD_MAIN_PLANE);
+}
+
 
 _KSN_END

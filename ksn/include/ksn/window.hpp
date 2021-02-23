@@ -450,6 +450,7 @@ public:
 	bool has_focus() const noexcept;
 	void request_focus() const noexcept;
 
+	void swap_buffers() const noexcept;
 };
 
 
