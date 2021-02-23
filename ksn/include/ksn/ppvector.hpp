@@ -7,8 +7,10 @@
 #include <ksn/metapr.hpp>
 
 #include <stdlib.h>
-#include <type_traits>
 #include <string.h>
+
+#include <iterator>
+#include <type_traits>
 
 
 
@@ -20,12 +22,15 @@ _KSN_BEGIN
 template<typename T> requires(!std::is_const_v<T> && !std::is_volatile_v<T> && std::is_trivial_v<T>)
 struct ppvector
 {
-//#ifndef _KSN_PPVECTOR_NO_TRIVIAL_TYPE_CHECK_
-//	static_assert(std::is_trivial_v<T>, "ksn::ppvector only works with trivial types. #define _KSN_PPVECTOR_NO_TRIVIAL_TYPE_CHECK_ to suppress this warning");
-//#endif // !_KSN_PPVECTOR_NO_TRIVIAL_TYPE_CHECK_
-
 	size_t m_count, m_capacity;
 	T* m_buffer;
+
+
+	using iterator = T*;
+	using const_iterator = const T*;
+	using reverse_iterator = std::reverse_iterator<iterator>;
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+	
 
 	~ppvector() noexcept
 	{
@@ -128,6 +133,62 @@ struct ppvector
 		}
 	}
 
+
+
+	iterator begin() noexcept
+	{
+		return iterator(this->m_buffer);
+	}
+	const_iterator begin() const noexcept
+	{
+		return iterator(this->m_buffer);
+	}
+	const_iterator cbegin() const noexcept
+	{
+		return iterator(this->m_buffer);
+	}
+	
+	reverse_iterator rbegin() noexcept
+	{
+		return reverse_iterator(this->m_buffer + this->m_count - 1);
+	}
+	const_reverse_iterator rbegin() const noexcept
+	{
+		return const_reverse_iterator(this->m_buffer + this->m_count - 1);
+	}
+	const_reverse_iterator crbegin() const noexcept
+	{
+		return const_reverse_iterator(this->m_buffer + this->m_count - 1);
+	}
+	
+	iterator end() noexcept
+	{
+		return iterator(this->m_buffer + this->m_count);
+	}
+	const_iterator end() const noexcept
+	{
+		return iterator(this->m_buffer + this->m_count);
+	}
+	const_iterator cend() const noexcept
+	{
+		return iterator(this->m_buffer + this->m_count);
+	}
+
+	reverse_iterator rend() noexcept
+	{
+		return reverse_iterator(this->m_buffer - 1);
+	}
+	const_reverse_iterator rend() const noexcept
+	{
+		return const_reverse_iterator(this->m_buffer - 1);
+	}
+	const_reverse_iterator crend() const noexcept
+	{
+		return const_reverse_iterator(this->m_buffer - 1);
+	}
+
+
+
 	bool reserve(size_t new_capacity) noexcept
 	{
 		if (this->m_capacity >= new_capacity) return true;
@@ -157,9 +218,9 @@ struct ppvector
 
 	bool shrink() noexcept
 	{
-		if (this->m_capacity > this->m_count)
+		if (this->m_capacity >= this->m_count)
 		{
-			if ((this->m_buffer = realloc(this->m_buffer, this->m_count * sizeof(T))) == nullptr)
+			if ((this->m_buffer = (T*)realloc(this->m_buffer, this->m_count * sizeof(T))) == nullptr)
 			{
 				void* new_mem = malloc(this->m_count * sizeof(T));
 				if (new_mem = nullptr) return false;
@@ -188,7 +249,6 @@ struct ppvector
 	{
 		return this->m_count;
 	}
-
 	size_t capacity() const noexcept
 	{
 		return this->m_capacity;
