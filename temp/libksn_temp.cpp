@@ -1,6 +1,7 @@
 ﻿
 //#include <ksn/stuff.hpp>
 #include <ksn/math_constants.hpp>
+#include <ksn/ppvector.hpp>
 //#include <ksn/debug_utils.hpp>
 
 #include <ksn/window.hpp>
@@ -48,50 +49,67 @@ _KSN_END
 /*
 https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-mapvirtualkeya
 */
+
+struct object3d
+{
+	ksn::ppvector<ksn::graphics::vertex3_t> vertexes;
+	ksn::ppvector<ksn::graphics::surface_indexed_t> surfaces;
+
+	uint32_t m_handle = uint32_t(-1);
+
+	bool registreate(ksn::graphics::shape_buffer_t& sb, ksn::graphics::error_t* err = nullptr)
+	{
+		uint32_t off = sb.registrate(vertexes.m_buffer, vertexes.size(), err);
+		if (off == -1) return false;
+
+		this->m_handle = sb.registrate(surfaces.m_buffer, surfaces.size(), off, err);
+		return this->m_handle != -1;
+	}
+};
+
 int main()
 {
-
+	
 	ksn::graphics::shape_buffer_t sb;
-	ksn::graphics::vertex3_t vertexes[3] =
-	{
-		{ -0.5f, -0.5f, 0},
-		{ 0.5f, -0.5f, 0},
-		{ 0, 0.5f, 0},
+
+	object3d triangle
+	{ 
+		{
+			{ -0.5f, -0.5f, 0},
+			{ 0.5f, -0.5f, 0},
+			{ 0, 0.5f, 0},
+		}, 
+		{
+			{0, 1, 2}
+		} 
 	};
-	uint32_t off = sb.registrate(vertexes, 3);
-	ksn::graphics::surface_indexed_t triangle_surface = { 0, 1, 2 };
-	uint32_t triangle_handle = sb.registrate(&triangle_surface, 1, off);
 
+	if (!triangle.registreate(sb)) return 1;
 
+	//ksn::graphics::color_t obama_data[6];
 
-	ksn::graphics::color_t obama_data[6];
-
-	ksn::graphics::texture_t obama;
-	obama.data = obama_data;
-	obama.w = 3;
-	obama.h = 2;
-	uint32_t obama_handle = sb.registrate(&obama, 1);
-	//temp = sb.registrate(&obama, 0);
+	//ksn::graphics::texture_t obama;
+	//obama.data = obama_data;
+	//obama.w = 3;
+	//obama.h = 2;
+	//uint32_t obama_handle = sb.registrate(&obama, 1);
 
 	sb.flush();
 
-//	return main1();
-//}
-//
-//
-//int main1()
-//{
 
 
 	//GD bonfire
 
+	static constexpr size_t w = 400;
+	static constexpr size_t h = 300;
+
 	ksn::window_t win;
-	ksn::window_t::context_settings settings{ 3, 1, false };
+	ksn::window_t::context_settings settings{ 3, 1, 24, false };
 	ksn::window_t::context_settings settings11;
 	
 	auto* pname = "libKSN window system";
 
-	if (win.open(400, 300, pname, settings) != ksn::window_t::error::ok)
+	if (win.open(w, h, pname, settings) != ksn::window_t::error::ok)
 	{
 		char buffer[256];
 		snprintf(buffer, 256, "Failed to open a window\n\n\
@@ -110,16 +128,34 @@ WinAPI error status: 0x%08X\nOpenGL error status: 0x%08X\n", (int)GetLastError()
 
 	
 	
+	void* data = malloc(w * h * 4);
+	if (!data) return 3;
+	memset(data, 0, w * h * 4);
 
 
 	ksn::event_t ev;
 	while (win.is_open())
 	{
-
-
 		//Main loop
 
 
+
+
+
+
+		//Draw
+
+		glClearColor(1, 1, 0, 1);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glFlush();
+		//glFinish();
+		
+		//glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		win.swap_buffers();
+
+
+
+		//Sleep & process events
 
 		Sleep(100);
 		while (win.poll_event(ev))
