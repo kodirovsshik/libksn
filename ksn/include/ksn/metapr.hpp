@@ -85,6 +85,11 @@ static constexpr bool is_compatible_v = is_compatible<A, B>::value;
 
 
 
+template<class WHAT, class TO>
+concept universal_reference = ksn::is_same_to_cv_v<std::remove_reference_t<TO>, std::remove_reference_t<WHAT>>;
+
+
+
 _KSN_END
 
 
