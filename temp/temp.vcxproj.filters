@@ -15,16 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libksn_temp.cpp">
+    <ClCompile Include="libksn_temp1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="ksn_long_jump_impl64.asm">
-      <Filter>Source Files</Filter>
-    </MASM>
     <MASM Include="libksn_temp64.asm">
       <Filter>Source Files</Filter>
     </MASM>
+    <MASM Include="ksn_long_jump_impl64.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="libksn_temp.cpp">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
