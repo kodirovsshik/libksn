@@ -21,6 +21,26 @@ _KSN_BEGIN
 
 
 
+template<class T, size_t N>
+constexpr size_t countof(const T(&)[N]) noexcept
+{
+	return N;
+}
+
+
+
+
+
+template<class ...args_t>
+constexpr void nop(args_t&&...) noexcept
+{
+
+}
+
+
+
+
+
 size_t c16len(const char16_t* String);
 
 size_t c32len(const char32_t* String);
