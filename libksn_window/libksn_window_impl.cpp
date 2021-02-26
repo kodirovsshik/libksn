@@ -661,7 +661,7 @@ public:
 		if (result == error::ok)
 		{
 			//Window is created hidden initially
-			ShowWindow(this->m_window, SW_SHOW);
+			if (!(style & window_t::style::hidden)) ShowWindow(this->m_window, SW_SHOW);
 
 			//Check whether mouse is initially inside the window
 			{
@@ -726,12 +726,12 @@ public:
 		constexpr static UINT winapi_flags[] =
 		{
 			WS_BORDER, //Border = 1, WS_BORDER
-			WS_SYSMENU | WS_CAPTION, //Close button = 2, WS_SYSMENU
-			WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU, //Minmax buttons = 4, WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU
+			WS_SYSMENU | WS_CAPTION, //Close button = 2, WS_SYSMENU.
+			WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX, //Minimize button = 4, WS_MINIMIZEBOX
 			WS_THICKFRAME, //Resize = 8, WS_THICKFRAME
 			WS_CAPTION, //Caption = 16, WS_CAPTION
 			0, //Fullscreen = 32
-			0,
+			WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX, //Maximize button = 64, WS_MAXIMIZEBOX
 			0
 		};
 
@@ -771,7 +771,7 @@ public:
 		this->m_hdc = GetDC(this->m_window);
 		if (this->m_hdc == nullptr) return error::system_error;
 
-		this->m_is_closing = false;
+		//this->m_is_closing = false;
 
 		//For OpenGL version > 1.1 use ARB extension to create a context
 		if (settings.ogl_version_major > 1 || (settings.ogl_version_major == 1 && settings.ogl_version_minor > 1))
@@ -802,18 +802,18 @@ public:
 				my_t::glew_initialized = true;
 			}
 
-			const auto& [v_maj, v_min, _unused1, compatibility, _unused2] = settings;
+			const auto& [v_maj, v_min, bpp, compatibility, debug] = settings;
 			//If extension is available
 			if (wglCreateContextAttribsARB)
 			{
 				int attributes[] =
 				{
-					WGL_CONTEXT_MAJOR_VERSION_ARB, settings.ogl_version_major,
-					WGL_CONTEXT_MINOR_VERSION_ARB, settings.ogl_version_minor,
-					WGL_CONTEXT_PROFILE_MASK_ARB, settings.ogl_compatibility_profile
+					WGL_CONTEXT_MAJOR_VERSION_ARB, v_maj,
+					WGL_CONTEXT_MINOR_VERSION_ARB, v_min,
+					WGL_CONTEXT_PROFILE_MASK_ARB, compatibility
 						? WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB
 						: WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-					WGL_CONTEXT_FLAGS_ARB, settings.ogl_debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0,
+					WGL_CONTEXT_FLAGS_ARB, debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0,
 					0
 				};
 
@@ -882,7 +882,18 @@ public:
 			if (!my_t::_process_pfd(this->m_hdc, settings.bits_per_color)) return error::system_error;
 
 			this->m_context = wglCreateContext(this->m_hdc);
-			return (this->m_context) ? error::ok : error::opengl_error;
+			if (this->m_context == nullptr) return error::opengl_error;
+
+			HGLRC previous_context = wglGetCurrentContext();
+			HDC previous_hdc = wglGetCurrentDC();
+			
+			wglMakeCurrent(this->m_hdc, this->m_context);
+			
+			glewExperimental = true;
+			my_t::glew_initialized = glewInit() == GLEW_OK;
+			
+			wglMakeCurrent(previous_hdc, previous_context);
+			return error::ok;
 		}
 	}
 
@@ -901,25 +912,39 @@ HDC window_t::_window_impl::s_screen_hdc = GetDC(nullptr);
 bool window_t::_window_impl::glew_initialized = false;
 
 
-static int __library_constructor = []() -> int
+
+
+namespace
 {
-	WNDCLASSA wcA{};
-	WNDCLASSW wcW{};
+	struct __library_constructor_t
+	{
+		__library_constructor_t() noexcept
+		{
+			WNDCLASSA wcA{};
+			WNDCLASSW wcW{};
 
-	wcA.lpszClassName = "_LIBKSN_windowA";
-	wcW.lpszClassName = L"_LIBKSN_windowW";
+			wcA.lpszClassName = "_LIBKSN_windowA";
+			wcW.lpszClassName = L"_LIBKSN_windowW";
 
-	wcA.hCursor = LoadCursorA(nullptr, (LPCSTR)IDC_ARROW);
-	wcW.hCursor = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
+			wcA.hCursor = LoadCursorA(nullptr, (LPCSTR)IDC_ARROW);
+			wcW.hCursor = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
 
-	wcA.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procA;
-	wcW.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procW;
+			wcA.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procA;
+			wcW.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procW;
 
-	RegisterClassA(&wcA);
-	RegisterClassW(&wcW);
+			RegisterClassA(&wcA);
+			RegisterClassW(&wcW);
+		}
 
-	return 0;
-}();
+		~__library_constructor_t() noexcept
+		{
+			ReleaseDC(nullptr, window_t::_window_impl::s_screen_hdc);
+			UnregisterClassA("_LIBKSN_windowA", NULL);
+			UnregisterClassW(L"_LIBKSN_windowW", NULL);
+		}
+
+	} static __library_constructor;
+}
 
 
 
@@ -980,6 +1005,7 @@ bool window_t::poll_event(event_t& event) noexcept
 	MSG native;
 	while (PeekMessageW(&native, this->m_impl->m_window, 0, 0, PM_REMOVE))
 	{
+		//printf("c");
 		TranslateMessage(&native);
 		DispatchMessageW(&native);
 	}
@@ -992,6 +1018,23 @@ bool window_t::poll_event(event_t& event) noexcept
 	}
 	return false;
 }
+//bool window_t::poll_event(event_t& event) noexcept
+//{
+//	MSG native;
+//	if (PeekMessageW(&native, this->m_impl->m_window, 0, 0, PM_REMOVE))
+//	{
+//		TranslateMessage(&native);
+//		DispatchMessageW(&native);
+//	}
+//
+//	if (this->m_impl->m_queue.size() != 0)
+//	{
+//		event = this->m_impl->m_queue.front();
+//		this->m_impl->m_queue.pop_front();
+//		return true;
+//	}
+//	return false;
+//}
 bool window_t::wait_event(event_t& event) noexcept
 {
 	if (this->m_impl->m_queue.size() != 0)
@@ -1011,20 +1054,20 @@ bool window_t::wait_event(event_t& event) noexcept
 	return this->poll_event(event);
 }
 
-bool window_t::poll_native_event(MSG& msg) const noexcept
+void window_t::discard_all_events() noexcept
 {
-	bool got_message = PeekMessageW(&msg, this->m_impl->m_window, 0, 0, PM_REMOVE) > 0;
-	if (!got_message) return false;
-	this->m_impl->_process_msg(msg);
-	return true;
-
+	this->discard_stored_events();
+	this->m_impl->m_queue.clear();
 }
-bool window_t::wait_native_event(MSG& msg) const noexcept
+void window_t::discard_stored_events() noexcept
 {
-	bool got_message = GetMessageW(&msg, this->m_impl->m_window, 0, 0) >= 0;
-	if (!got_message) return false;
-	this->m_impl->_process_msg(msg);
-	return true;
+	this->m_impl->m_queue.clear();
+	MSG native;
+	while (PeekMessageW(&native, this->m_impl->m_window, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&native);
+		DispatchMessageW(&native);
+	}
 }
 
 bool window_t::is_open() const noexcept
@@ -1043,7 +1086,83 @@ bool window_t::is_current() const noexcept
 
 void window_t::swap_buffers() const noexcept
 {
-	wglSwapLayerBuffers(this->m_impl->m_hdc, PFD_MAIN_PLANE);
+	SwapBuffers(this->m_impl->m_hdc);
+}
+
+uint16_t window_t::get_width() const noexcept
+{
+	WINDOWINFO wi;
+	wi.cbSize = sizeof(wi);
+	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return 0;
+	return uint16_t(wi.rcClient.right - wi.rcClient.left);
+}
+uint16_t window_t::get_height() const noexcept
+{
+	WINDOWINFO wi;
+	wi.cbSize = sizeof(wi);
+	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return 0;
+	return uint16_t(wi.rcClient.bottom - wi.rcClient.top);
+}
+std::pair<uint16_t, uint16_t> window_t::get_size() const noexcept
+{
+	WINDOWINFO wi;
+	wi.cbSize = sizeof(wi);
+	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return { 0, 0 };
+	return { uint16_t(wi.rcClient.right - wi.rcClient.left), uint16_t(wi.rcClient.bottom - wi.rcClient.top) };
+}
+
+void window_t::set_vsync_auto(bool enabled) const noexcept
+{
+	if (wglSwapIntervalEXT == nullptr) return;
+
+	if (enabled && !this->get_vsync_auto_available()) return;
+	wglSwapIntervalEXT(-(int)enabled);
+}
+void window_t::set_vsync_enabled(bool enabled) const noexcept
+{
+	if (wglSwapIntervalEXT == nullptr) return;
+
+	wglSwapIntervalEXT((int)enabled);
+}
+bool window_t::get_vsync_auto_available() const noexcept
+{
+	return glewGetExtension("WGL_SWAP_CONTROL_TEAR");
+}
+bool window_t::get_vsync_available() const noexcept
+{
+	return wglSwapIntervalEXT != nullptr;
+}
+int window_t::set_vsync_auto_or_enabled(bool enabled) const noexcept
+{
+	if (wglSwapIntervalEXT == nullptr) return -1;
+
+	if (enabled)
+	{
+		if (this->get_vsync_auto_available())
+		{
+			wglSwapIntervalEXT(-1);
+			return 1;
+		}
+		else
+		{
+			wglSwapIntervalEXT(1);
+			return 0;
+		}
+	}
+	else
+	{
+		wglSwapIntervalEXT(0);
+		return 0;
+	}
+}
+
+void window_t::hide() const noexcept
+{
+	ShowWindow(this->m_impl->m_window, SW_HIDE);
+}
+void window_t::show() const noexcept
+{
+	ShowWindow(this->m_impl->m_window, SW_SHOW);
 }
 
 

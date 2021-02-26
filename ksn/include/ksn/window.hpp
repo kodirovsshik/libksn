@@ -345,20 +345,21 @@ public:
 public:
 
 #ifdef _WIN32
+
+	using native_window_t = HWND__*;
+	using native_context_t = HGLRC__*;
+	using native_event_t = tagMSG;
+
 	#ifdef _WIN64
 		ksn::fast_pimpl<_window_impl, 80, 8, true, true, true, true> m_impl;
 	#else
-		ksn::fast_pimpl<_window_impl, 12, 4, true, true, true, true> m_impl;
+		ksn::fast_pimpl<_window_impl, 48, 4, true, true, true, true> m_impl;
 	#endif
 #else
 
 #error This platform is not (possibly yet) supported by <ksn/window.hpp>
 
 #endif
-
-	using native_window_t = HWND__*;
-	using native_context_t = HGLRC__*;
-	using native_event_t = tagMSG;
 
 
 
@@ -376,10 +377,14 @@ public:
 	{
 		static constexpr style_t border = 1;
 		static constexpr style_t close_button = 2;
-		static constexpr style_t close_min_max = 4;
+		static constexpr style_t min_button = 4;
 		static constexpr style_t resize = 8;
 		static constexpr style_t caption = 16;
 		static constexpr style_t fullscreen = 32;
+		static constexpr style_t max_button = 64;
+		static constexpr style_t hidden = 128;
+
+		static constexpr style_t close_min_max = min_button | max_button | close_button	;
 
 		static constexpr style_t default_style = border | close_min_max | resize | caption;
 	};
@@ -387,7 +392,7 @@ public:
 	using error_t = uint8_t;
 	struct error
 	{
-		//All fine, window is opened
+		//All fine
 		static constexpr error_t ok = 0;
 
 		//Not (possibly yet) implemented by the library
@@ -437,10 +442,11 @@ public:
 	void close() noexcept;
 
 	bool poll_event(event_t&) noexcept;
+	//bool poll_events(event_t&) noexcept;
 	bool wait_event(event_t&) noexcept;
 
-	bool poll_native_event(native_event_t&) const noexcept;
-	bool wait_native_event(native_event_t&) const noexcept;
+	void discard_all_events() noexcept;
+	void discard_stored_events() noexcept;
 
 	bool is_open() const noexcept;
 
@@ -451,6 +457,30 @@ public:
 	void request_focus() const noexcept;
 
 	void swap_buffers() const noexcept;
+
+	uint16_t get_width() const noexcept;
+	uint16_t get_height() const noexcept;
+	std::pair<uint16_t, uint16_t> get_size() const noexcept;
+
+	//automatically enables VSync if FPS > monitor resresh rate and disabled otherwise
+	//must be supported by driver
+	void set_vsync_auto(bool enabled) const noexcept;
+	//Enable VSync
+	void set_vsync_enabled(bool enabled) const noexcept;
+	//VSync available in auto mode
+	bool get_vsync_auto_available() const noexcept;
+	//VSync available at all
+	bool get_vsync_available() const noexcept;
+	//Tries to set auto VSync and falls back to default if failed
+	//Return value:
+	//1 if vsync set to auto mode
+	//2 if fallback used
+	//-1 if GLEW failed to find appropriate function
+	//0 if vsync set to disabled
+	int set_vsync_auto_or_enabled(bool enabled) const noexcept;
+
+	void hide() const noexcept;
+	void show() const noexcept;
 };
 
 
