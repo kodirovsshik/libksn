@@ -1,6 +1,8 @@
 
 #include <ksn/ksn.hpp>
 #include <ksn/fast_pimpl.hpp>
+#include <ksn/math_constants.hpp>
+#include <ksn/math_constexpr.hpp>
 
 
 
@@ -71,6 +73,8 @@ union color_t
 		: color(value)
 	{
 	}
+	constexpr color_t(const color_t&) noexcept = default;
+	constexpr color_t(color_t&&) noexcept = default;
 
 	constexpr color_t& operator=(const color_t&) noexcept = default;
 	constexpr color_t& operator=(color_t&&) noexcept = default;
@@ -80,6 +84,127 @@ union color_t
 		return *this;
 	}
 
+	operator uint32_t() const noexcept
+	{
+		return this->color;
+	}
+
+	uint32_t rgba() const noexcept
+	{
+		return (this->color & 0xFF00FF00) | (this->r) | (this->b << 16);
+
+		//uint32_t x = 0;
+		//x |= this->r;
+		//x <<= 8;
+		//x |= this->g;
+		//x <<= 8;
+		//x |= this->b;
+		//x <<= 8;
+		//x |= this->a;
+		//return x;
+	}
+	uint32_t bgra() const noexcept
+	{
+		return this->color;
+	}
+};
+
+struct color_hsv_t
+{
+	int16_t hue : 10; //0 - 359
+	uint8_t saturation : 7; //0-100
+	uint8_t value : 7; //0-100
+	uint8_t alpha; //0-255
+
+
+
+	constexpr color_hsv_t() noexcept
+	{
+		sizeof(*this);
+		this->hue = 0;
+		this->saturation = 0;
+		this->value = 0;
+		this->alpha = 255;
+	}
+	constexpr color_hsv_t(color_t rgb) noexcept
+	{
+		uint8_t max_color = rgb.r;
+		if (rgb.g > max_color) max_color = rgb.g;
+		if (rgb.b > max_color) max_color = rgb.b;
+		this->value = max_color * 100 / 255;
+
+		max_color += max_color == 1;
+
+		uint8_t max_diff = 0;
+#define check_diff(a, b) { uint8_t temp = a >= b ? a - b : b - a; if (temp > max_diff) max_diff = temp; } ((void)0)
+		check_diff(rgb.r, rgb.b);
+		check_diff(rgb.r, rgb.g);
+		check_diff(rgb.b, rgb.g);
+#undef check_diff
+		this->saturation = max_diff * 100 / max_color;
+
+
+		uint16_t sum = rgb.r + rgb.b + rgb.g;
+		sum += sum == 0;
+		float hx = (rgb.r - (rgb.g + rgb.b) / 2.0f) / sum;
+		float hy = (rgb.g - rgb.b) * ksn::sin(2 * KSN_PIf / 3) / sum;
+		this->hue = int16_t(180 / KSN_PIf * ksn::fmod(ksn::atan2(hy, hx, 0.01f), 2 * KSN_PIf));
+
+		this->alpha = rgb.a;
+	}
+	constexpr color_hsv_t(uint16_t hue, uint8_t saturation, uint8_t value) noexcept
+		: hue(hue), saturation(saturation), value(value), alpha(255)
+	{
+	}
+	constexpr color_hsv_t(uint16_t hue, uint8_t saturation, uint8_t value, uint8_t alhpa) noexcept
+		: hue(hue), saturation(saturation), value(value), alpha(alhpa)
+	{
+	}
+
+	constexpr color_hsv_t(const color_hsv_t&) noexcept = default;
+	constexpr color_hsv_t(color_hsv_t&&) noexcept = default;
+
+	constexpr color_t to_rgb() const noexcept
+	{
+		color_t result;
+		
+		float max_color = 2.5500001f * this->value;
+		float hue_rad = this->hue * KSN_PIf / 180.0f;
+		constexpr float pi3 = KSN_PIf / 3;
+
+		result.r = uint8_t(max_color * (this->saturation / 100.f * (limited_cos(hue_rad +- 0 * pi3) - 1) + 1));
+		result.g = uint8_t(max_color * (this->saturation / 100.f * (limited_cos(hue_rad - 2 * pi3) - 1) + 1));
+		result.b = uint8_t(max_color * (this->saturation / 100.f * (limited_cos(hue_rad + 2 * pi3) - 1) + 1));
+		result.a = this->alpha;
+		return result;
+	}
+	constexpr operator color_t() const noexcept
+	{
+		return this->to_rgb();
+	}
+
+
+private:
+
+	//cos(x)+0.5 but bounded by y º [0; 1]
+	constexpr static float limited_cos(float hue)
+	{
+		constexpr float pi3 = KSN_PIf / 3;
+		constexpr float _2pi = KSN_PIf * 2;
+
+		//hue = fmodf(fabsf(hue), 2 * KSN_PIf);
+		if (hue < 0) hue = -hue;
+		if (hue > _2pi)
+		{
+			size_t int_part = size_t(hue / _2pi);
+			hue -= _2pi * int_part;
+		}
+		if (hue <= pi3) return 1;
+		if (hue < 2 * pi3) return (pi3 - hue) / pi3 + 1;
+		if (hue <= 4 * pi3) return 0;
+		if (hue < 5 * pi3) return (hue - 4 * pi3) / pi3 + 1;
+		return 1;
+	};
 };
 
 struct vertex2_t

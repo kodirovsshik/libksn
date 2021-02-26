@@ -92,7 +92,7 @@ _KSN_BEGIN
 
 _KSN_GRAPHICS_BEGIN
 
-static void ge_cl_notifier(const char* error_info, const void* private_info, size_t private_size, void* p)
+static void __stdcall ge_cl_notifier(const char* error_info, const void* private_info, size_t private_size, void* p)
 {
 	fprintf(stderr, "\aOpenCL context error callback invoked\n%s\n", error_info);
 
