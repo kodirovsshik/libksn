@@ -11,24 +11,23 @@
 
 namespace ksn_opencl_kernel_tester
 {
+	_KSN_DETAIL_BEGIN
+
+	extern ksn::ppvector<size_t> global_id, global_size, local_id, local_size;
+
+	_KSN_DETAIL_END;
+
+
 	size_t get_global_id(size_t dim) noexcept;
 	size_t get_local_id(size_t dim) noexcept;
 	size_t get_global_size(size_t dim) noexcept;
 	size_t get_local_size(size_t dim) noexcept;
 
-	struct arguments_adapter_t
+	template<class callable_t, class... args_t>
+	bool call_kernel(size_t work_dim, const size_t* global_work_offset, const size_t* global_work_size, const size_t* local_work_size, callable_t&& callable, args_t&&... args) noexcept
 	{
-		ksn::ppvector<ksn::ppvector<uint8_t>> args;
 
-		//May fail if can not allocate memory
-		bool set_args_count(size_t) noexcept;
-		//May fail if can not allocate memory or index >= value set by set_args_count (0 if never was set)
-		bool set_arg(size_t index, const void* data, size_t size) noexcept;
-
-		~arguments_adapter_t() noexcept;
-	};
-
-	bool call_kernel(void(__cdecl * casted_kernel)(void), const arguments_adapter_t&) noexcept;
+	}
 }
 
 
