@@ -33,6 +33,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_graphics", "libksn_g
 		{0371B446-4D34-4E8E-B272-65A3B784D6EA} = {0371B446-4D34-4E8E-B272-65A3B784D6EA}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_opencl_kernel_tester", "libksn_opencl_kernel_tester\libksn_opencl_kernel_tester.vcxproj", "{D7C1735A-93BB-403A-B86C-B592DEBEEC70}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -177,6 +179,18 @@ Global
 		{6158271B-F19E-4731-AAE6-669F16360923}.Release|x64.Build.0 = Release|x64
 		{6158271B-F19E-4731-AAE6-669F16360923}.Release|x86.ActiveCfg = Release|Win32
 		{6158271B-F19E-4731-AAE6-669F16360923}.Release|x86.Build.0 = Release|Win32
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Debug|ARM.ActiveCfg = Debug|Win32
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Debug|x64.ActiveCfg = Debug|x64
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Debug|x64.Build.0 = Debug|x64
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Debug|x86.ActiveCfg = Debug|Win32
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Debug|x86.Build.0 = Debug|Win32
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Release|ARM.ActiveCfg = Release|Win32
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Release|ARM64.ActiveCfg = Release|Win32
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Release|x64.ActiveCfg = Release|x64
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Release|x64.Build.0 = Release|x64
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Release|x86.ActiveCfg = Release|Win32
+		{D7C1735A-93BB-403A-B86C-B592DEBEEC70}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
