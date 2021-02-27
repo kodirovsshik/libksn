@@ -1,8 +1,8 @@
 
 #pragma once
 
-#ifndef _FUNCTION_HPP_
-#define _FUNCTION_HPP_
+#ifndef _KSN_STUFF_HPP_
+#define _KSN_STUFF_HPP_
 
 
 #include <ksn/ksn.hpp>
@@ -231,4 +231,4 @@ RetType&& convert_or_forward(ArgType&& to_be_converted, const RetType& to_be_ret
 
 _KSN_END
 
-#endif //_FUNCTION_HPP_
+#endif //!_KSN_STUFF_HPP_
