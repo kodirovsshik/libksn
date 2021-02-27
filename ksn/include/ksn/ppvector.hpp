@@ -19,11 +19,11 @@ _KSN_BEGIN
 //Poor programmer's vector
 //std::vector class for trivial types (only!!)
 
-template<typename T> requires(!std::is_const_v<T> && !std::is_volatile_v<T> && std::is_trivial_v<T>)
+template<typename T> requires(!std::is_const_v<T> && !std::is_volatile_v<T>)
 struct ppvector
 {
-	size_t m_count, m_capacity;
 	T* m_buffer;
+	size_t m_count, m_capacity;
 
 
 	using iterator = T*;
@@ -131,6 +131,34 @@ struct ppvector
 		{
 			r.ppvector<U>::ppvector();
 		}
+	}
+
+
+
+	T& operator[](size_t ndx) noexcept
+	{
+		return this->m_buffer[ndx];
+	}
+	const T& operator[](size_t ndx) const noexcept
+	{
+		return this->m_buffer[ndx];
+	}
+	T& at(size_t ndx) noexcept
+	{
+		return this->m_buffer[ndx];
+	}
+	const T& at(size_t ndx) const noexcept
+	{
+		return this->m_buffer[ndx];
+	}
+
+	T* data() noexcept
+	{
+		return this->m_buffer;
+	}
+	const T* data() const noexcept
+	{
+		return this->m_buffer;
 	}
 
 
