@@ -15,10 +15,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_debug_utils", "ksn_debug_utils\ksn_debug_utils.vcxproj", "{BDF29E23-A261-459B-9556-20D282FFAFA5}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "temp", "temp\temp.vcxproj", "{414455DB-EB79-48E6-921E-A38211C76730}"
-	ProjectSection(ProjectDependencies) = postProject
-		{6158271B-F19E-4731-AAE6-669F16360923} = {6158271B-F19E-4731-AAE6-669F16360923}
-		{96C8428A-562A-4B64-94E8-8F5D3CE70320} = {96C8428A-562A-4B64-94E8-8F5D3CE70320}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_opencl_stuff", "libksn_opencl_stuff\libksn_opencl_stuff.vcxproj", "{7A33F167-97A1-41F1-ACAB-47E3603ECA5B}"
 EndProject
