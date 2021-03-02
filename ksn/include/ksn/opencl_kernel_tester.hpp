@@ -6,6 +6,7 @@
 //#include <ksn/stuff.hpp>
 #include <algorithm>
 #include <execution>
+#include <ranges>
 
 #define __kernel
 #define __global
@@ -16,7 +17,7 @@ namespace ksn_opencl_kernel_tester
 {
 	_KSN_DETAIL_BEGIN
 
-	extern ksn::ppvector<size_t> global_id, global_size, local_id, local_size, global_end, local_end;
+	extern ksn::ppvector<size_t> global_id, global_size, local_id, local_size, global_end;
 
 	_KSN_DETAIL_END;
 
@@ -37,32 +38,57 @@ namespace ksn_opencl_kernel_tester
 		if (!global_end.reserve(work_dim)) return false;
 		if (!local_id.reserve(work_dim)) return false;
 		if (!local_size.reserve(work_dim)) return false;
-		if (!local_end.reserve(work_dim)) return false;
 
-		memcpy(global_id.m_buffer, global_work_offset, sizeof(size_t) * work_dim);
-		memcpy(global_size.m_buffer, global_work_size, sizeof(size_t) * work_dim);
-		memset(local_id.m_buffer, 0, sizeof(size_t) * work_dim);
-		if (local_size != nullptr)
+		if (local_work_size != nullptr)
 			memcpy(local_size.m_buffer, local_work_size, sizeof(size_t) * work_dim);
 		else
 			std::fill(local_size.begin(), local_size.end(), size_t(1));
 
-		std::transform(std::execution::par_unseq, global_work_offset, global_work_offset + work_dim, global_work_size, global_end.m_buffer, [](size_t first, size_t count) { return first + count; });
-		std::copy(std::execution::par_unseq, local_work_size, local_work_size + work_dim, local_end.m_buffer);
+		for (size_t i = 0; i < work_dim; ++i)
+		{
+			if (local_size[i] == 0) return false;
+			if (global_work_size[i] % local_size[i]) return false;
+			global_size[i] = global_work_size[i] / local_size[i];
+			global_end[i] = global_work_offset[i] + global_size[i];
+		}
+
+		memcpy(global_id.m_buffer, global_work_offset, sizeof(size_t) * work_dim);
+
+		global_id.m_count = work_dim;
+		global_size.m_count = work_dim;
+		global_end.m_count = work_dim;
+		local_id.m_count = work_dim;
+		local_size.m_count = work_dim;
+
 		bool stop = false;
 		while (1)
 		{
-			if (std::mismatch(std::execution::par_unseq, global_id.begin(), global_id.end(), global_end.begin()).first == global_id.end()) break;
+			if (std::mismatch(global_id.begin(), global_id.end(), global_end.begin()).first == global_id.end()) break;
 
-			std::invoke(std::forward<callable_t>(callable), std::forward<args_t>(args)...);
+			memset(local_id.m_buffer, 0, sizeof(size_t) * work_dim);
+			while (1)
+			{
+				if (std::mismatch(local_id.begin(), local_id.end(), local_work_size).first == local_id.end()) break;
+
+				std::invoke(std::forward<callable_t>(callable), std::forward<args_t>(args)...);
+
+				for (size_t i = 0; i < work_dim; ++i)
+				{
+					if (local_id[i] < local_work_size[i]) ++local_id[i];
+					if (local_id[i] != local_work_size[i]) break;
+					local_id[i] = 0;
+				}
+			}
 
 			for (size_t i = 0; i < work_dim; ++i)
 			{
 				if (global_id[i] < global_end[i]) ++global_id[i];
 				if (global_id[i] != global_end[i]) break;
-				global_id[i] = global_start[i];
+				global_id[i] = global_work_offset[i];
 			}
 		}
+
+		return true;
 	}
 }
 

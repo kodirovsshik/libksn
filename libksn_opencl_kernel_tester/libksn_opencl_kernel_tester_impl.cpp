@@ -8,7 +8,7 @@ namespace ksn_opencl_kernel_tester
 {
 	_KSN_DETAIL_BEGIN
 	
-	ksn::ppvector<size_t> global_id, global_size, local_id, local_size;
+	ksn::ppvector<size_t> global_id, global_size, local_id, local_size, global_end;
 	
 	_KSN_DETAIL_END;
 
