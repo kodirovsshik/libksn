@@ -135,6 +135,18 @@ struct ppvector
 
 
 
+	bool operator==(const ppvector<T>& other) const noexcept
+	{
+		if (this->count != other.m_count) return false;
+		return ::memcmp(this->m_buffer, other.m_buffer, sizeof(T) * this->m_count) == 0;
+	}
+	bool operator!=(const ppvector<T>& other) const noexcept
+	{
+		return !(*this == other);
+	}
+
+
+
 	T& operator[](size_t ndx) noexcept
 	{
 		return this->m_buffer[ndx];
