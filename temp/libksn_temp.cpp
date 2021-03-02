@@ -7,6 +7,7 @@
 #include <semaphore>
 
 #include <ksn/stuff.hpp>
+#include <ksn/opencl_kernel_tester.hpp>
 
 void memset_parallel(void* void_dst, uint8_t byte, size_t size)
 {
@@ -58,35 +59,6 @@ void memset_parallel(void* void_dst, uint8_t byte, size_t size)
 int main()
 {
 
-	static constexpr size_t N = size_t(1024) * 1024;
-	uint8_t* arr = (uint8_t*)malloc(N);
-	if (arr == nullptr) return 1;
-	memset(arr, 0, N);
-	printf("Ready\n");
 
-	constexpr size_t n = 100;
 
-	memset(arr, 0, N);
-	float fd3 = 0;
-	for (size_t i = 0; i < n; ++i)
-	{
-		fd3 += ksn::measure_running_time_no_return(memset_parallel, arr, 0, N);
-	}
-	printf("%10llu ksn::memset_parallel()\n", uint64_t(fd3 / n));
-
-	memset(arr, 0, N);
-	float fd2 = 0;
-	for (size_t i = 0; i < n; ++i)
-	{
-		fd2 += ksn::measure_running_time_no_return([&] { std::fill(std::execution::par_unseq, arr, arr + N, 0); });
-	}
-	printf("%10llu std::fill()\n", uint64_t(fd2 / n));
-
-	memset(arr, 0, N);
-	float fd1 = 0;
-	for (size_t i = 0; i < n; ++i)
-	{
-		fd1 += ksn::measure_running_time_no_return(memset, arr, 0, N);
-	}
-	printf("%10llu memset()\n", uint64_t(fd1 / n));
 }
