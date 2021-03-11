@@ -13,7 +13,11 @@
 
 #include <CL/opencl.h>
 
-#include <ranges>
+//GCC 10.2 on my ubuntu machine doesn't support what i need for now
+//Commented until i build 11.0 experimental from master branch
+//#include <ranges> 
+//In replacement
+#include <algorithm>
 
 
 
@@ -55,11 +59,12 @@ static void print(const wchar_t* str)
 
 static FILE* wide_open(const wchar_t* wpath, const wchar_t* wmode)
 {
-	char path[PATH_MAX + 1], mode[64];
-	path[PATH_MAX] = 0;
+	
+	char path[_MAX_PATH + 1], mode[64];
+	path[_MAX_PATH] = 0;
 	mode[63] = 0;
 
-	if (wcstombs(path, wpath, PATH_MAX) == size_t(-1)) return nullptr;
+	if (wcstombs(path, wpath, _MAX_PATH) == size_t(-1)) return nullptr;
 	if (wcstombs(mode, wmode, 63) == size_t(-1)) return nullptr;
 
 	return fopen(path, mode);
