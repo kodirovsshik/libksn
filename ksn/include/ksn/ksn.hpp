@@ -63,7 +63,7 @@
 
 #include <vcruntime_new.h>
 
-	#define _KSN_CPP_VER  _MSVC_LANG
+	#define _KSN_CPP_VER _MSVC_LANG
 
 	#ifndef _KSN_IS_64
 		#ifdef _WIN64
@@ -75,12 +75,6 @@
 
 	#ifndef LDBL_DECIMAL_DIG
 		#define LDBL_DECIMAL_DIG DBL_DECIMAL_DIG
-	#endif
-
-	#ifdef _DEBUG
-		#define _KSN_IS_DEBUG_BUILD 1
-	#else
-		#define _KSN_IS_DEBUG_BUILD 0
 	#endif
 
 	#define _NOMINMAX
@@ -97,8 +91,6 @@
 	#endif
 #endif
 
-	#define _KSN_FORCEINLINE __always_inline
-
 #else
 
 #ifndef _KSN_IS_64
@@ -109,8 +101,17 @@
 	#endif
 #endif
 
-	#define _KSN_FORCEINLINE inline
+#endif
 
+
+#if defined _DEBUG || defined DEBUG
+	#define _KSN_IS_DEBUG_BUILD 1
+#endif
+
+#ifndef _KSN_IS_DEBUG_BUILD
+	#if defined NDEBUG || defined _NDEBUG
+		#define _KSN_IS_DEBUG_BUILD 0
+	#endif
 #endif
 
 
@@ -182,11 +183,11 @@ static_assert(CHAR_BIT == 8, "The size of a byte does not equal to 8 bits. You c
 
 
 #ifndef _KSN_IS_DEBUG_BUILD
-	static_assert(false, "_KSN_IS_DEBUG_BUILD has failed to be defined");
+	static_assert(false, "Failed to define _KSN_IS_DEBUG_BUILD");
 #endif
 
 #ifndef _KSN_IS_64
-	static_assert(false, "_KSN_IS_64 has failed to be defined");
+	static_assert(false, "Failed to define _KSN_IS_64");
 #endif
 
 
