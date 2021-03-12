@@ -36,9 +36,9 @@ struct opencl_selector_data_t
 	const wchar_t* msg_devices_list = L"List of devices on the current platform:\n";
 	const wchar_t* msg_device_select = L"Select a device: ";
 
-	cl_context context;
-	cl_program program;
-	cl_command_queue q;
+	cl_context context = nullptr;
+	cl_program program = nullptr;
+	cl_command_queue q = nullptr;
 
 	size_t platform = 0;
 	size_t device = 0;

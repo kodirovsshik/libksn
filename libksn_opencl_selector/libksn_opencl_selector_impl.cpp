@@ -82,6 +82,12 @@ int opencl_selector(opencl_selector_data_t* data) noexcept
 		code = selector(data);
 	}
 	if (code == INT_MAX) code = 0;
+	else
+	{
+		clReleaseProgram(data->program);
+		clReleaseCommandQueue(data->q);
+		clReleaseContext(data->context);
+	}
 	return code;
 }
 
@@ -152,7 +158,7 @@ static int selector(opencl_selector_data_t* p) noexcept
 	}
 
 
-	int platform_index;
+	size_t platform_index;
 
 	if (p->platform == 0)
 	{
@@ -180,12 +186,14 @@ static int selector(opencl_selector_data_t* p) noexcept
 		do
 		{
 			print(p->msg_select);
-			if (scanf("%i", &platform_index) != 1)
+			int platform_index_signed;
+			if (scanf("%i", &platform_index_signed) != 1)
 			{
 				rewind(stdin);
 				continue;
 			}
 
+			platform_index = (size_t)platform_index_signed;
 			if (platform_index <= 0 || platform_index > (int)platforms_count) continue;
 			--platform_index;
 
@@ -194,9 +202,10 @@ static int selector(opencl_selector_data_t* p) noexcept
 	}
 	else
 	{
-		if (p->platform >= platforms_count)
-			selector_return(1, p->msg_no_opencl_situable_platforms);
-		platform_index = (int)p->platform;
+		size_t n = p->platform - 1;
+		if (n >= platforms_count || (platforms_situable[n / 8] & (1 << (n % 8))) == 0)
+			selector_return(1, L"Wrong preselected platform");
+		platform_index = n;
 	}
 
 	cl_uint num_devices = 0;
@@ -205,18 +214,19 @@ static int selector(opencl_selector_data_t* p) noexcept
 	cl_context_properties context_properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platforms[platform_index], 0 };
 
 	temp = 0;
-	cl_context context = clCreateContext(context_properties, num_devices, (cl_device_id*)buffer4k, nullptr, nullptr, (cl_int*)&temp);
-	if (temp != 0 || context == nullptr) selector_return(1, p->msgfmt_context_create_error, (int)temp);
+	p->context = clCreateContext(context_properties, num_devices, (cl_device_id*)buffer4k, nullptr, nullptr, (cl_int*)&temp);
+	if (temp != 0 || p->context == nullptr) selector_return(1, p->msgfmt_context_create_error, (int)temp);
 
-	cl_program program = clCreateProgramWithSource(context, (cl_uint)p->cl_sources_number, (const char**)p->cl_sources, p->cl_sources_lengthes, (cl_int*)&temp);
-	if (clBuildProgram(program, num_devices, (cl_device_id*)buffer4k, p->cl_build_parameters, nullptr, nullptr))
+	p->program = clCreateProgramWithSource(p->context, (cl_uint)p->cl_sources_number, (const char**)p->cl_sources, p->cl_sources_lengthes, (cl_int*)&temp);
+	cl_int tempi = clBuildProgram(p->program, num_devices, (cl_device_id*)buffer4k, p->cl_build_parameters, nullptr, nullptr);
+	if (tempi != CL_BUILD_SUCCESS)
 	{
 		print_fd = wide_open(p->build_log_file_name, p->build_log_file_open_format);
 		setvbuf(stdout, (char*)p->io_buffer, _IOFBF, p->io_buffer_size);
 		for (cl_uint i = 0; i < num_devices; ++i)
 		{
 			auto& device = ((cl_device_id*)buffer4k)[i];
-			temp = clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_STATUS, sizeof(temp), &temp, nullptr);
+			clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_STATUS, sizeof(temp), &temp, nullptr);
 			if (temp != CL_BUILD_SUCCESS)
 			{
 				char buffer[4000];
@@ -226,10 +236,10 @@ static int selector(opencl_selector_data_t* p) noexcept
 				print(buffer);
 				print(p->msg_x_reported_build_error);
 				print(p->msg_build_log);
-				temp = clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 4000, buffer, &length);
+				temp = clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_LOG, 4000, buffer, &length);
 				if (length == 4000) buffer[3999] = '\0';
 				print(buffer);
-				if (length < 4000)
+				if (length >= 3999)
 				{
 					print("\n\n(Build log was restricted to 4000 symbols)\n");
 				}
@@ -252,7 +262,10 @@ static int selector(opencl_selector_data_t* p) noexcept
 		}
 		selector_return(1);
 	}
+	else if (tempi != CL_BUILD_SUCCESS)
+		selector_return(1, L"OpenCL program build error %i\n", (int)tempi);
 
+	int device_id;
 	if (p->device == 0)
 	{
 		setvbuf(stdout, (char*)p->io_buffer, _IOFBF, p->io_buffer_size);
@@ -271,7 +284,6 @@ static int selector(opencl_selector_data_t* p) noexcept
 		}
 		setvbuf(stdout, nullptr, _IONBF, 0);
 
-		int device_id;
 		rewind(stdin);
 		while (1)
 		{
@@ -286,7 +298,7 @@ static int selector(opencl_selector_data_t* p) noexcept
 			break;
 		}
 
-		p->device = device_id;
+		p->device = (size_t)device_id + 1;
 	}
 	else
 	{
@@ -294,13 +306,12 @@ static int selector(opencl_selector_data_t* p) noexcept
 			selector_return(1);
 	}
 
-	p->q = clCreateCommandQueue(context, ((cl_device_id*)buffer4k)[p->device], 0, (int*)&temp);
-	p->context = context;
-	p->program = program;
+	p->q = clCreateCommandQueue(p->context, ((cl_device_id*)buffer4k)[p->device - 1], 0, (int*)&temp);
+	//p->context = context;
+	//p->program = program;
 
-	p->platform = platform_index;
 
-	return INT_MAX;
+	return p->q == nullptr ? 1 : INT_MAX;
 }
 
 
