@@ -71,7 +71,7 @@ public:
 		{\
 			event_t ev; \
 			ev.type = is_pressed ? event_type_t::mouse_press : event_type_t::mouse_release; \
-			ev.mouse_button_data.button = event_t::mouse_button_t::_button; \
+			ev.mouse_button_data.button = mouse_button_t::_button; \
 			ev.mouse_button_data.x = (uint16_t)LOWORD(l); \
 			ev.mouse_button_data.y = (uint16_t)HIWORD(l); \
 			q.push_back(ev); \
@@ -472,9 +472,9 @@ private:
 		DispatchMessageW(&msg);
 	}
 
-	static event_t::keyboard_button_t _get_button(WPARAM key, LPARAM flags)
+	static keyboard_button_t _get_button(WPARAM key, LPARAM flags)
 	{
-		using kb = event_t::keyboard_button_t;
+		using kb = keyboard_button_t;
 		switch (key)
 		{
 		case VK_SHIFT:
@@ -554,7 +554,7 @@ private:
 		case VK_NUMPAD7:
 		case VK_NUMPAD8:
 		case VK_NUMPAD9:
-			return event_t::keyboard_button_t((int)kb::numpad0 + (int)key - VK_NUMPAD0);
+			return keyboard_button_t((int)kb::numpad0 + (int)key - VK_NUMPAD0);
 
 		case VK_NUMLOCK: return kb::num_lock;
 		case VK_CAPITAL: return kb::caps_lock;
@@ -586,7 +586,7 @@ private:
 		case 'X':
 		case 'Y':
 		case 'Z':
-			return event_t::keyboard_button_t((int)kb::a + (int)key - 'A');
+			return keyboard_button_t((int)kb::a + (int)key - 'A');
 
 		case '0':
 		case '1':
@@ -598,7 +598,7 @@ private:
 		case '7':
 		case '8':
 		case '9':
-			return event_t::keyboard_button_t((int)kb::digit0 + (int)key - '0');
+			return keyboard_button_t((int)kb::digit0 + (int)key - '0');
 
 		default:
 			return kb::other;

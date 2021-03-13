@@ -52,163 +52,165 @@ enum class event_type_t : uint8_t
 	event_types_count
 };
 
-struct event_t
+
+
+enum class mouse_button_t : uint8_t
 {
+	left, right, middle, extra1, extra2
+};
 
-	enum class mouse_button_t : uint8_t
-	{
-		left, right, middle, extra1, extra2
-	};
+enum class keyboard_button_t : uint8_t
+{
+	unknown = uint8_t(-1),
+	a = 0,
+	b,
+	c,
+	d,
+	e,
+	f,
+	g,
+	h,
+	i,
+	j,
+	k,
+	l,
+	m,
+	n,
+	o,
+	p,
+	q,
+	r,
+	s,
+	t,
+	u,
+	v,
+	w,
+	x,
+	y,
+	z,
 
-	enum class keyboard_button_t : uint8_t
-	{
-		unknown = uint8_t(-1),
-		a = 0,
-		b,
-		c,
-		d,
-		e,
-		f,
-		g,
-		h,
-		i,
-		j,
-		k,
-		l,
-		m,
-		n,
-		o,
-		p,
-		q,
-		r,
-		s,
-		t,
-		u,
-		v,
-		w,
-		x,
-		y,
-		z,
+	shift_left,
+	shift_right,
 
-		shift_left,
-		shift_right,
+	ctrl_left,
+	control_left = ctrl_left,
+	ctrl_right,
+	control_right = ctrl_right,
 
-		ctrl_left,
-		control_left = ctrl_left,
-		ctrl_right,
-		control_right = ctrl_right,
+	alt_left,
+	alt_right,
 
-		alt_left,
-		alt_right,
+	system_left,
+	system_right,
 
-		system_left,
-		system_right,
+	//context menu key
+	menu_left, 
+	menu_right, 
 
-		//context menu key
-		menu_left, 
-		menu_right, 
+	enter,
+	backspace,
 
-		enter,
-		backspace,
+	minus,
+	hypen = minus,
+	equal,
+	equal_sign = equal,
+	bracket_left,
+	bracket_right,
+	semicolon,
+	quote,
+	backslash,
+	comma,
+	period,
+	slash,
 
-		minus,
-		hypen = minus,
-		equal,
-		equal_sign = equal,
-		bracket_left,
-		bracket_right,
-		semicolon,
-		quote,
-		backslash,
-		comma,
-		period,
-		slash,
+	num_lock,
+	caps_lock,
+	scroll_lock,
 
-		num_lock,
-		caps_lock,
-		scroll_lock,
+	tab,
+	esc,
+	escape = esc,
+	tilde,
+	space,
 
-		tab,
-		esc,
-		escape = esc,
-		tilde,
-		space,
+	digit0,
+	digit1,
+	digit2,
+	digit3,
+	digit4,
+	digit5,
+	digit6,
+	digit7,
+	digit8,
+	digit9,
 
-		digit0,
-		digit1,
-		digit2,
-		digit3,
-		digit4,
-		digit5,
-		digit6,
-		digit7,
-		digit8,
-		digit9,
+	numpad0,
+	numpad1,
+	numpad2,
+	numpad3,
+	numpad4,
+	numpad5,
+	numpad6,
+	numpad7,
+	numpad8,
+	numpad9,
 
-		numpad0,
-		numpad1,
-		numpad2,
-		numpad3,
-		numpad4,
-		numpad5,
-		numpad6,
-		numpad7,
-		numpad8,
-		numpad9,
+	add,
+	substract,
+	multiply,
+	divide,
 
-		add,
-		substract,
-		multiply,
-		divide,
-
-		F1,
-		F2,
-		F3,
-		F4,
-		F5,
-		F6,
-		F7,
-		F8,
-		F9,
-		F10,
-		F11,
-		F12,
-		F13,
-		F14,
-		F15,
-		F16,
-		F17,
-		F18,
-		F19,
-		F20,
-		F21,
-		F22,
-		F23,
-		F24,
+	F1,
+	F2,
+	F3,
+	F4,
+	F5,
+	F6,
+	F7,
+	F8,
+	F9,
+	F10,
+	F11,
+	F12,
+	F13,
+	F14,
+	F15,
+	F16,
+	F17,
+	F18,
+	F19,
+	F20,
+	F21,
+	F22,
+	F23,
+	F24,
 		
 
-		insert,
-		delete_,
-		home,
-		end,
-		page_up,
-		page_down,
+	insert,
+	delete_,
+	home,
+	end,
+	page_up,
+	page_down,
 
-		arrow_up,
-		arrow_down,
-		arrow_left,
-		arrow_right,
+	arrow_up,
+	arrow_down,
+	arrow_left,
+	arrow_right,
 
-		print_screen,
-		break_,
-		pause = break_,
+	print_screen,
+	break_,
+	pause = break_,
 
-		other,
+	other,
 
-		buttons_count
-	};
+	buttons_count
+};
 
 
+
+struct event_t
+{
 
 	event_type_t type;
 
@@ -297,15 +299,15 @@ struct event_t
 		}
 		else if (this->type == event_type_t::mouse_press || this->type == event_type_t::mouse_release)
 		{
-			const char* button_name = [](event_t::mouse_button_t button) -> const char*
+			const char* button_name = [](mouse_button_t button) -> const char*
 			{
 				switch (button)
 				{
-				case event_t::mouse_button_t::left: return "left";
-				case event_t::mouse_button_t::right: return "right";
-				case event_t::mouse_button_t::middle: return "middle";
-				case event_t::mouse_button_t::extra1: return "extra1";
-				case event_t::mouse_button_t::extra2: return "extra2";
+				case mouse_button_t::left: return "left";
+				case mouse_button_t::right: return "right";
+				case mouse_button_t::middle: return "middle";
+				case mouse_button_t::extra1: return "extra1";
+				case mouse_button_t::extra2: return "extra2";
 				default: return "<corrupted data>";
 				}
 			}(this->mouse_button_data.button);
