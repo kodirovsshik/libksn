@@ -6,8 +6,8 @@
 #include <execution>
 #include <semaphore>
 
-#include <ksn/stuff.hpp>
-#include <ksn/opencl_kernel_tester.hpp>
+#include <ksn/try_smol_buffer.hpp>
+
 
 void memset_parallel(void* void_dst, uint8_t byte, size_t size)
 {
@@ -59,6 +59,8 @@ void memset_parallel(void* void_dst, uint8_t byte, size_t size)
 int main()
 {
 
-
+	{
+		ksn::try_smol_buffer<char, 16> a(10), b(20);
+	}
 
 }
