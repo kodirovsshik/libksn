@@ -105,13 +105,22 @@
 
 
 #if defined _DEBUG || defined DEBUG
-	#define _KSN_IS_DEBUG_BUILD 1
+	#define __KSN_DEBUG
 #endif
 
-#ifndef _KSN_IS_DEBUG_BUILD
-	#if defined NDEBUG || defined _NDEBUG
-		#define _KSN_IS_DEBUG_BUILD 0
+#if defined NDEBUG || defined _NDEBUG
+	#define __KSN_RELEASE
+#endif
+
+#if defined __KSN_DEBUG && !defined __KSN_RELEASE
+	#define _KSN_IS_DEBUG_BUILD 1
+#elif defined __KSN_RELEASE && !defined __KSN_DEBUG
+	#define _KSN_IS_DEBUG_BUILD 0
+#elif !defined __KSN_DEBUG && !defined __KSN_RELEASE
+	#ifndef _KSN_NO_IS_DEBUG_WARNING
+		#error Failed to define _KSN_IS_DEBUG_BUILD. You can #define _KSN_NO_IS_DEBUG_WARNING to acknowledge the compiler that you've recived this warning (undefined macro will be defined as 0)
 	#endif
+	#define _KSN_IS_DEBUG_BUILD 0
 #endif
 
 
@@ -183,11 +192,11 @@ static_assert(CHAR_BIT == 8, "The size of a byte does not equal to 8 bits. You c
 
 
 #ifndef _KSN_IS_DEBUG_BUILD
-	static_assert(false, "Failed to define _KSN_IS_DEBUG_BUILD");
+#error Failed to define _KSN_IS_DEBUG_BUILD. Please #define _DEBUG or NDEBUG
 #endif
 
 #ifndef _KSN_IS_64
-	static_assert(false, "Failed to define _KSN_IS_64");
+	#error Failed to define _KSN_IS_64. Please predefine it as 1 if compiling for 64 bits and 0 for 32 bits (Note: <32 or >64 platforms are not supported)
 #endif
 
 
