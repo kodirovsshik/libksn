@@ -28,7 +28,7 @@ struct opencl_selector_data_t
 	const void* cl_sources = nullptr;
 	size_t* cl_sources_lengthes = nullptr;
 	size_t cl_sources_number = 0;
-	const char* cl_build_parameters = "-cl-std=CL1.2";
+	const char* cl_build_parameters = "";
 	const wchar_t* msg_device = L"Device ";
 	const wchar_t* msg_x_reported_build_error = L" has reported an OpenCL program build error\n";
 	const wchar_t* msg_build_log = L"Build log:\n";
