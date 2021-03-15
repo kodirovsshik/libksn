@@ -105,6 +105,7 @@ enum class keyboard_button_t : uint8_t
 
 	//context menu key
 	menu_left, 
+	//context menu key
 	menu_right, 
 
 	enter,

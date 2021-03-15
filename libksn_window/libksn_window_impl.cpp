@@ -179,8 +179,8 @@ public:
 			win_impl.m_resizemove_last_pos.first = (int32_t)client_area.left;
 			win_impl.m_resizemove_last_pos.second = (int32_t)client_area.bottom;
 
-			win_impl.m_resizemove_last_size.first = (uint16_t)(client_area.left - client_area.right);
-			win_impl.m_resizemove_last_size.first = (uint16_t)(client_area.bottom - client_area.top);
+			win_impl.m_resizemove_last_size.first = (uint16_t)(client_area.right - client_area.left);
+			win_impl.m_resizemove_last_size.second = (uint16_t)(client_area.bottom - client_area.top);
 
 			win_impl.m_is_resizemove = true;
 		}
@@ -669,14 +669,21 @@ public:
 				GetCursorPos(&cursor_pos);
 				ScreenToClient(this->m_window, &cursor_pos);
 
-				RECT client_rect;
-				GetClientRect(this->m_window, &client_rect);
-
+				WINDOWINFO info;
+				info.cbSize = sizeof(info);
+				GetWindowInfo(this->m_window, &info); 
+				
 				this->m_mouse_inside =
-					cursor_pos.x >= client_rect.left &&
-					cursor_pos.x < client_rect.right&&
-					cursor_pos.y >= client_rect.top &&
-					cursor_pos.y < client_rect.bottom;
+					cursor_pos.x >= info.rcClient.left &&
+					cursor_pos.x < info.rcClient.right&&
+					cursor_pos.y >= info.rcClient.top &&
+					cursor_pos.y < info.rcClient.bottom;
+
+				this->m_resizemove_last_size.first = uint16_t(info.rcClient.right - info.rcClient.left);
+				this->m_resizemove_last_size.second = uint16_t(info.rcClient.bottom - info.rcClient.top);
+				
+				this->m_resizemove_last_pos.first = info.rcClient.left;
+				this->m_resizemove_last_pos.second = info.rcClient.top;
 			}
 
 			//Set mouse tracking for WM_MOUSELEAVE
