@@ -57,7 +57,7 @@ struct try_smol_buffer
 		if (this->cap > N) free(this->arr);
 	}
 
-	void resize(size_t n) noexcept
+	bool resize(size_t n) noexcept
 	{
 		if (n <= N)
 		{
@@ -72,13 +72,16 @@ struct try_smol_buffer
 			if (this->cap <= N)
 			{
 				this->arr = (T*)malloc(N * sizeof(T));
+				this->cap = 0;
+				if (this->arr == nullptr) return false;
 			}
 		}
 		this->cap = n;
+		return true;
 	}
-	void resize_add(size_t add) noexcept
+	bool resize_add(size_t add) noexcept
 	{
-		this->resize(this->cap + add);
+		return this->resize(this->cap + add);
 	}
 
 	T* data() noexcept
