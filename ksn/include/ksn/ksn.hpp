@@ -202,7 +202,7 @@ static_assert(CHAR_BIT == 8, "The size of a byte does not equal to 8 bits. You c
 
 
 //Expression that will only be executed on debug builds
-#define _KSN_DEBUG_EXPR(expression) if constexpr (_KSN_IS_DEBUG_BUILD) { expression; }; ((void)0)
+#define _KSN_DEBUG_EXPR(expression) if constexpr (_KSN_IS_DEBUG_BUILD) { expression; }
 
 
 
