@@ -29,6 +29,18 @@ size_t log2_16(uint16_t x);
 size_t log2_32(uint32_t x);
 size_t log2_64(uint64_t x);
 
+#define ksn_ilog2(type, result, x) \
+{ \
+	if constexpr(sizeof(type) == 1) \
+		result = ksn::log2_8((type)(x)); \
+	else if constexpr(sizeof(type) == 2) \
+		result = ksn::log2_16((type)(x)); \
+	else if constexpr(sizeof(type) == 4) \
+		result = ksn::log2_32((type)(x)); \
+	else if constexpr(sizeof(type) == 8) \
+		result = ksn::log2_64((type)(x)); \
+}
+
 
 
 std::vector<double> polynomial_multiplication(const std::vector<double>& v1, const std::vector<double>& v2);
