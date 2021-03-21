@@ -3,6 +3,7 @@
 #define CL_MINIMUM_OPENCL_VERSION 100
 
 #include <ksn/opencl_selector.hpp>
+#include <ksn/try_smol_buffer.hpp>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -59,7 +60,8 @@ static void print(const wchar_t* str)
 
 static FILE* wide_open(const wchar_t* wpath, const wchar_t* wmode)
 {
-	
+	if (wpath == nullptr || wmode == nullptr) return nullptr;
+
 	char path[_MAX_PATH + 1], mode[64];
 	path[_MAX_PATH] = 0;
 	mode[63] = 0;
@@ -93,6 +95,10 @@ int opencl_selector(opencl_selector_data_t* data) noexcept
 
 static int selector(opencl_selector_data_t* p) noexcept
 {
+	if (p->cl_sources == nullptr) selector_return(1, L"data->cl_sources not specified");
+	if (p->cl_sources_lengthes == nullptr) selector_return(1, L"data->cl_sources_lengthes not specified");
+	if (p->cl_sources_number == 0) selector_return(1, L"data->cl_sources_number not specified");
+
 	union
 	{
 		char buffer4k[4096];
@@ -199,6 +205,8 @@ static int selector(opencl_selector_data_t* p) noexcept
 
 			if (platforms_situable[platform_index / 8] & (1 << (platform_index % 8))) break;
 		} while (true);
+
+		p->platform = platform_index + 1;
 	}
 	else
 	{
@@ -229,24 +237,24 @@ static int selector(opencl_selector_data_t* p) noexcept
 			clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_STATUS, sizeof(temp), &temp, nullptr);
 			if (temp != CL_BUILD_SUCCESS)
 			{
-				char buffer[4000];
+				char smol_buffer[256];
 				size_t length = 0;
-				temp = clGetDeviceInfo(device, CL_DEVICE_NAME, 4000, buffer, nullptr);
+				temp = clGetDeviceInfo(device, CL_DEVICE_NAME, 256, smol_buffer, nullptr);
 				print(p->msg_device);
-				print(buffer);
+				print(smol_buffer);
 				print(p->msg_x_reported_build_error);
 				print(p->msg_build_log);
-				temp = clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_LOG, 4000, buffer, &length);
-				if (length == 4000) buffer[3999] = '\0';
-				print(buffer);
-				if (length >= 3999)
-				{
-					print("\n\n(Build log was restricted to 4000 symbols)\n");
-				}
+				temp = clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &length);
+				char* big_buffer = (char*)malloc(length);
+				if (big_buffer == nullptr)
+					print(p->msg_build_log_not_allocated);
 				else
 				{
+					temp = clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_LOG, length, big_buffer, nullptr);
+					print(big_buffer);
 					putchar('\n');
 					putchar('\n');
+					free(big_buffer);
 				}
 			}
 		}
@@ -298,11 +306,11 @@ static int selector(opencl_selector_data_t* p) noexcept
 			break;
 		}
 
-		p->device = (size_t)device_id + 1;
+		p->device = (size_t)device_id;
 	}
 	else
 	{
-		if (p->device >= num_devices)
+		if (p->device > num_devices || p->device == 0)
 			selector_return(1);
 	}
 

@@ -35,6 +35,7 @@ struct opencl_selector_data_t
 	const wchar_t* msg_build_log_saved_to = L"Build log saved to ";
 	const wchar_t* msg_devices_list = L"List of devices on the current platform:\n";
 	const wchar_t* msg_device_select = L"Select a device: ";
+	const wchar_t* msg_build_log_not_allocated = L"<Failed to allocate memory to store build log>\n";
 
 	cl_context context = nullptr;
 	cl_program program = nullptr;
