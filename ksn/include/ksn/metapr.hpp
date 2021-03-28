@@ -11,6 +11,27 @@
 
 _KSN_BEGIN
 
+_KSN_DETAIL_BEGIN
+
+
+template<size_t x, size_t c = 0>
+struct ct_log2
+{
+	static constexpr size_t value = ct_log2<x / 2, c + 1>::value;
+};
+template<size_t c>
+struct ct_log2<1, c>
+{
+	static constexpr size_t value = c;
+};
+template<size_t c>
+struct ct_log2<0, c>
+{
+};
+
+
+_KSN_DETAIL_END
+
 
 
 
@@ -87,6 +108,13 @@ static constexpr bool is_compatible_v = is_compatible<A, B>::value;
 
 template<class WHAT, class TO>
 concept universal_reference = ksn::is_same_to_cv_v<std::remove_reference_t<TO>, std::remove_reference_t<WHAT>>;
+
+
+
+
+
+template<size_t N>
+static constexpr size_t ct_log2 = detail::ct_log2<N, 0>::value;
 
 
 

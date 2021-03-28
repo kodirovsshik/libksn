@@ -71,7 +71,7 @@ public:
 		{\
 			event_t ev; \
 			ev.type = is_pressed ? event_type_t::mouse_press : event_type_t::mouse_release; \
-			ev.mouse_button_data.button = event_t::mouse_button_t::_button; \
+			ev.mouse_button_data.button = mouse_button_t::_button; \
 			ev.mouse_button_data.x = (uint16_t)LOWORD(l); \
 			ev.mouse_button_data.y = (uint16_t)HIWORD(l); \
 			q.push_back(ev); \
@@ -179,8 +179,8 @@ public:
 			win_impl.m_resizemove_last_pos.first = (int32_t)client_area.left;
 			win_impl.m_resizemove_last_pos.second = (int32_t)client_area.bottom;
 
-			win_impl.m_resizemove_last_size.first = (uint16_t)(client_area.left - client_area.right);
-			win_impl.m_resizemove_last_size.first = (uint16_t)(client_area.bottom - client_area.top);
+			win_impl.m_resizemove_last_size.first = (uint16_t)(client_area.right - client_area.left);
+			win_impl.m_resizemove_last_size.second = (uint16_t)(client_area.bottom - client_area.top);
 
 			win_impl.m_is_resizemove = true;
 		}
@@ -472,9 +472,9 @@ private:
 		DispatchMessageW(&msg);
 	}
 
-	static event_t::keyboard_button_t _get_button(WPARAM key, LPARAM flags)
+	static keyboard_button_t _get_button(WPARAM key, LPARAM flags)
 	{
-		using kb = event_t::keyboard_button_t;
+		using kb = keyboard_button_t;
 		switch (key)
 		{
 		case VK_SHIFT:
@@ -554,7 +554,7 @@ private:
 		case VK_NUMPAD7:
 		case VK_NUMPAD8:
 		case VK_NUMPAD9:
-			return event_t::keyboard_button_t((int)kb::numpad0 + (int)key - VK_NUMPAD0);
+			return keyboard_button_t((int)kb::numpad0 + (int)key - VK_NUMPAD0);
 
 		case VK_NUMLOCK: return kb::num_lock;
 		case VK_CAPITAL: return kb::caps_lock;
@@ -586,7 +586,7 @@ private:
 		case 'X':
 		case 'Y':
 		case 'Z':
-			return event_t::keyboard_button_t((int)kb::a + (int)key - 'A');
+			return keyboard_button_t((int)kb::a + (int)key - 'A');
 
 		case '0':
 		case '1':
@@ -598,7 +598,7 @@ private:
 		case '7':
 		case '8':
 		case '9':
-			return event_t::keyboard_button_t((int)kb::digit0 + (int)key - '0');
+			return keyboard_button_t((int)kb::digit0 + (int)key - '0');
 
 		default:
 			return kb::other;
@@ -669,14 +669,21 @@ public:
 				GetCursorPos(&cursor_pos);
 				ScreenToClient(this->m_window, &cursor_pos);
 
-				RECT client_rect;
-				GetClientRect(this->m_window, &client_rect);
-
+				WINDOWINFO info;
+				info.cbSize = sizeof(info);
+				GetWindowInfo(this->m_window, &info); 
+				
 				this->m_mouse_inside =
-					cursor_pos.x >= client_rect.left &&
-					cursor_pos.x < client_rect.right&&
-					cursor_pos.y >= client_rect.top &&
-					cursor_pos.y < client_rect.bottom;
+					cursor_pos.x >= info.rcClient.left &&
+					cursor_pos.x < info.rcClient.right&&
+					cursor_pos.y >= info.rcClient.top &&
+					cursor_pos.y < info.rcClient.bottom;
+
+				this->m_resizemove_last_size.first = uint16_t(info.rcClient.right - info.rcClient.left);
+				this->m_resizemove_last_size.second = uint16_t(info.rcClient.bottom - info.rcClient.top);
+				
+				this->m_resizemove_last_pos.first = info.rcClient.left;
+				this->m_resizemove_last_pos.second = info.rcClient.top;
 			}
 
 			//Set mouse tracking for WM_MOUSELEAVE

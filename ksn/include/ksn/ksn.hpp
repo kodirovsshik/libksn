@@ -63,7 +63,7 @@
 
 #include <vcruntime_new.h>
 
-	#define _KSN_CPP_VER  _MSVC_LANG
+	#define _KSN_CPP_VER _MSVC_LANG
 
 	#ifndef _KSN_IS_64
 		#ifdef _WIN64
@@ -75,12 +75,6 @@
 
 	#ifndef LDBL_DECIMAL_DIG
 		#define LDBL_DECIMAL_DIG DBL_DECIMAL_DIG
-	#endif
-
-	#ifdef _DEBUG
-		#define _KSN_IS_DEBUG_BUILD 1
-	#else
-		#define _KSN_IS_DEBUG_BUILD 0
 	#endif
 
 	#define _NOMINMAX
@@ -97,8 +91,6 @@
 	#endif
 #endif
 
-	#define _KSN_FORCEINLINE __always_inline
-
 #else
 
 #ifndef _KSN_IS_64
@@ -109,8 +101,26 @@
 	#endif
 #endif
 
-	#define _KSN_FORCEINLINE inline
+#endif
 
+
+#if defined _DEBUG || defined DEBUG
+	#define __KSN_DEBUG
+#endif
+
+#if defined NDEBUG || defined _NDEBUG
+	#define __KSN_RELEASE
+#endif
+
+#if defined __KSN_DEBUG && !defined __KSN_RELEASE
+	#define _KSN_IS_DEBUG_BUILD 1
+#elif defined __KSN_RELEASE && !defined __KSN_DEBUG
+	#define _KSN_IS_DEBUG_BUILD 0
+#elif !defined __KSN_DEBUG && !defined __KSN_RELEASE
+	#ifndef _KSN_NO_IS_DEBUG_WARNING
+		#error Failed to define _KSN_IS_DEBUG_BUILD. You can #define _KSN_NO_IS_DEBUG_WARNING to acknowledge the compiler that you've recived this warning (undefined macro will be defined as 0)
+	#endif
+	#define _KSN_IS_DEBUG_BUILD 0
 #endif
 
 
@@ -182,17 +192,17 @@ static_assert(CHAR_BIT == 8, "The size of a byte does not equal to 8 bits. You c
 
 
 #ifndef _KSN_IS_DEBUG_BUILD
-	static_assert(false, "_KSN_IS_DEBUG_BUILD has failed to be defined");
+#error Failed to define _KSN_IS_DEBUG_BUILD. Please #define _DEBUG or NDEBUG
 #endif
 
 #ifndef _KSN_IS_64
-	static_assert(false, "_KSN_IS_64 has failed to be defined");
+	#error Failed to define _KSN_IS_64. Please predefine it as 1 if compiling for 64 bits and 0 for 32 bits (Note: <32 or >64 platforms are not supported)
 #endif
 
 
 
 //Expression that will only be executed on debug builds
-#define _KSN_DEBUG_EXPR(expression) if constexpr (_KSN_IS_DEBUG_BUILD) { expression; }; ((void)0)
+#define _KSN_DEBUG_EXPR(expression) if constexpr (_KSN_IS_DEBUG_BUILD) { expression; }
 
 
 

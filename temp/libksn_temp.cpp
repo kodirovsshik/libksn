@@ -6,8 +6,8 @@
 #include <execution>
 #include <semaphore>
 
-#include <ksn/stuff.hpp>
-#include <ksn/opencl_kernel_tester.hpp>
+#include <ksn/try_smol_buffer.hpp>
+
 
 _KSN_BEGIN
 

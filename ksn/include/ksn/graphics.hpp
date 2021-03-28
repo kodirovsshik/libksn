@@ -109,6 +109,8 @@ union color_t
 	}
 };
 
+using color_rgb_t = color_t;
+
 struct color_hsv_t
 {
 	int16_t hue : 10; //0 - 359
