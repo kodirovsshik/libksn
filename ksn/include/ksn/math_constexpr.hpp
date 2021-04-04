@@ -16,7 +16,7 @@ _KSN_BEGIN
 
 
 
-template<std::floating_point T>
+template<class T>
 constexpr T abs(T x) noexcept
 {
 	if (x < 0) return -x;
@@ -34,7 +34,7 @@ constexpr T abs(T x) noexcept
 	return x;
 }
 
-template<std::floating_point T>
+template<class T>
 constexpr T uabs(T x) noexcept
 {
 	return ksn::abs(x);
@@ -55,13 +55,13 @@ constexpr T uabs(T x) noexcept
 
 
 
-template<std::floating_point T>
+template<class T>
 constexpr T fmod(T x, T period) noexcept
 {
 	int64_t int_part = int64_t(x / period);
 	return x - int_part * period;
 }
-template<std::floating_point T>
+template<class T>
 constexpr T fmod1(T x, T period) noexcept
 {
 	x = fmod(x, period);
@@ -73,7 +73,7 @@ constexpr T fmod1(T x, T period) noexcept
 
 
 
-template<std::floating_point T>
+template<class T>
 constexpr T sin(T x) noexcept
 {
 	x = ksn::fmod(x, T(2 * KSN_PId));
@@ -91,11 +91,11 @@ constexpr T sin(T x) noexcept
 		result = new_result;
 	}
 }
-template<std::floating_point T>
+template<class T>
 constexpr T sin(T x, T dx) noexcept
 {
-	x = ksn::fmod(x, T(2 * KSN_PId));
-	if (x > T(KSN_PId)) x -= T(2 * KSN_PId);
+	x = ksn::fmod(x, T(2 * KSN_PI));
+	if (x > T(KSN_PI)) x -= T(2 * KSN_PI);
 	T result = x;
 	T sqr = -x * x;
 	T current = x;
@@ -110,22 +110,22 @@ constexpr T sin(T x, T dx) noexcept
 	}
 }
 
-template<std::floating_point T>
+template<class T>
 T cos(T x) noexcept
 {
-	return ksn::sin(x - T(KSN_PId / 2));
+	return ksn::sin(x - T(KSN_PI / 2));
 }
-template<std::floating_point T>
+template<class T>
 T cos(T x, T dx) noexcept
 {
-	return ksn::sin(x - T(KSN_PId / 2), dx);
+	return ksn::sin(x - T(KSN_PI / 2), dx);
 }
 
 
 
 
 
-template<arithmetic T>
+template<class T>
 constexpr T exp(T x)
 {
 	if ((x == x) == false) return x;
@@ -146,7 +146,7 @@ constexpr T exp(T x)
 		denom *= ++n;
 	}
 }
-template<arithmetic T>
+template<class T>
 constexpr T exp(T x, T dx)
 {
 	if ((x == x) == false) return x;
@@ -172,12 +172,12 @@ constexpr T exp(T x, T dx)
 
 
 
-template<std::floating_point T>
+template<class T>
 constexpr T ln(T x)
 {
-	if (x >= 2) return -ln(1 / x);
-	if (x < -1e-14) return std::numeric_limits<long double>::quiet_NaN();
-	if (x <= 1e-14) return -std::numeric_limits<long double>::infinity();
+	if (x >= 1.5) return -ln(1 / x);
+	if (x <= 0) return std::numeric_limits<long double>::quiet_NaN();
+	if (x <= 1e-6) return T(-10) + ln(x * exp<T>(10));
 
 	long double x1 = 1 - x;
 	long double num = x1;
@@ -196,12 +196,12 @@ constexpr T ln(T x)
 		denom++;
 	}
 }
-template<std::floating_point T>
+template<class T>
 constexpr T ln(T x, T dx)
 {
-	if (x >= 2) return -ln(1 / x);
-	if (x < -dx) return std::numeric_limits<long double>::quiet_NaN();
-	if (x <= dx) return -std::numeric_limits<long double>::infinity();
+	if (x >= 1.5) return -ln(1 / x);
+	if (x <= 0) return std::numeric_limits<long double>::quiet_NaN();
+	if (x <= 1e-6) return T(-10) + ln(x * exp<T>(10));
 
 	long double x1 = 1 - x;
 	long double num = x1;
@@ -225,15 +225,51 @@ constexpr T ln(T x, T dx)
 
 
 
-template<arithmetic T1, arithmetic T2>
+template<class T1, class T2>
 constexpr auto pow(T1 x, T2 y)
 {
 	return ksn::exp<std::common_type_t<T1, T2>>(y * ksn::ln(x));
 }
-template<arithmetic T1, arithmetic T2, arithmetic T3>
+template<class T1, class T2, class T3>
 constexpr auto pow(T1 x, T2 y, T3 d)
 {
 	return ksn::exp<std::common_type_t<T1, T2>>(y * ksn::ln(x, d), d);
+}
+
+template<class T1, std::integral T2>
+constexpr T1 pow(T1 x, T2 y)
+{
+	if constexpr (std::signed_integral<T2>)
+	{
+		if (y < 0)
+		{
+			if (y == std::numeric_limits<T2>::min())
+				return (x == T1(0)) ? NAN : 0;
+
+			using T2u = std::make_signed_t<T2>;
+			return pow<T1, T2u>(T1(1) / x, T2u(-y));
+		}
+	}
+
+	T1 result(1);
+	if (y == 0) return result;
+
+	T2 walker = 1 <<
+		((sizeof(T2) == 1) ? log2_8(y) : (
+			(sizeof(T2) == 2) ? log2_16(y) : (
+				(sizeof(T2) == 4) ? log2_32(y) : (
+					(log2_64(y)
+						)))));
+
+	while (walker != 0)
+	{
+		result *= result;
+		if (y & walker)
+			result *= x;
+		walker >>= 1;
+	}
+
+	return result;
 }
 
 template<std::integral T1, std::unsigned_integral T2>
@@ -261,21 +297,10 @@ constexpr T1 pow(T1 x, T2 y)
 template<std::integral T1, std::signed_integral T2>
 constexpr T1 pow(T1 x, T2 y)
 {
-	if constexpr(std::is_constant_evaluated())
+	if (y < 0)
 	{
-		if constexpr (y < 0)
-		{
-			if (x == 0) { return 3 / false; }
-			return (x == 1) ? 1 : 0;
-		}
-	}
-	else
-	{
-		if (y < 0)
-		{
-			if (x == 0) { return 3 / false; }
-			return (x == 1) ? 1 : 0;
-		}
+		if (x == 0) { return 3 / false; }
+		return (x == 1) ? 1 : 0;
 	}
 	return ksn::pow<T1, std::make_unsigned_t<T2>>(x, y);
 }
@@ -284,12 +309,12 @@ constexpr T1 pow(T1 x, T2 y)
 
 
 
-template<std::floating_point T>
+template<class T>
 constexpr T sqrt(T x)
 {
 	return ksn::pow(x, 0.5l);
 }
-template<std::floating_point T>
+template<class T>
 constexpr T sqrt(T x, T dx)
 {
 	return ksn::pow(x, 0.5l, dx);
@@ -332,12 +357,12 @@ constexpr T sqrt(T x)
 
 
 
-template<std::floating_point T>
+template<class T>
 constexpr T root(T x, size_t n)
 {
 	return pow(x, 1.0L / n);
 }
-template<std::floating_point T>
+template<class T>
 constexpr T root(T x, size_t n, T dx)
 {
 	return pow(x, 1.0L / n, dx);
@@ -456,7 +481,7 @@ constexpr static uint64_t fibonacci_array[92] =
 
 constexpr static uint64_t fibonacci(size_t x)
 {
-	if (x >= 92) return INT64_MAX;
+	if (x >= 92) return 0;
 	return fibonacci_array[x];
 }
 
@@ -464,7 +489,7 @@ constexpr static uint64_t fibonacci(size_t x)
 
 
 
-template<std::floating_point T>
+template<class T>
 constexpr T atan(T x) noexcept
 {
 	if (ksn::abs(x) < 1)
@@ -502,7 +527,7 @@ constexpr T atan(T x) noexcept
 		}
 	}
 }
-template<std::floating_point T>
+template<class T>
 constexpr T atan(T x, T dx) noexcept
 {
 	if (ksn::abs(x) < 1)
@@ -541,10 +566,10 @@ constexpr T atan(T x, T dx) noexcept
 	}
 }
 
-template<std::floating_point T>
+template<class T>
 constexpr T atan2(T y, T x) noexcept
 {
-	static constexpr T pi = T(KSN_PId);
+	static constexpr T pi = T(KSN_PI);
 	if (x == 0)
 	{
 		if (y > 0) return pi / 2;
@@ -562,10 +587,10 @@ constexpr T atan2(T y, T x) noexcept
 	//y < 0
 	return atan - pi;
 }
-template<std::floating_point T>
+template<class T>
 constexpr T atan2(T y, T x, T dx) noexcept
 {
-	static constexpr T pi = T(KSN_PId);
+	static constexpr T pi = T(KSN_PI);
 	if (ksn::abs(x) < dx)
 	{
 		if (y > 0) return pi / 2;
