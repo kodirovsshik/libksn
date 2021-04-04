@@ -11,6 +11,7 @@
 #include <vector>
 #include <stdexcept>
 #include <concepts>
+#include <complex>
 
 #include <cmath>
 
@@ -145,7 +146,7 @@ _KSN_DETAIL_END
 
 
 template<typename int_type>
-int_type fp_int_cast(long double x, unsigned precision = LDBL_DECIMAL_DIG - 2)
+int_type fp_int_cast(long double x, unsigned precision = LDBL_DIG)
 {
 
 	if constexpr(!std::is_integral_v<int_type>)
@@ -315,35 +316,6 @@ T sign(T x)
 
 
 
-template<typename argument_type, typename function_t, class ... parameters_t>
-bool newthon_method(
-	argument_type& result,
-	function_t y,
-	argument_type start = 0,
-	long double precision_x = 1e-8, long double precision_y = 1e-8,
-	size_t max_iterations = 100,
-	parameters_t&& ...parameters
-)
-{
-	argument_type x_prev = start;
-	
-	using result_type = std::invoke_result_t<function_t,
-		decltype(std::forward<argument_type>(std::declval<argument_type>())),
-		parameters_t...
-	>;
-
-	throw 0;
-
-	while (1)
-	{
-		
-	}
-}
-
-
-
-
-
 long double lambert_W0(long double x);
 
 long double lambert_W_n1(long double x);
@@ -496,9 +468,132 @@ template<std::floating_point float_t>
 float_t map(float_t x, float_t from_begin, float_t from_end, float_t to_begin, float_t to_end)
 {
 	float_t df = from_end - from_begin;
-	float_t dt =   to_end -   to_begin;
+	float_t dt = to_end - to_begin;
 	return to_begin + (x - from_begin) * dt / df;
 }
+
+
+
+
+
+template<class fp_t>
+bool is_inf_nan(const fp_t& x)
+{
+	using std::isinf;
+	using std::isnan;
+	return isinf(x) || isnan(x);
+}
+
+template<class fp_t>
+bool is_inf_nan(const std::complex<fp_t>& x)
+{
+	using std::isinf;
+	using std::isnan;
+	return isinf(x.real()) || isinf(x.imag()) || isnan(x.real()) || isnan(x.imag());
+}
+
+
+
+
+
+_KSN_DETAIL_BEGIN
+
+template<class fp_t, class callable_t, class... params_t>
+constexpr bool newthon_method_general(callable_t func, fp_t& result, fp_t x, long double epsilon, long double h, size_t cycles_left, params_t&& ...params)
+{
+	using std::abs;
+
+	fp_t temp, y;
+	epsilon = fabsl(epsilon);
+
+	while (cycles_left)
+	{
+		if (is_inf_nan(x))
+		{
+			return false;
+		}
+
+
+		y = func(x, std::forward<params_t>(params)...);
+		if (abs(y) <= epsilon)
+		{
+			result = x;
+			return true;
+		}
+
+		if (x == fp_t(0)) x = fp_t(0.1);
+		temp = x * fp_t(h);
+		temp = (func((x + temp), std::forward<params_t>(params)...) - y) / (temp);
+
+		if (fp_t(temp) == fp_t(0))
+		{
+			x *= (fp_t(1) + fp_t(h) * fp_t(10));
+			continue;
+		}
+
+
+		temp = y / temp;
+
+		if (abs((x - temp) - x) <= epsilon)
+		{
+			result = x - temp;
+			return true;
+		}
+		x -= temp;
+
+		cycles_left--;
+	}
+
+	return false;
+}
+
+_KSN_DETAIL_END
+
+
+
+
+
+template<class fp_t, class callable_t, class... params_t>
+constexpr bool newthon_method(callable_t func, fp_t& result, fp_t x0 = 1, long double epsilon = 1e-4L, long double h = 1e-4L, size_t max_cycles = 50, params_t&& ...params)
+{
+	return detail::newthon_method_general(func, result, std::move(x0), epsilon, h, max_cycles, std::forward<params_t>(params)...);
+}
+
+template<std::floating_point fp_t, class callable_t, class... params_t>
+constexpr bool newthon_method(callable_t func, fp_t& result, fp_t x0 = 1, long double epsilon = (long double)std::numeric_limits<fp_t>::epsilon() * 1000,
+	long double h = (long double)std::numeric_limits<fp_t>::epsilon() * 1000, size_t max_cycles = 50, params_t&& ...params)
+{
+	return detail::newthon_method_general(func, result, std::move(x0), epsilon, h, max_cycles, std::forward<params_t>(params)...);
+}
+
+template<std::integral int_t, class callable_t, class... params_t>
+constexpr bool newthon_method(callable_t&&, int_t&, int_t = 0, int_t = 0, int_t = 0, size_t = 0, params_t&& ...)
+{
+	return false;
+}
+
+
+
+
+
+template<class uint_t>
+constexpr uint_t combinations_number(uint_t n, uint_t k)
+{
+	if (k > n) return 0; //Undefined
+	if (k * 2 > n) k = n - k; //Due to symmetry
+	if (k == 0) return 1; //There is only one way to chose 0 elements
+
+	uint_t result = n;
+	--n;
+	for (uint_t i = 2; i <= k; ++i, --n)
+	{
+		result *= n;
+		result /= i;
+	}
+	return result;
+}
+
+
 
 
 
