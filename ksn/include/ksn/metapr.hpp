@@ -118,6 +118,23 @@ static constexpr size_t ct_log2 = detail::ct_log2<N, 0>::value;
 
 
 
+
+
+//From https://stackoverflow.com/questions/16337610/how-to-know-if-a-type-is-a-specialization-of-stdvector
+
+template<typename Test, template<typename...> class Ref>
+struct is_specialization : std::false_type {};
+
+template<template<typename...> class Ref, typename... Args>
+struct is_specialization<Ref<Args...>, Ref> : std::true_type {};
+
+template<typename Test, template<typename...> class Ref>
+static constexpr bool is_specialization_v = is_specialization<Test, Ref>::value;
+
+
+
+
+
 _KSN_END
 
 
