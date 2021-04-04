@@ -53,14 +53,14 @@
     <ClCompile Include="libksn_math_formula_impl.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="libksn_math_common_impl64.cpp">
+      <Filter>Исходные файлы\common</Filter>
+    </ClCompile>
+    <ClCompile Include="libksn_math_common_impl32.cpp">
+      <Filter>Исходные файлы\common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="libksn_math_common_impl64.cpp">
-      <Filter>Исходные файлы\common</Filter>
-    </None>
     <None Include="cpp.hint" />
-    <None Include="libksn_math_common_impl32.cpp">
-      <Filter>Исходные файлы\common</Filter>
-    </None>
   </ItemGroup>
 </Project>

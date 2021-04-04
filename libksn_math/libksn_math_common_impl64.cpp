@@ -9,9 +9,10 @@ _KSN_BEGIN
 
 _KSN_DETAIL_BEGIN
 
-extern const signed char _log2_lookup_table8[256];
+extern const signed char* _log2_lookup_table8;
 
 _KSN_DETAIL_END
+
 
 
 
