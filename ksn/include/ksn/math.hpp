@@ -11,7 +11,7 @@
 
 
 //Formula parser and interpretator
-#include <ksn/math_formula.hpp>
+//#include <ksn/math_formula.hpp>
 
 
 ////Integer long arithmetic
@@ -19,7 +19,7 @@
 
 
 //Complex numbers
-#include <ksn/math_complex.hpp>
+//#include <ksn/math_complex.hpp>
 
 
 //Common stuff
@@ -31,7 +31,7 @@
 
 
 //Rough approximations of common math functions
-#include <ksn/math_fast.hpp>
+//#include <ksn/math_fast.hpp>
 
 
 #endif //!_KSN_MATH_HPP_
