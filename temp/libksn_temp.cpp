@@ -9,6 +9,8 @@
 #include <ksn/try_smol_buffer.hpp>
 
 
+_KSN_BEGIN
+
 void memset_parallel(void* void_dst, uint8_t byte, size_t size)
 {
 	static_assert(std::counting_semaphore<32>::max() == 32);
@@ -56,11 +58,17 @@ void memset_parallel(void* void_dst, uint8_t byte, size_t size)
 		if (thread.joinable()) thread.join();
 }
 
+_KSN_END
+
 int main()
 {
+	static constexpr size_t N = size_t(1024) * 1024 * 1024 * 1;
+	uint8_t* buffer = (uint8_t*)malloc(N);
+	if (buffer == nullptr) return 1;
+	memset(buffer, 0, N);
 
-	{
-		ksn::try_smol_buffer<char, 16> a(10), b(20);
-	}
+	auto d1 = ksn::measure_running_time_no_return([&] { ::memset(buffer, 0, N); });
+	auto d2 = ksn::measure_running_time_no_return([&] { ksn::memset_parallel(buffer, 0, N); });
 
+	printf("%10llu (C STD)\n%10llu (KSN)\n", d1, d2);
 }
