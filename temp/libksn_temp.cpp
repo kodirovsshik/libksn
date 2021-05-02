@@ -60,15 +60,13 @@ void memset_parallel(void* void_dst, uint8_t byte, size_t size)
 
 _KSN_END
 
+#include <ksn/math_common.hpp>
+
 int main()
 {
-	static constexpr size_t N = size_t(1024) * 1024 * 1024 * 1;
-	uint8_t* buffer = (uint8_t*)malloc(N);
-	if (buffer == nullptr) return 1;
-	memset(buffer, 0, N);
+	double x[3];
+	ksn::solve_cubic<double>(1, -6, 11, -6, &x);
+	double _ = ksn::solve_cubic_principal(1, -6, 11, -6);
 
-	auto d1 = ksn::measure_running_time_no_return([&] { ::memset(buffer, 0, N); });
-	auto d2 = ksn::measure_running_time_no_return([&] { ksn::memset_parallel(buffer, 0, N); });
 
-	printf("%10llu (C STD)\n%10llu (KSN)\n", d1, d2);
 }
