@@ -216,7 +216,7 @@ static int initializer()
 		registers.edx == 0x69746E65 &&
 		registers.ecx == 0x444D4163 ) 
 		|| (
-		registers.ebx == 0x69444D41 && //"AMDisbetter!" //yes, some of AMD CPUs (rarely) implement this :p
+		registers.ebx == 0x69444D41 && //"AMDisbetter!"
 		registers.edx == 0x74656273 &&
 		registers.ecx == 0x21726574 ))
 	{

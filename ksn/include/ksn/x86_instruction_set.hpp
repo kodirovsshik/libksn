@@ -234,14 +234,15 @@ struct __ksn_x86_64_features
 
 
 
-	//Extended function 1, edx
+	//leaf 0x80000001, ecx
+	//named after amd's specs
 
 	bool lahf_lm : 1; //LAHF/SAHF in long mode
 	bool cmp_legacy : 1;//Hyperthreading not valid
 	bool svm : 1; //Secure Virtual Machine;
 	bool extapic : 1; //Extended APIC space
 	bool cr8_legacy : 1; //CR8 in 32 - bit mode;
-	bool abm : 1; 	//Advanced bit manipulation (lzcnt and popcnt)
+	bool abm_lzcnt_popcnt : 1; //Advanced bit manipulation (lzcnt and popcnt)
 	bool sse4a : 1; //SSE4a
 	bool misalignsse : 1; //Misaligned SSE mode
 	bool prefetchw : 1; //PREFETCH and PREFETCHW instructions 
@@ -250,27 +251,58 @@ struct __ksn_x86_64_features
 	bool xop : 1; //XOP instruction set
 	bool skinit : 1; //SKINIT/STGI instructions 
 	bool wdt : 1; //Watchdog timer
-	bool _reserved_leaf1e_edx_bit14 : 1;
+	bool _reserved_leaf1e_ecx_bit14 : 1;
 	bool lwp : 1; //Light Weight Profiling
 	bool fma4 : 1; //4 operands fused multiply-add
 	bool tce : 1; //Translation Cache Extension 
-	bool _reserved_leaf1e_edx_bit18 : 1;
+	bool _reserved_leaf1e_ecx_bit18 : 1;
 	bool nodeid_msr : 1; //NodeID MSR 
-	bool _reserved_leaf1e_edx_bit20 : 1;
+	bool _reserved_leaf1e_ecx_bit20 : 1;
 	bool tbm : 1; //Trailing Bit Manipulation
 	bool topoext : 1; //Topology Extensions
 	bool perfctr_core : 1; //Core performance counter extensions 
 	bool perfctr_nb : 1; //NB performance counter extensions
-	bool _reserved_leaf1e_edx_bit25 : 1;
+	bool _reserved_leaf1e_ecx_bit25 : 1;
 	bool dbx : 1; //Data breakpoint extensions 
 	bool perftss : 1; //Performance TSC 
 	bool pcx_l2i : 1; //L2I perf counter extensions 
-	bool _reserved_leaf1e_edx_bit29_31 : 3;
+	bool _reserved_leaf1e_ecx_bit29_31 : 3;
 
 
-	//Extended function 1, ecx
+	//leaf 0x80000001, edx
 
-	uint32_t __leaf1e_ecx;
+	bool fpu_leaf1e : 1;
+	bool vme_leaf1e : 1;
+	bool de_leaf1e : 1;
+	bool pse_leaf1e : 1;
+	bool tsc_leaf1e : 1;
+	bool msr_leaf1e : 1;
+	bool pae_leaf1e : 1;
+	bool mce_leaf1e : 1;
+	bool cx8 : 1;
+	bool apic_leaf1e : 1;
+	bool _reserved_leaf1e_edx_bit10 : 1;
+	bool syscall : 1;
+	bool mtrr_leaf1e : 1;
+	bool pge_leaf1e : 1;
+	bool mca_leaf1e : 1;
+	bool cmov_leaf1e : 1;
+	bool pat_leaf1e : 1;
+	bool pse36_leaf1e : 1;
+	bool _reserved_leaf1e_edx_bit18 : 1;
+	bool mp : 1;
+	bool nx : 1;
+	bool _reserved_leaf1e_edx_bit21 : 1;
+	bool mmxext : 1;
+	bool mmx_leaf1e : 1;
+	bool fxsr_leaf1e : 1;
+	bool fxsr_opt : 1;
+	bool pdpe1gb : 1;
+	bool rdtscp : 1;
+	bool _reserved_leaf1e_edx_bit28 : 1;
+	bool lm : 1;
+	bool _3dnowext : 1;
+	bool _3dnow : 1;
 };
 
 static_assert(sizeof(__ksn_x86_64_features) == 40, "");
