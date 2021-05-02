@@ -8,6 +8,8 @@
 #include <concepts>
 #include <numeric>
 
+#include <cmath>
+
 #include <intrin.h>
 
 
@@ -231,15 +233,17 @@ public:
 			x = -x;
 		}
 		else this->sign = 0;
+		
+		using std::numeric_limits;
 
-		if constexpr (std::numeric_limits<T>::digits >= 64)
+		if constexpr (numeric_limits<T>::digits >= 64)
 		{
 			this->digits[0] = 0;
-			this->digits[1] = uint64_t(1) << (std::numeric_limits<T>::digits - 64);
+			this->digits[1] = uint64_t(1) << (numeric_limits<T>::digits - 64);
 		}
 		else
 		{
-			this->digits[0] = uint64_t(1) << std::numeric_limits<T>::digits;
+			this->digits[0] = uint64_t(1) << numeric_limits<T>::digits;
 			this->digits[1] = 0;
 		}
 
@@ -247,15 +251,18 @@ public:
 			T mantiss;
 			int exp;
 
-			mantiss = std::frexp(x, &exp);
+			using std::frexp;
+			using std::modf;
+
+			mantiss = frexp(x, &exp);
 
 			T ci, cf;
-			cf = std::modf(this->digits[1] * mantiss, &ci);
+			cf = modf(this->digits[1] * mantiss, &ci);
 
 			this->digits[1] = _addcarry_u64(0, uint64_t(this->digits[0] * mantiss), uint64_t(18446744073709551616.0 * cf), &this->digits[0]);
 			this->digits[1] += (uint64_t)ci;
 
-			this->exponent = exp - std::numeric_limits<T>::digits;
+			this->exponent = exp - numeric_limits<T>::digits;
 		}
 	}
 
