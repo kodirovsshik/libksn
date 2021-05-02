@@ -1,4 +1,4 @@
-
+﻿
 #pragma once
 
 #ifndef _KSN_MATH_COMMON_HPP_
@@ -22,25 +22,6 @@
 
 
 _KSN_BEGIN
-
-
-
-size_t log2_8(uint8_t x);
-size_t log2_16(uint16_t x);
-size_t log2_32(uint32_t x);
-size_t log2_64(uint64_t x);
-
-#define ksn_ilog2(type, result, x) \
-{ \
-	if constexpr(sizeof(type) == 1) \
-		result = ksn::log2_8((type)(x)); \
-	else if constexpr(sizeof(type) == 2) \
-		result = ksn::log2_16((type)(x)); \
-	else if constexpr(sizeof(type) == 4) \
-		result = ksn::log2_32((type)(x)); \
-	else if constexpr(sizeof(type) == 8) \
-		result = ksn::log2_64((type)(x)); \
-}
 
 
 
@@ -112,11 +93,6 @@ std::vector<double> polynomial_interpolation(const std::vector<std::pair<double,
 std::vector<int64_t> solve_integer_polynomial(std::vector<int64_t> coefficients);
 
 
-uint64_t isqrt(uint64_t n);
-uint32_t isqrt(uint32_t n);
-uint16_t isqrt(uint16_t n);
-uint8_t isqrt(uint8_t n);
-
 
 
 _KSN_DETAIL_BEGIN
@@ -184,45 +160,107 @@ int_type fp_int_cast(long double x, unsigned precision = LDBL_DIG)
 
 
 
-template<class T>
-struct complex;
 
 
 
-template<std::floating_point T>
-int solve_quadratic(T a, T b, T c, T(*p_roots)[2]);
-
-template<std::floating_point T>
-int solve_quadratic(T a, T b, T c, ksn::complex<T>(*p_roots)[2])
+template<class fp_t, class c_t> requires(!std::is_integral_v<fp_t>)
+constexpr int solve_quadratic(fp_t a, fp_t b, fp_t c, fp_t(*p_roots)[2])
 {
-	c /= a;
-	b /= a * -2;
-	T d = b * b - c;
-	if (d < 0)
-	{
-		d = sqrt(-d);
-		(*p_roots)[0] = { b, -d };
-		(*p_roots)[1] = { b, d };
-	}
-	else
-	{
-		d = sqrt(d);
-		(*p_roots)[0] = b - d;
-		(*p_roots)[1] = b + d;
-	}
+	using std::sqrt;
+
+	b *= -0.5 * a;
+	c *= a;
+	
+	fp_t D = b * b - c;
+	if (D < 0) return 0;
+
+	(*p_roots)[0] = b + sqrt(D);
+	(*p_roots)[1] = b - sqrt(D);
+	return 2;
+}
+
+template<class T> requires(!std::is_integral_v<T>)
+constexpr int solve_quadratic(complex<T> a, complex<T> b, complex<T> c, complex<T>(*p_roots)[2])
+{
+	a = 1 / a;
+	b *= -0.5 * a;
+	c *= a;
+
+	complex<T> d = b * b - c;
+	(*p_roots)[0] = b + sqrt(d);
+	(*p_roots)[1] = b - sqrt(d);
 
 	return 2;
 }
 
-template<class T>
-int solve_quadratic(const ksn::complex<T>& a, const ksn::complex<T>& b, const ksn::complex<T>& c, ksn::complex<T>(*p_roots)[2]);
 
+template<class fp_t>
+constexpr fp_t solve_cubic_principal(fp_t a, fp_t b, fp_t c, fp_t d)
+{
+	using std::sqrt;
+	using std::cbrt;
+	using std::atan2;
+	using std::cos;
 
-template<std::floating_point T>
-T solve_cubic_principal(T a, T b, T c, T d);
+	b /= a;
+	c /= a;
+	d /= a;
 
-template<std::floating_point T>
-int solve_cubic(T a, T b, T c, T d, T(*p_roots)[3]);
+	fp_t p = c - b * b / 3;
+	fp_t q = b * (2 * b * b / 27 - c / 3) + d;
+
+	q /= -2; p /= 3;
+	fp_t A = q * q + p * p * p;
+
+	if (A > 0)
+	{
+		A = sqrt(A);
+		return cbrt(q + A) + cbrt(q - A) - b / 3;
+	}
+	else
+	{
+		A = -A;
+		return 2 * pow(q * q + A, fp_t(1) / 6) * cos(atan2(sqrt(A), q) / 3);
+	}
+}
+
+template<std::floating_point fp_t>
+int solve_cubic(fp_t a, fp_t b, fp_t c, fp_t d, fp_t(*p_roots)[3])
+{
+	using std::sqrt;
+	using std::cbrt;
+
+	b /= a;
+	c /= a;
+	d /= a;
+
+	fp_t p = c - b * b / 3;
+	fp_t q = b * (2 * b * b / 27 - c / 3) + d;
+
+	q /= -2; p /= 3;
+	fp_t A = q * q + p * p * p;
+
+	if (A > 0)
+	{
+		A = sqrt(A);
+		(*p_roots)[0] = cbrt(q + A) + cbrt(q - A) - b / 3;
+		return 1;
+	}
+	else
+	{
+		ksn::complex<fp_t> B(A), roots1[3], roots2[3];
+		B = sqrt(B);
+
+		ksn::roots(q + B, 3, roots1);
+		ksn::roots(q - B, 3, roots2);
+
+		for (int i = 0; i < 3; ++i)
+		{
+			(*p_roots)[i] = (roots1[i] + roots2[i]).real - b / 3;
+		}
+		return 3;
+	}
+}
 
 template<std::floating_point T>
 int solve_qartic(T a, T b, T c, T d, T e, T(*p_roots)[4]);
@@ -320,24 +358,24 @@ long double lambert_W0(long double x);
 
 long double lambert_W_n1(long double x);
 
-template<std::floating_point T>
-complex<T> lambert_W(complex<T> z, int n = 0);
+//template<std::floating_point T>
+//complex<T> lambert_W(complex<T> z, int n = 0);
 
 
 
 /*
 Flags:
-Bit 0: allow '.' use be used as decimal point
-Bit 1: allow ',' use be used as decimal point
+Bit 0: allow '.' to be used as decimal point
+Bit 1: allow ',' to be used as decimal point
 Bit 2: allow use 'e' as exponent part begin ( mantiss*10^exponent )
 Bit 3: allow use 'E' as exponent part begin ( mantiss*10^exponent )
 Bit [4:5]:
 	0 0 = (nothing)
-	1 0 = determine decimal point using locale and overwrite current flags
-	1 1 = determine decimal point using locale and merge with current flags
+	1 0 = determine decimal point using current locale and overwrite current flags
+	1 1 = determine decimal point using current locale and merge with current flags
 */
-template<class CharT, std::floating_point fp_t>
-size_t parse_fp(const CharT *p, fp_t& result, uint32_t flags = 15) noexcept
+template<class char_t, std::floating_point fp_t>
+constexpr size_t parse_fp(const char_t*p, fp_t& result, uint32_t flags = 15) noexcept
 {
 	if (flags & 16)
 	{
@@ -367,7 +405,7 @@ size_t parse_fp(const CharT *p, fp_t& result, uint32_t flags = 15) noexcept
 		}
 	}
 
-	const CharT* const p_begin = p;
+	const char_t* const p_begin = p;
 	int exponent = 0;
 	fp_t integral_part = 0, fractional_part = 0;
 	bool negative = false, did_job = false;
@@ -390,11 +428,11 @@ size_t parse_fp(const CharT *p, fp_t& result, uint32_t flags = 15) noexcept
 
 	if ((*p == '.' && flags & 1) || (*p == ',' && flags & 2))
 	{
-		const CharT* const p_begin_fractional = p;
+		const char_t* const p_begin_fractional = p;
 
 		while (iswdigit(*++p));
 
-		const CharT* const p_end_fractional = p;
+		const char_t* const p_end_fractional = p;
 
 		if (p_begin_fractional + 1 != p_end_fractional)
 		{
@@ -506,7 +544,7 @@ constexpr bool newthon_method_general(callable_t func, fp_t& result, fp_t x, lon
 	fp_t temp, y;
 	epsilon = fabsl(epsilon);
 
-	while (cycles_left)
+	while (cycles_left--)
 	{
 		if (is_inf_nan(x))
 		{
@@ -540,10 +578,9 @@ constexpr bool newthon_method_general(callable_t func, fp_t& result, fp_t x, lon
 			return true;
 		}
 		x -= temp;
-
-		cycles_left--;
 	}
 
+	result = x;
 	return false;
 }
 
@@ -597,7 +634,236 @@ constexpr uint_t combinations_number(uint_t n, uint_t k)
 
 
 
+//Uses 2 calls to f(x)
+template<class fp_t, class callable_t> requires(!std::is_integral_v<fp_t>)
+fp_t differentiate1(callable_t&& f, const fp_t& x)
+{
+	constexpr static fp_t static_dx = ksn::root(std::numeric_limits<fp_t>::epsilon(), 2);
+
+	fp_t dx = x ? static_dx * x : static_dx;
+	dx += x;
+	dx -= x;
+
+	return (f(x + dx) - f(x - dx)) / (2 * dx);
+}
+
+//Uses 4 calls to f(x)
+template<class fp_t, class callable_t> requires(!std::is_integral_v<fp_t>)
+fp_t differentiate2(callable_t&& f, const fp_t& x)
+{
+	constexpr static fp_t static_dx = ksn::root(std::numeric_limits<fp_t>::epsilon(), 4);
+
+	fp_t dx = x ? static_dx * x : static_dx;
+	dx += x;
+	dx -= x;
+
+	fp_t d1f = f(x + dx) - f(x - dx);
+	fp_t d2f = f(x + dx + dx) - f(x - dx - dx);
+
+	return (d1f - d2f / 8) / (dx * 3 / 2);
+}
+
+//Uses 6 calls to f(x)
+template<class fp_t, class callable_t> requires(!std::is_integral_v<fp_t>)
+fp_t differentiate3(callable_t&& f, const fp_t& x)
+{
+	constexpr static fp_t static_dx = ksn::root(std::numeric_limits<fp_t>::epsilon(), 6);
+
+	fp_t dx = x ? static_dx * x : static_dx;
+	dx += x;
+	dx -= x;
+
+	fp_t d1f = f(x + dx) - f(x - dx);
+	fp_t d2f = f(x + dx + dx) - f(x - dx - dx);
+	fp_t d3f = f(x + dx + dx + dx) - f(x - dx - dx - dx);
+
+	fp_t d13f = d1f - d3f / (3 * 3 * 3 * 3 * 3);
+	fp_t d23f = d2f - d3f * fp_t(2 * 2 * 2 * 2 * 2) / (3 * 3 * 3 * 3 * 3);
+
+	//deriving this was quite painful
+	return (d13f - d23f / 5) / (4 * dx / 3);
+}
+
+//Uses 8 calls to f(x)
+template<class fp_t, class callable_t> requires(!std::is_integral_v<fp_t>)
+fp_t differentiate4(callable_t&& f, const fp_t& x)
+{
+	constexpr static fp_t static_dx = ksn::root(std::numeric_limits<fp_t>::epsilon(), 6);
+
+	fp_t dx = x ? static_dx * x : static_dx;
+	dx += x;
+	dx -= x;
+
+	fp_t d1f = f(x + dx) - f(x - dx);
+	fp_t d2f = f(x + dx + dx) - f(x - dx - dx);
+	fp_t d3f = f(x + dx + dx + dx) - f(x - dx - dx - dx);
+	fp_t d4f = f(x + dx + dx + dx + dx) - f(x - dx - dx - dx - dx);
+
+	//A shoutout to https://web.media.mit.edu/~crtaylor/calculator.html
+	return (-3 * d4f + 32 * d3f - 168 * d2f + 672 * d1f) / (840 * dx);
+}
+
+
+
+_KSN_DETAIL_BEGIN
+
+template<class fp_t, class callable>
+fp_t limit_inf(callable&& f)
+{
+	return NAN;
+}
+
+template<class fp_t, class callable>
+fp_t neighbourhood_approximator1(callable f, const fp_t& x, size_t N, const fp_t& dx, fp_t coefficient)
+{
+	fp_t sum = 0;
+	fp_t step = dx + dx;
+
+	for (size_t n = 1; n < N; ++n)
+	{
+		coefficient *= ptrdiff_t(n - N); //Negating occurs here
+		coefficient /= (N + n + 1);
+		sum += coefficient * (f(x + step) + f(x - step));
+		step += dx;
+	}
+
+	return sum;
+}
+
+_KSN_DETAIL_END
+
+
+
+/*
+The function does it's best to find a function's limit at some point x
+But results are gonna be totaly nonsence if you plug here some chaotic function
+For example, lim x->0 of x*sin(e^(1/x)) will yield nonsence of 0.0004 whe the actual limit is 0
+Consider using some tricks for corcer-case function
+For example, use 1000*lim x->a (y(a)/1000) if the function oscilates a lot near the point x=a etc
+*/
+template<class fp_t, uint8_t custom_dx_order = 0>
+fp_t limit(fp_t(*f)(fp_t), fp_t x)
+{
+	using std::ceil;
+	using std::log;
+	using std::abs;
+
+	if (x != x) return x;
+	if (x == INFINITY) return detail::limit_inf<fp_t>(f);
+	if (x == -INFINITY) return detail::limit_inf<fp_t>([&](const fp_t& x) {return f(-x); });
+
+	fp_t temp;
+	//if (temp == temp) return temp;
+
+	constexpr fp_t epsilon = std::numeric_limits<fp_t>::epsilon();
+
+	fp_t dx;
+
+	if constexpr (custom_dx_order == 0)
+	{
+		dx = epsilon * 100;
+		if (x != 0) dx *= abs(x);
+		dx = (x + dx) - x;
+
+		static constexpr fp_t DX_STEP = fp_t(1.5);
+
+		bool ok = true;
+		while (true)
+		{
+			temp = f(x + dx);
+			if (temp == temp)
+			{
+				temp += f(x - dx);
+				if (temp == temp) break;
+			}
+			dx *= DX_STEP;
+			if (dx >= 1)
+			{
+				ok = false;
+				break;
+			}
+		};
+
+		if (!ok) return NAN;
+	}
+	else
+	{
+		dx = pow(fp_t(0.1), custom_dx_order);
+		if (x != 0) dx *= abs(x);
+		dx = (x + dx) - x;
+		temp = f(x + dx) + f(x - dx);
+	}
+
+	/*
+
+	Let dn{f} denote n'th derivative of f
+	Let A_k be 1/2 * [ f(x + k*dx) + f(x - k*dx) ]
+
+
+	Using Taylor series axpansion at point x, one can get:
+	A_k = f(x) + 1/(2!)*d2{f}*(k*dx)^2 + d4{f}*(k*dx)^4 / 4! ... up to some dN{f}
+	Where f(x) and all it's derivatives are unknowns
+
+	Select N such that dx^N < machine_epsilon => dx^n -> 0
+	N > log base dx of epsilon
+	N > ln(eps) / ln(dx)
+	Equation (1) calculates nuber of equations needed (taking into account that we can only have even integer powers)
+
+	All the equations are in form of A_k = f(...)
+	Since we easily can compute all the A_k after we found some nice neighbourhood of the point [x - dx; x + dx] where f(x) can be computed
+
+	Combine all the A_k into system of equations
+
+	Note: initial aumented matrix looks like
+	[   1   (1*dx)^2/(2!)   (1*dx)^4/(4!)   ...   |   A_1   ]
+	[   1   (2*dx)^2/(2!)   (2*dx)^4/(4!)   ...   |   A_2   ]
+	[   1   (3*dx)^2/(2!)   (3*dx)^4/(4!)   ...   |   A_3   ]
+	[   ...
+
+
+	If then one solves a couple of this systems (with different N) for f(x), one can prove the following:
+
+	f(x) = 1/C(2N-1, N) * SUM from n=1 to N of [ (-1)^(n+1) * C(2N, N-n) * A_n ],
+
+	which can be transformed info
+
+	f(x) = SUM from n=1 to N of [ (-1)^(n+1) * A_n * Falling(N, n) / Rising(N+1, n) ],
+
+	where Rising(N, n) and Falling(N, n) denote rising and falling N factorials respectively
+
+
+	P.S.
+	I compute f(x) by using the values of a function in some neighbourhood of x
+	And it gets more and more and more precise as N -> infinity
+	So yeah, I bet I have derived some kind of reverse of the Taylor series expansion
+	¯\_(ツ)_/¯
+
+	*/
+
+
+	size_t N = (size_t)ceil(log(epsilon) / log(dx));
+	if (N == 1)
+		return temp / 2;
+	else
+		N = (N + 1) / 2 + 1 + bool(custom_dx_order);
+
+	fp_t coefficient = fp_t(N) / (N + 1);
+	return coefficient * temp + detail::neighbourhood_approximator1<fp_t>(f, x, N, dx, coefficient);
+}
+
+
+//Tries it's best to approximate the value of f(x) if it can not be directly evalueated in x but can be in [x-Ndx; x+Ndx]
+template<class fp_t, class callable>
+fp_t neighbourhood_approximator(callable f, const fp_t& x, size_t N, const fp_t& dx = fp_t(0.0001))
+{
+	fp_t c = fp_t(N);
+	c /= N + 1;
+	return c * (f(x + dx) + f(x - dx)) + detail::neighbourhood_approximator1(f, x, N, dx, c);
+}
+
+
 _KSN_END
+
 
 
 #endif //_KSN_MATH_COMMON_HPP_

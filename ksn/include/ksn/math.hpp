@@ -6,20 +6,21 @@
 
 
 
-////Classes to handle trivial arithmetic types overloading and convertion
+//Classes to handle trivial arithmetic types overloading and convertion
 //#include <ksn/math_trivial_types.hpp>
+//UPD: deprecated cuz as ++20 has already came out
 
 
 //Formula parser and interpretator
 //#include <ksn/math_formula.hpp>
 
 
-////Integer long arithmetic
+//Integer long arithmetic
 //#include <ksn/math_long_integer.hpp>
 
 
 //Complex numbers
-//#include <ksn/math_complex.hpp>
+#include <ksn/math_complex.hpp>
 
 
 //Common stuff
@@ -29,9 +30,6 @@
 //Constexpr math functions
 #include <ksn/math_constexpr.hpp>
 
-
-//Rough approximations of common math functions
-//#include <ksn/math_fast.hpp>
 
 
 #endif //!_KSN_MATH_HPP_

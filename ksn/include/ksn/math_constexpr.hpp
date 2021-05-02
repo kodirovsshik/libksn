@@ -1,9 +1,10 @@
 
 #ifndef  _KSN_MATH_CONSTEXPR_HPP_
+#define _KSN_MATH_CONSTEXPR_HPP_
 
 
 #include <ksn/ksn.hpp>
-#include <ksn/math_common.hpp>
+#include <ksn/math_constants.hpp>
 
 #include <limits>
 #include <stdexcept>
@@ -13,6 +14,130 @@
 
 
 _KSN_BEGIN
+
+
+
+_KSN_DETAIL_BEGIN
+
+#define ksn_log_repeat1(x) (x)
+#define ksn_log_repeat2(x) ksn_log_repeat1(x), ksn_log_repeat1(x)
+#define ksn_log_repeat4(x) ksn_log_repeat2(x), ksn_log_repeat2(x)
+#define ksn_log_repeat8(x) ksn_log_repeat4(x), ksn_log_repeat4(x)
+#define ksn_log_repeat16(x) ksn_log_repeat8(x), ksn_log_repeat8(x)
+#define ksn_log_repeat32(x) ksn_log_repeat16(x), ksn_log_repeat16(x)
+#define ksn_log_repeat64(x) ksn_log_repeat32(x), ksn_log_repeat32(x)
+#define ksn_log_repeat128(x) ksn_log_repeat64(x), ksn_log_repeat64(x)
+
+constexpr int8_t __log2_lookup_table8[256] =
+{
+	INT8_MIN, //some sort of -infinity for log(0)
+	ksn_log_repeat1(0), ksn_log_repeat2(1), ksn_log_repeat4(2), ksn_log_repeat8(3),
+	ksn_log_repeat16(4), ksn_log_repeat32(5), ksn_log_repeat64(6), ksn_log_repeat128(7)
+};
+
+#undef ksn_log_repeat1
+#undef ksn_log_repeat2
+#undef ksn_log_repeat4
+#undef ksn_log_repeat8
+#undef ksn_log_repeat16
+#undef ksn_log_repeat32
+#undef ksn_log_repeat64
+#undef ksn_log_repeat128
+
+_KSN_DETAIL_END
+
+
+
+template<std::signed_integral T>
+constexpr int ilog2(T x)
+{
+	if (x <= 0) return INT_MIN;
+	
+	return ilog2((std::make_unsigned_t<T>)x);
+}
+template<std::unsigned_integral T>
+constexpr int ilog2(T x)
+{
+	//I could have generalized this but i already had implementations for all integer sizes and i was too lazy to do something about it
+
+	if constexpr (sizeof(T) == 1)
+	{
+		return detail::__log2_lookup_table8[x];
+	}
+	else if constexpr (sizeof(T) == 2)
+	{
+		uint8_t t;
+		return (t = (x >> 8)) ? (8 + detail::__log2_lookup_table8[t]) : (detail::__log2_lookup_table8[x]);
+	}
+	else if constexpr (sizeof(T) == 4)
+	{
+		uint16_t t1, t2;
+
+		if ((t2 = (x >> 16)))
+		{
+			return (t1 = (t2 >> 8)) ? (16 + 8 + detail::__log2_lookup_table8[t1]) : (16 + detail::__log2_lookup_table8[t2]);
+		}
+		else
+		{
+			return (t2 = (x >> 8)) ? (8 + detail::__log2_lookup_table8[t2]) : (detail::__log2_lookup_table8[x]);
+		}
+	}
+	else if constexpr (sizeof(T) == 8)
+	{
+		uint64_t t1, t2;
+
+		if ((t1 = (x >> 32)))
+		{
+			if ((t2 = (t1 >> 16)))
+			{
+				return (t1 = (t2 >> 8)) ? (32 + 16 + 8 + detail::__log2_lookup_table8[t1]) : (32 + 16 + detail::__log2_lookup_table8[t2]);
+			}
+			else
+			{
+				return (t2 = (t1 >> 8)) ? (32 + 8 + detail::__log2_lookup_table8[t2]) : (32 + detail::__log2_lookup_table8[t1]);
+			}
+		}
+		else
+		{
+			if ((t2 = (x >> 16)))
+			{
+				return (t1 = (t2 >> 8)) ? (16 + 8 + detail::__log2_lookup_table8[t1]) : (16 + detail::__log2_lookup_table8[t2]);
+			}
+			else
+			{
+				return (t1 = (x >> 8)) ? (8 + detail::__log2_lookup_table8[t1]) : detail::__log2_lookup_table8[x];
+			}
+		}
+	}
+	else
+	{
+		static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "There was no 128 bit integers in my time");
+	}
+}
+
+
+
+template<std::signed_integral T>
+constexpr T isqrt(T x)
+{
+	if (x <= 0) return INT_MIN;
+	return isqrt((std::make_unsigned_t<T>)x);
+}
+template<std::unsigned_integral T>
+constexpr T isqrt(T n)
+{
+	if (n == T(-1))
+	{
+		return (1 << (sizeof(T) * 8 / 2)) - 1;
+	}
+	T x = n, y = 1;
+	while (x > y)
+	{
+		x = (x + y) / 2;
+		y = n / x;
+	}
+	return x;
+}
 
 
 
@@ -177,7 +302,7 @@ constexpr T ln(T x)
 {
 	if (x >= 1.5) return -ln(1 / x);
 	if (x <= 0) return std::numeric_limits<long double>::quiet_NaN();
-	if (x <= 1e-6) return T(-10) + ln(x * exp<T>(10));
+	if (x <= 1e-2) return T(-10) + ln(x * exp<T>(10));
 
 	long double x1 = 1 - x;
 	long double num = x1;
@@ -254,12 +379,7 @@ constexpr T1 pow(T1 x, T2 y)
 	T1 result(1);
 	if (y == 0) return result;
 
-	T2 walker = 1 <<
-		((sizeof(T2) == 1) ? log2_8(y) : (
-			(sizeof(T2) == 2) ? log2_16(y) : (
-				(sizeof(T2) == 4) ? log2_32(y) : (
-					(log2_64(y)
-						)))));
+	T2 walker = 1 << ilog2(y);
 
 	while (walker != 0)
 	{
@@ -276,12 +396,7 @@ template<std::integral T1, std::unsigned_integral T2>
 constexpr T1 pow(T1 x, T2 y)
 {
 	T1 result = 1;
-	T2 walker = 1 <<
-		(sizeof(T2) == 1) ? log2_8(y) : (
-		(sizeof(T2) == 2) ? log2_16(y) : (
-		(sizeof(T2) == 4) ? log2_32(y) : (
-		(log2_64(y)
-		))));
+	T2 walker = 1 << ilog2(y);
 
 	while (walker != 0)
 	{
@@ -299,7 +414,7 @@ constexpr T1 pow(T1 x, T2 y)
 {
 	if (y < 0)
 	{
-		if (x == 0) { return 3 / false; }
+		if (x == 0) { x = 0; x /= x; return x; }
 		return (x == 1) ? 1 : 0;
 	}
 	return ksn::pow<T1, std::make_unsigned_t<T2>>(x, y);
@@ -318,6 +433,17 @@ template<class T>
 constexpr T sqrt(T x, T dx)
 {
 	return ksn::pow(x, 0.5l, dx);
+}
+
+template<class T>
+constexpr T cbrt(T x)
+{
+	return ksn::pow(x, 1.l / 3);
+}
+template<class T>
+constexpr T cbrt(T x, T dx)
+{
+	return ksn::pow(x, 1.l / 3, dx);
 }
 
 template<std::integral T>

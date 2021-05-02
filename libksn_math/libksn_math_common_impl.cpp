@@ -18,59 +18,6 @@ _KSN_BEGIN
 
 
 
-_KSN_DETAIL_BEGIN
-
-#define repeat1(x) (x)
-#define repeat2(x) repeat1(x), repeat1(x)
-#define repeat4(x) repeat2(x), repeat2(x)
-#define repeat8(x) repeat4(x), repeat4(x)
-#define repeat16(x) repeat8(x), repeat8(x)
-#define repeat32(x) repeat16(x), repeat16(x)
-#define repeat64(x) repeat32(x), repeat32(x)
-#define repeat128(x) repeat64(x), repeat64(x)
-
-const signed char __log2_lookup_table8[256] =
-{
-	-1, //some sort of -infinity for log(0)
-	repeat1(0), repeat2(1), repeat4(2), repeat8(3),
-	repeat16(4), repeat32(5), repeat64(6), repeat128(7)
-};
-
-const signed char* _log2_lookup_table8 = __log2_lookup_table8;
-
-_KSN_DETAIL_END
-
-
-
-size_t log2_8(uint8_t x)
-{
-	return detail::__log2_lookup_table8[x];
-}
-
-size_t log2_16(uint16_t x)
-{
-	uint8_t t;
-	return (t = (x >> 8)) ? (8 + detail::__log2_lookup_table8[t]) : (detail::__log2_lookup_table8[x]);
-}
-
-size_t log2_32(uint32_t x)
-{
-	uint16_t t1, t2;
-
-	if ((t2 = (x >> 16)))
-	{
-		return (t1 = (t2 >> 8)) ? (16 + 8 + detail::__log2_lookup_table8[t1]) : (16 + detail::__log2_lookup_table8[t2]);
-	}
-	else
-	{
-		return (t2 = (x >> 8)) ? (8 + detail::__log2_lookup_table8[t2]) : (detail::__log2_lookup_table8[x]);
-	}
-}
-
-
-
-
-
 std::vector<double> polynomial_multiplication(const std::vector<double>& v1, const std::vector<double>& v2)
 {
 	if (v1.size() == 0 || v2.size() == 0)
@@ -143,66 +90,6 @@ std::vector<double> polynomial_interpolation(const std::vector<std::pair<double,
 	}
 
 	return result;
-}
-
-
-
-uint64_t isqrt(uint64_t n)
-{
-	if (n == UINT64_MAX)
-	{
-		return UINT32_MAX;
-	}
-	uint64_t x = n, y = 1;
-	while (x > y)
-	{
-		x = (x + y) / 2;
-		y = n / x;
-	}
-	return x;
-}
-uint32_t isqrt(uint32_t n)
-{
-	if (n == UINT32_MAX)
-	{
-		return UINT16_MAX;
-	}
-	uint_fast32_t x = n, y = 1;
-	while (x > y)
-	{
-		x = (x + y) / 2;
-		y = n / x;
-	}
-	return x;
-}
-uint16_t isqrt(uint16_t n)
-{
-	if (n == UINT16_MAX)
-	{
-		return UINT8_MAX;
-	}
-	uint_fast16_t x = n, y = 1;
-	while (x > y)
-	{
-		x = (x + y) / 2;
-		y = n / x;
-	}
-	return x;
-}
-uint8_t isqrt(uint8_t n)
-{
-	if (n == UINT8_MAX)
-	{
-		return 15;
-		//return UINT4_MAX;
-	}
-	uint_fast8_t x = n, y = 1;
-	while (x > y)
-	{
-		x = (x + y) / 2;
-		y = n / x;
-	}
-	return x;
 }
 
 
@@ -465,26 +352,6 @@ uint8_t isqrt(uint8_t n)
 //	return roots_count;
 //}
 
-
-
-//bool compare_equal_with_precision(const complex& a, const complex& b, long double precision)
-//{
-//	long double dr = a.data[0] - b.data[0];
-//	long double di = a.data[1] - b.data[1];
-//
-//	return dr > -precision && dr < precision && di > -precision && di < precision;
-//}
-
-
-
-long double sign(long double x)
-{
-	if (x == 0) //-V550
-	{
-		return 0;
-	}
-	return x < 0 ? -1 : 1;
-}
 
 //bool isnan(const ksn::complex& x)
 //{
