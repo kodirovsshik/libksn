@@ -13,6 +13,12 @@
 #include <intrin.h>
 
 
+#ifdef _KSN_COMPILER_MSVC
+#pragma warning(push)
+#pragma warning(disable : 26451)
+#endif
+
+
 _KSN_BEGIN
 
 
@@ -80,7 +86,7 @@ private:
 		out->sign = in1->sign ^ in2->sign;
 	}
 
-	void shift_left(size_t bits)
+	 void shift_left(size_t bits)
 	{
 		if (bits >= 128) _KSN_UNLIKELY
 		{
@@ -104,7 +110,7 @@ private:
 		else return;
 		this->exponent -= bits;
 	}
-	void shift_right(size_t bits)
+	 void shift_right(size_t bits)
 	{
 		if (bits >= 128) _KSN_UNLIKELY
 		{
@@ -129,7 +135,7 @@ private:
 		this->exponent += bits;
 	}
 
-	static void adjust_exponents(pplf* __restrict pin1, pplf* __restrict pin2)
+	 static void adjust_exponents(pplf* __restrict pin1, pplf* __restrict pin2)
 	{
 		size_t less_leading_bits;
 		size_t bits1 = pin1->leading_zeros(), bits2 = pin2->leading_zeros();
@@ -152,7 +158,7 @@ private:
 		}
 	}
 
-	static void add(pplf* __restrict pin1, pplf* __restrict pin2, pplf* __restrict pout)
+	 static void add(pplf* __restrict pin1, pplf* __restrict pin2, pplf* __restrict pout)
 	{
 		pplf::adjust_exponents(pin1, pin2);
 
@@ -189,7 +195,7 @@ private:
 
 
 	template<std::integral T>
-	std::make_signed_t<T> to_int() const noexcept
+	 std::make_signed_t<T> to_int() const noexcept
 	{
 		using sT = std::make_signed_t<T>;
 
@@ -220,7 +226,7 @@ public:
 	}
 
 	template<std::floating_point T>
-	constexpr pplf(T x)
+	/*constexpr*/ pplf(T x)
 	{
 		if (x == 0)
 		{
@@ -236,7 +242,7 @@ public:
 		
 		using std::numeric_limits;
 
-		if constexpr (numeric_limits<T>::digits >= 64)
+		if  (numeric_limits<T>::digits >= 64)
 		{
 			this->digits[0] = 0;
 			this->digits[1] = uint64_t(1) << (numeric_limits<T>::digits - 64);
@@ -302,13 +308,13 @@ public:
 
 
 	template<std::floating_point T>
-	operator T() const noexcept
+	constexpr operator T() const noexcept
 	{
 		return std::exp2((T)this->exponent) * (this->digits[0] + std::exp2(T(64)) * this->digits[1]) * (this->sign ? -1 : 1);
 	}
 
 	template<std::integral T>
-	operator T() const noexcept
+	constexpr operator T() const noexcept
 	{
 		auto x = this->sign ? -this->to_int<T>() : this->to_int<T>();
 		return (T)x;
@@ -347,27 +353,27 @@ public:
 
 
 
-	friend pplf operator+(pplf a, pplf b) noexcept
+	 friend pplf operator+(pplf a, pplf b) noexcept
 	{
 		pplf result;
 		pplf::add(&a, &b, &result);
 		return result;
 	}
-	pplf& operator+=(pplf other) noexcept
+	 pplf& operator+=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		pplf::add(&this_copy, &other, this);
 		return *this;
 	}
 
-	friend pplf operator-(pplf a, pplf b) noexcept
+	 friend pplf operator-(pplf a, pplf b) noexcept
 	{
 		pplf result;
 		b.sign ^= 1;
 		pplf::add(&a, &b, &result);
 		return result;
 	}
-	pplf& operator-=(pplf other) noexcept
+	 pplf& operator-=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		other.sign ^= 1;
@@ -375,27 +381,27 @@ public:
 		return *this;
 	}
 
-	friend pplf operator*(pplf a, pplf b) noexcept
+	 friend pplf operator*(pplf a, pplf b) noexcept
 	{
 		pplf result;
 		pplf::_mul_digits(&a, &b, &result);
 		return result;
 	}
-	pplf& operator*=(pplf other) noexcept
+	 pplf& operator*=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		pplf::_mul_digits(&this_copy, &other, this);
 		return *this;
 	}
 
-	friend pplf operator/(pplf a, pplf b) noexcept
+	 friend pplf operator/(pplf a, pplf b) noexcept
 	{
 		pplf result;
 		b.invert();
 		pplf::_mul_digits(&a, &b, &result);
 		return result;
 	}
-	pplf& operator/=(pplf other) noexcept
+	 pplf& operator/=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		other.invert();
@@ -404,7 +410,7 @@ public:
 	}
 
 
-	int leading_zeros() const noexcept
+	 int leading_zeros() const noexcept
 	{
 		unsigned long index;
 		if (this->digits[1] == 0)
@@ -422,7 +428,7 @@ public:
 		}
 	}
 
-	int trailing_zeros() const noexcept
+	 int trailing_zeros() const noexcept
 	{
 		unsigned long result;
 		if (this->digits[0] == 0)
@@ -443,23 +449,26 @@ public:
 	{
 		this->shift_right(this->trailing_zeros());
 
-		pplf result;
-		result.digits[0] = 1;
-		result.exponent = -this->exponent - 1;
-		result.sign = this->sign;
+		constexpr pplf c1 = []{ ksn::pplf x{}; x.digits[0] = x.digits[1] = 0xB4B4B4B4B4B4B4B4; x.exponent = -126; x.sign = false; return x; }();
+		constexpr pplf c2 = []{ ksn::pplf x{}; x.digits[0] = x.digits[1] = 0xF0F0F0F0F0F0F0F0; x.exponent = -127; x.sign = true; return x; }();
 
-		for (size_t i = 0; i < 32; ++i)
+		int shift = 128 - this->leading_zeros();
+		this->exponent -= shift;
+
+		pplf current = *this * c2 + c1;
+
+		//Wikipedia promised 5 would be enough for 128 bits
+		for (size_t i = 0; i < 4; ++i)
 		{
-			pplf new_result = result + result * (pplf(1) - *this * result);
-			if (new_result == result) break;
-			result = new_result;
+			current = current + current * (pplf(1) - *this * current);
 		}
 
-		*this = result;
+		*this = current;
+		this->exponent -= shift;
 	}
 
 
-	bool operator==(pplf other) const noexcept
+	 bool operator==(pplf other) const noexcept
 	{
 		if (this->digits[0] == 0 && this->digits[1] == 0 && other.digits[0] == 0 && other.digits[1] == 0) return true;
 
@@ -470,25 +479,25 @@ public:
 
 		return current.digits[0] == other.digits[0] && current.digits[1] == other.digits[1] && current.exponent == other.exponent;
 	}
-	bool operator!=(const pplf& other) const noexcept
+	 bool operator!=(const pplf& other) const noexcept
 	{
 		return !(this->operator==(other));
 	}
-	bool operator<(const pplf& other) const noexcept
+	 bool operator<(const pplf& other) const noexcept
 	{
 		pplf diff = *this - other;
 		return diff.sign && (diff.digits[0] || diff.digits[1]);
 	}
-	bool operator<=(const pplf& other) const noexcept
+	 bool operator<=(const pplf& other) const noexcept
 	{
 		pplf diff = *this - other;
 		return diff.sign || !(diff.digits[0] || diff.digits[1]);
 	}
-	bool operator>(const pplf& other) const noexcept
+	 bool operator>(const pplf& other) const noexcept
 	{
 		return !(this->operator<=(other));
 	}
-	bool operator>=(const pplf& other) const noexcept
+	 bool operator>=(const pplf& other) const noexcept
 	{
 		return !(this->operator<(other));
 	}
@@ -501,5 +510,8 @@ static_assert(sizeof(pplf) == 24);
 _KSN_END
 
 
+#ifdef _KSN_COMPILER_MSVC
+#pragma warning(pop)
+#endif
 
 #endif //!_KSN_MATH_PPLF_HPP_
