@@ -62,11 +62,14 @@ _KSN_END
 
 #include <ksn/math_pplf.hpp>
 
+#include <iostream>
+
 int main()
 {
-	
-	ksn::pplf x = 3;
-	x.invert();
+	ksn::pplf pi = ksn::pplf::pi();
+	pi /= pi;
+	pi -= 1;
 
-	double f = x;
+	double t = pi;
+	t = t;
 }
