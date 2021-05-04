@@ -27,62 +27,94 @@ _KSN_BEGIN
 struct pplf
 {
 private:
-	static void _mul_digits_big(const pplf* pin1, const pplf* pin2, pplf* pout)
+	static void multiply(const pplf* in1, const pplf* in2, pplf* out)
 	{
-		uint64_t h01, h10;
-		uint64_t l11;
-		uint64_t h11; //temporary for result high digits
-		uint64_t temp; //temporary for result low digits
-
-		_umul128(pin1->digits[0], pin2->digits[1], &h01);
-		_umul128(pin1->digits[1], pin2->digits[0], &h10);
-		l11 = _umul128(pin1->digits[1], pin2->digits[1], &h11);
-
+		uint64_t product[4];
 		unsigned char carry;
-		carry = _addcarry_u64(0, h01, h10, &temp);
-		h11 += carry;
+		uint64_t l00, l01, l10, l11, h00, h01, h10, h11;
 
-		carry = _addcarry_u64(0, temp, l11, &temp);
+		l00 = _umul128(in1->digits[0], in2->digits[0], &h00);
+		l01 = _umul128(in1->digits[0], in2->digits[1], &h01);
+		l10 = _umul128(in1->digits[1], in2->digits[0], &h10);
+		l11 = _umul128(in1->digits[1], in2->digits[1], &h11);
+
+		carry = 0;
+		carry = _addcarry_u64(carry, l00, 0, &product[0]);
+		carry = _addcarry_u64(carry, l01, l10, &product[1]);
+		carry = _addcarry_u64(carry, h01, h10, &product[2]);
+		carry = _addcarry_u64(carry, 0, h11, &product[3]);
+
+		carry = 0;
+		carry = _addcarry_u64(carry, product[1], h00, &product[1]);
+		carry = _addcarry_u64(carry, product[2], l11, &product[2]);
+		carry = _addcarry_u64(carry, product[3], 0, &product[3]);
+
+
+		unsigned long shift_over = 0, shift;
+		if constexpr (false) {}
+		else if (product[3] == 0 && product[2] == 0 && product[1] == 0 && product[0] == 0)
+		{
+			out->digits[0] = out->digits[1] = 0;
+			out->exponent = 0;
+			out->sign = in1->sign ^ in2->sign;
+			return;
+		}
+		else if (product[3] == 0 && product[2] == 0 && product[1] == 0)
+		{
+			product[3] = product[0];
+			product[2] = 0;
+			product[1] = 0;
+			product[0] = 0;
+			shift_over = 192;
+		}
+		else if (product[3] == 0 && product[2] == 0)
+		{
+			product[3] = product[1];
+			product[2] = product[0];
+			product[1] = 0;
+			product[0] = 0;
+			shift_over = 128;
+		}
+		else if (product[3] == 0)
+		{
+			product[3] = product[2];
+			product[2] = product[1];
+			product[1] = product[0];
+			product[0] = 0;
+			shift_over = 64;
+		}
+
+		if (_BitScanReverse64(&shift, product[3]))
+			shift = 63 - shift;
+		else
+			shift = 64;
+
+		if (shift)
+		{
+			product[3] = __shiftleft128(product[2], product[3], (unsigned char)shift);
+			product[2] = __shiftleft128(product[1], product[2], (unsigned char)shift);
+			product[1] = __shiftleft128(product[0], product[1], (unsigned char)shift);
+			//product[0] <<= shift; //we don't care about these digits as they are lost anyways 
+		}
+
+		carry = 0;
+		carry = _addcarry_u64(carry, product[1], 0x8000000000000000, &product[1]);
+		carry = _addcarry_u64(carry, product[2], 0, &product[2]);
+		carry = _addcarry_u64(carry, product[3], 0, &product[3]);
+
 		if (carry)
 		{
-			if (h11 == UINT64_MAX) _KSN_UNLIKELY
-			{
-				temp >>= 1;
-				temp |= (h11 << 63);
-				h11 = 1ui64 << 63;
-			}
-			else
-			{
-				h11++;
-			}
+			product[2] = __shiftright128(product[2], product[3], 1);
+			product[3] >>= 1;
+			product[3] |= 0x8000000000000000;
+			shift -= 1;
 		}
-		pout->digits[0] = temp;
-		pout->digits[1] = h11;
+		
+		shift += shift_over;
 
-		pout->exponent = pin1->exponent + pin2->exponent + 128;
-		pout->sign = pin1->sign ^ pin2->sign;
-	}
-	static void _mul_digits_medium(const pplf* pin1, const pplf* pin2, pplf* pout)
-	{
-		uint64_t l10, h10, h00;
-
-		_umul128(pin1->digits[0], pin2->digits[0], &h00);
-		l10 = _umul128(pin1->digits[1], pin2->digits[0], &h10);
-
-		h10 += _addcarry_u64(0, l10, h00, &pout->digits[0]);
-		pout->digits[1] = h10;
-
-		pout->exponent = pin1->exponent + pin2->exponent + 64;
-		pout->sign = pin1->sign ^ pin2->sign;
-	}
-	static void _mul_digits(const pplf* in1, const pplf* in2, pplf* out)
-	{
-		if (in1->digits[1] != 0 && in2->digits[1] != 0) return _mul_digits_big(in1, in2, out);
-		if (in1->digits[1] != 0 && in2->digits[1] == 0) return _mul_digits_medium(in1, in2, out);
-		if (in2->digits[1] != 0 && in1->digits[1] == 0) return _mul_digits_medium(in2, in1, out);
-
-		out->digits[0] = _umul128(in1->digits[0], in2->digits[0], &out->digits[1]);
-		out->exponent = in1->exponent + in2->exponent;
+		out->digits[0] = product[2];
+		out->digits[1] = product[3];
+		out->exponent = in1->exponent + in2->exponent - shift + 128;
 		out->sign = in1->sign ^ in2->sign;
 	}
 
@@ -137,16 +169,19 @@ private:
 
 	 static void adjust_exponents(pplf* __restrict pin1, pplf* __restrict pin2)
 	{
-		size_t less_leading_bits;
-		size_t bits1 = pin1->leading_zeros(), bits2 = pin2->leading_zeros();
+		//size_t less_leading_bits;
+		//size_t bits1 = pin1->leading_zeros(), bits2 = pin2->leading_zeros();
 
-		if (bits1 < bits2)
-			less_leading_bits = bits1;
-		else
-			less_leading_bits = bits2;
+		//if (bits1 < bits2)
+		//	less_leading_bits = bits1;
+		//else
+		//	less_leading_bits = bits2;
 
-		pin1->shift_left(less_leading_bits);
-		pin2->shift_left(less_leading_bits);
+		//pin1->shift_left(less_leading_bits);
+		//pin2->shift_left(less_leading_bits);
+
+		 pin1->shift_left(pin1->leading_zeros());
+		 pin2->shift_left(pin2->leading_zeros());
 
 		if (pin1->exponent < pin2->exponent)
 		{
@@ -384,13 +419,21 @@ public:
 	 friend pplf operator*(pplf a, pplf b) noexcept
 	{
 		pplf result;
-		pplf::_mul_digits(&a, &b, &result);
+		if constexpr (_KSN_IS_DEBUG_BUILD)
+		{
+			double fa = a, fb = b;
+			pplf::multiply(&a, &b, &result);
+			double f = result;
+			printf("%g * %g yields %g\n", fa, fb, f);
+		}
+		else
+			pplf::multiply(&a, &b, &result);
 		return result;
 	}
 	 pplf& operator*=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
-		pplf::_mul_digits(&this_copy, &other, this);
+		pplf::multiply(&this_copy, &other, this);
 		return *this;
 	}
 
@@ -398,14 +441,14 @@ public:
 	{
 		pplf result;
 		b.invert();
-		pplf::_mul_digits(&a, &b, &result);
+		pplf::multiply(&a, &b, &result);
 		return result;
 	}
 	 pplf& operator/=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		other.invert();
-		pplf::_mul_digits(&this_copy, &other, this);
+		pplf::multiply(&this_copy, &other, this);
 		return *this;
 	}
 
@@ -445,6 +488,7 @@ public:
 		}
 	}
 
+	 //Newton–Raphson division
 	void invert() noexcept
 	{
 		this->shift_right(this->trailing_zeros());
@@ -452,19 +496,23 @@ public:
 		constexpr pplf c1 = []{ ksn::pplf x{}; x.digits[0] = x.digits[1] = 0xB4B4B4B4B4B4B4B4; x.exponent = -126; x.sign = false; return x; }();
 		constexpr pplf c2 = []{ ksn::pplf x{}; x.digits[0] = x.digits[1] = 0xF0F0F0F0F0F0F0F0; x.exponent = -127; x.sign = true; return x; }();
 
-		int shift = 128 - this->leading_zeros();
+		int shift = 128 - this->leading_zeros() + this->exponent;
 		this->exponent -= shift;
+
+		bool reserved_sign = this->sign;
+		this->sign = 0;
 
 		pplf current = *this * c2 + c1;
 
-		//Wikipedia promised 5 would be enough for 128 bits
-		for (size_t i = 0; i < 4; ++i)
+		//Wikipedia promised me 5 would be enough
+		for (size_t i = 0; i < 5; ++i)
 		{
 			current = current + current * (pplf(1) - *this * current);
 		}
 
 		*this = current;
 		this->exponent -= shift;
+		this->sign = reserved_sign;
 	}
 
 
@@ -504,6 +552,10 @@ public:
 };
 
 static_assert(sizeof(pplf) == 24);
+
+
+#define KSN_PPLF_DIG 38
+#define KSN_PPLF_DECIMAL_DIG 39
 
 
 
