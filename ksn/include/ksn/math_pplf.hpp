@@ -4,6 +4,7 @@
 
 
 #include <ksn/ksn.hpp>
+#include <ksn/metapr.hpp>
 
 #include <concepts>
 #include <numeric>
@@ -118,7 +119,7 @@ private:
 		out->sign = in1->sign ^ in2->sign;
 	}
 
-	 void shift_left(size_t bits)
+	void shift_left(size_t bits)
 	{
 		if (bits >= 128) _KSN_UNLIKELY
 		{
@@ -142,7 +143,7 @@ private:
 		else return;
 		this->exponent -= bits;
 	}
-	 void shift_right(size_t bits)
+	void shift_right(size_t bits)
 	{
 		if (bits >= 128) _KSN_UNLIKELY
 		{
@@ -167,7 +168,7 @@ private:
 		this->exponent += bits;
 	}
 
-	 static void adjust_exponents(pplf* __restrict pin1, pplf* __restrict pin2)
+	static void adjust_exponents(pplf* __restrict pin1, pplf* __restrict pin2)
 	{
 		//size_t less_leading_bits;
 		//size_t bits1 = pin1->leading_zeros(), bits2 = pin2->leading_zeros();
@@ -193,7 +194,7 @@ private:
 		}
 	}
 
-	 static void add(pplf* __restrict pin1, pplf* __restrict pin2, pplf* __restrict pout)
+	static void add(pplf* __restrict pin1, pplf* __restrict pin2, pplf* __restrict pout)
 	{
 		pplf::adjust_exponents(pin1, pin2);
 
@@ -230,7 +231,7 @@ private:
 
 
 	template<std::integral T>
-	 std::make_signed_t<T> to_int() const noexcept
+	std::make_signed_t<T> to_int() const noexcept
 	{
 		using sT = std::make_signed_t<T>;
 
@@ -248,6 +249,44 @@ private:
 		return (sT)(this->digits[0] << this->exponent);
 	}
 
+
+	/*
+	Flags:
+	1 << 0: Force sign
+	1 << 1: Force + sign for 0
+	1 << 2: Force exponent sign
+	1 << 3: Force + sign for 0 for exponent
+	1 << 4: Use comma instead of point //wtf why would anyone ever use this
+	1 << 5: Uppercase exponent letter
+	1 << 6: Force floating point/comma even if no fraction part would be written
+	1 << 7: Don't remove trailing zeros in 'g' format
+	*/
+	template<class std_string> requires(is_specialization_v<std_string, std::basic_string>)
+	std_string to_basic_string(size_t precision, char format, int flags) const
+	{
+		if (format != 'f' && format != 'g' && format != 'e') return "";
+
+		pplf copy = *this;
+		copy.sign = 0;
+
+		bool saved_sign = this->sign;
+
+		pplf int_part, frac_part;
+		frac_part = modf(copy, &int_part);
+
+		if (format == 'g')
+		{
+			precision += (precision == 0);
+
+		}
+
+		//TODO: implement
+
+		throw;
+		std_string result;
+
+		return result;
+	}
 
 public:
 	uint64_t digits[2];
@@ -355,6 +394,13 @@ public:
 		return (T)x;
 	}
 
+	template<class std_string> requires(is_specialization_v<std_string, std::basic_string>)
+	operator std_string() const noexcept
+	{
+
+	}
+
+
 
 	static constexpr pplf e() noexcept
 	{
@@ -387,28 +433,39 @@ public:
 	}
 
 
+	constexpr pplf operator+() const noexcept
+	{
+		return *this;
+	}
+	constexpr pplf operator-() const noexcept
+	{
+		pplf result(*this);
+		result.sign ^= 1;
+		return result;
+	}
 
-	 friend pplf operator+(pplf a, pplf b) noexcept
+
+	friend pplf operator+(pplf a, pplf b) noexcept
 	{
 		pplf result;
 		pplf::add(&a, &b, &result);
 		return result;
 	}
-	 pplf& operator+=(pplf other) noexcept
+	pplf& operator+=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		pplf::add(&this_copy, &other, this);
 		return *this;
 	}
 
-	 friend pplf operator-(pplf a, pplf b) noexcept
+	friend pplf operator-(pplf a, pplf b) noexcept
 	{
 		pplf result;
 		b.sign ^= 1;
 		pplf::add(&a, &b, &result);
 		return result;
 	}
-	 pplf& operator-=(pplf other) noexcept
+	pplf& operator-=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		other.sign ^= 1;
@@ -416,7 +473,7 @@ public:
 		return *this;
 	}
 
-	 friend pplf operator*(pplf a, pplf b) noexcept
+	friend pplf operator*(pplf a, pplf b) noexcept
 	{
 		pplf result;
 		if constexpr (_KSN_IS_DEBUG_BUILD)
@@ -430,21 +487,21 @@ public:
 			pplf::multiply(&a, &b, &result);
 		return result;
 	}
-	 pplf& operator*=(pplf other) noexcept
+	pplf& operator*=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		pplf::multiply(&this_copy, &other, this);
 		return *this;
 	}
 
-	 friend pplf operator/(pplf a, pplf b) noexcept
+	friend pplf operator/(pplf a, pplf b) noexcept
 	{
 		pplf result;
 		b.invert();
 		pplf::multiply(&a, &b, &result);
 		return result;
 	}
-	 pplf& operator/=(pplf other) noexcept
+	pplf& operator/=(pplf other) noexcept
 	{
 		pplf this_copy(*this);
 		other.invert();
@@ -453,7 +510,7 @@ public:
 	}
 
 
-	 int leading_zeros() const noexcept
+	int leading_zeros() const noexcept
 	{
 		unsigned long index;
 		if (this->digits[1] == 0)
@@ -471,7 +528,7 @@ public:
 		}
 	}
 
-	 int trailing_zeros() const noexcept
+	int trailing_zeros() const noexcept
 	{
 		unsigned long result;
 		if (this->digits[0] == 0)
@@ -496,7 +553,7 @@ public:
 		constexpr pplf c1 = []{ ksn::pplf x{}; x.digits[0] = x.digits[1] = 0xB4B4B4B4B4B4B4B4; x.exponent = -126; x.sign = false; return x; }();
 		constexpr pplf c2 = []{ ksn::pplf x{}; x.digits[0] = x.digits[1] = 0xF0F0F0F0F0F0F0F0; x.exponent = -127; x.sign = true; return x; }();
 
-		int shift = 128 - this->leading_zeros() + this->exponent;
+		int64_t shift = 128 - this->leading_zeros() + this->exponent;
 		this->exponent -= shift;
 
 		bool reserved_sign = this->sign;
@@ -516,7 +573,7 @@ public:
 	}
 
 
-	 bool operator==(pplf other) const noexcept
+	bool operator==(pplf other) const noexcept
 	{
 		if (this->digits[0] == 0 && this->digits[1] == 0 && other.digits[0] == 0 && other.digits[1] == 0) return true;
 
@@ -527,31 +584,122 @@ public:
 
 		return current.digits[0] == other.digits[0] && current.digits[1] == other.digits[1] && current.exponent == other.exponent;
 	}
-	 bool operator!=(const pplf& other) const noexcept
+	bool operator!=(const pplf& other) const noexcept
 	{
 		return !(this->operator==(other));
 	}
-	 bool operator<(const pplf& other) const noexcept
+	bool operator<(const pplf& other) const noexcept
 	{
 		pplf diff = *this - other;
 		return diff.sign && (diff.digits[0] || diff.digits[1]);
 	}
-	 bool operator<=(const pplf& other) const noexcept
+	bool operator<=(const pplf& other) const noexcept
 	{
 		pplf diff = *this - other;
 		return diff.sign || !(diff.digits[0] || diff.digits[1]);
 	}
-	 bool operator>(const pplf& other) const noexcept
+	bool operator>(const pplf& other) const noexcept
 	{
 		return !(this->operator<=(other));
 	}
-	 bool operator>=(const pplf& other) const noexcept
+	bool operator>=(const pplf& other) const noexcept
 	{
 		return !(this->operator<(other));
 	}
+
+
+	friend pplf floor(pplf x);
+
+	friend pplf fmod(pplf x, pplf y);
+	//Returns remainder, stores quotient in *q
+	friend pplf divmod(pplf x, pplf y, pplf* q);
+
+	//Mathematically correct division remainder
+	friend pplf fmod1(pplf x, pplf y);
+	//Mathematically correct division remainder, returns the remainder, stores quotient in *q
+	friend pplf divmod1(pplf x, pplf y, pplf* q);
+
+	friend pplf modf(pplf x, pplf* int_part);
+	
+	friend pplf modf_int(pplf x);
 };
 
 static_assert(sizeof(pplf) == 24);
+
+
+
+pplf floor(pplf x)
+{
+	if (x.exponent < 0) //otherwise x is already integer
+		x.shift_right(-x.exponent);
+	return x;
+}
+
+pplf modf(pplf x, pplf* int_part)
+{
+	pplf origin = x;
+
+	x = floor(x);
+
+	if (int_part)
+		*int_part = x;
+
+	return origin - x;
+}
+pplf modf_int(pplf x)
+{
+	if (x.exponent < 0) //otherwise x is already integer
+		x.shift_right(-x.exponent);
+	return x;
+}
+
+pplf fmod(pplf x, pplf y)
+{
+	return divmod(x, y, nullptr);
+}
+pplf divmod(pplf x, pplf y, pplf* q)
+{
+	pplf truncated;
+	truncated = x / y;
+
+	if (q) *q = truncated;
+
+	modf(truncated, &truncated);
+	return x - truncated * y;
+}
+
+pplf fmod1(pplf x, pplf y)
+{
+	if (y.sign)
+	{
+		y.sign ^= 1;
+		x.sign ^= 1;
+	}
+
+	x = fmod(x, y);
+	if (x.sign)
+		x += y;
+	return x;
+}
+pplf divmod1(pplf x, pplf y, pplf* q)
+{
+	if (y.sign)
+	{
+		y.sign ^= 1;
+		x.sign ^= 1;
+	}
+
+	x = divmod(x, y, q);
+	if (x.sign)
+	{
+		x += y;
+		*q -= pplf(1);
+	}
+	return x;
+}
+
+
+
 
 
 #define KSN_PPLF_DIG 38
