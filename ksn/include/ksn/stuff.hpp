@@ -6,14 +6,13 @@
 
 
 #include <ksn/ksn.hpp>
-#include <locale>
-#include <clocale>
-#include <algorithm>
-#include <mutex>
-#include <vector>
+
+#include <locale.h>
+#include <string.h>
+
 #include <chrono>
-
-
+#include <type_traits>
+#include <utility>
 
 
 
@@ -119,6 +118,10 @@ const void* memnotchr(const void* block, uint8_t value, size_t length);
 void dynamic_assert(int nonzero, const char* expr, const char* msg, int line, const char* file, ...);
 #define ksn_dynamic_assert(true_expr, msg, ...) ksn::dynamic_assert(!!(true_expr), #true_expr, msg, __LINE__, __FILE__, __VA_ARGS__);
 
+
+
+
+void memset_parallel(void* void_dst, uint8_t byte, size_t size);
 
 
 
