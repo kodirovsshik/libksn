@@ -264,6 +264,7 @@ private:
 	template<class std_string> requires(is_specialization_v<std_string, std::basic_string>)
 	std_string to_basic_string(size_t precision, char format, int flags) const
 	{
+		throw 0;
 		if (format != 'f' && format != 'g' && format != 'e') return "";
 
 		pplf copy = *this;
@@ -433,6 +434,16 @@ public:
 	}
 
 
+	static constexpr pplf inf() noexcept
+	{
+		pplf x;
+		x.digits[0] = x.digits[1] = 0xFFFFFFFFFFFFFFFF;
+		x.exponent = 0x3FFFFFFFFFFFFFFF; //62 bits set
+		x.sign = 0;
+		return x;
+	}
+
+
 	constexpr pplf operator+() const noexcept
 	{
 		return *this;
@@ -476,7 +487,7 @@ public:
 	friend pplf operator*(pplf a, pplf b) noexcept
 	{
 		pplf result;
-		if constexpr (_KSN_IS_DEBUG_BUILD)
+		if constexpr (false && _KSN_IS_DEBUG_BUILD)
 		{
 			double fa = a, fb = b;
 			pplf::multiply(&a, &b, &result);
@@ -507,6 +518,13 @@ public:
 		other.invert();
 		pplf::multiply(&this_copy, &other, this);
 		return *this;
+	}
+
+
+
+	constexpr bool is_zero() const noexcept
+	{
+		return this->digits[0] == 0 && this->digits[1] == 0;
 	}
 
 
@@ -608,34 +626,34 @@ public:
 	}
 
 
-	friend pplf floor(pplf x);
+	friend pplf floor(pplf x) noexcept;
 
-	friend pplf fmod(pplf x, pplf y);
+	friend pplf fmod(pplf x, pplf y) noexcept;
 	//Returns remainder, stores quotient in *q
-	friend pplf divmod(pplf x, pplf y, pplf* q);
+	friend pplf divmod(pplf x, pplf y, pplf* q) noexcept;
 
 	//Mathematically correct division remainder
-	friend pplf fmod1(pplf x, pplf y);
+	friend pplf fmod1(pplf x, pplf y) noexcept;
 	//Mathematically correct division remainder, returns the remainder, stores quotient in *q
-	friend pplf divmod1(pplf x, pplf y, pplf* q);
+	friend pplf divmod1(pplf x, pplf y, pplf* q) noexcept;
 
-	friend pplf modf(pplf x, pplf* int_part);
+	friend pplf modf(pplf x, pplf* int_part) noexcept;
 	
-	friend pplf modf_int(pplf x);
+	friend pplf modf_int(pplf x) noexcept;
 };
 
 static_assert(sizeof(pplf) == 24);
 
 
 
-pplf floor(pplf x)
+pplf floor(pplf x) noexcept
 {
 	if (x.exponent < 0) //otherwise x is already integer
 		x.shift_right(-x.exponent);
 	return x;
 }
 
-pplf modf(pplf x, pplf* int_part)
+pplf modf(pplf x, pplf* int_part) noexcept
 {
 	pplf origin = x;
 
@@ -646,18 +664,18 @@ pplf modf(pplf x, pplf* int_part)
 
 	return origin - x;
 }
-pplf modf_int(pplf x)
+pplf modf_int(pplf x) noexcept
 {
 	if (x.exponent < 0) //otherwise x is already integer
 		x.shift_right(-x.exponent);
 	return x;
 }
 
-pplf fmod(pplf x, pplf y)
+pplf fmod(pplf x, pplf y) noexcept
 {
 	return divmod(x, y, nullptr);
 }
-pplf divmod(pplf x, pplf y, pplf* q)
+pplf divmod(pplf x, pplf y, pplf* q) noexcept
 {
 	pplf truncated;
 	truncated = x / y;
@@ -668,7 +686,7 @@ pplf divmod(pplf x, pplf y, pplf* q)
 	return x - truncated * y;
 }
 
-pplf fmod1(pplf x, pplf y)
+pplf fmod1(pplf x, pplf y) noexcept
 {
 	if (y.sign)
 	{
@@ -681,7 +699,7 @@ pplf fmod1(pplf x, pplf y)
 		x += y;
 	return x;
 }
-pplf divmod1(pplf x, pplf y, pplf* q)
+pplf divmod1(pplf x, pplf y, pplf* q) noexcept
 {
 	if (y.sign)
 	{
@@ -696,6 +714,46 @@ pplf divmod1(pplf x, pplf y, pplf* q)
 		*q -= pplf(1);
 	}
 	return x;
+}
+
+pplf exp(pplf x) noexcept
+{
+	pplf denom = 1;
+	pplf sum = x + pplf(1);
+	pplf num = x;
+	pplf temp;
+
+	size_t i = 2;
+	while (1)
+	{
+		num *= x;
+		denom *= i;
+		temp = num / denom;
+
+		if (sum + temp == sum) return sum;
+
+		sum += temp;
+		++i;
+	}
+}
+
+pplf log(pplf x) noexcept
+{
+	if (x.sign || x.is_zero()) return -pplf::inf();
+	pplf y = x - pplf(1);
+
+	while (1)
+	{
+		pplf temp = exp(y);
+		pplf dy = (x - temp) / (x + temp) * pplf(2);
+
+		if (y + dy == y) return y;
+		y += dy;
+	}
+}
+pplf log(pplf x, pplf base) noexcept
+{
+	return log(x) / log(base);
 }
 
 
