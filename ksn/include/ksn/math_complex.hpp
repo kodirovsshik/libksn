@@ -262,15 +262,19 @@ template<class fp_t>
 constexpr complex<fp_t> exp(const ksn::complex<fp_t>& x) noexcept
 {
 	ksn::complex<fp_t> result = 1, current = 1, temp[2];
-
+	
 	size_t c = 0;
 	while (true)
 	{
 		current *= x;
 		current /= ++c;
+		
 		temp[0] = temp[1] = result + current;
-		temp[1] -= result;
+		if (is_inf_nan(temp[0])) return temp[0];
+
+		temp[1] -= result; //Actual change
 		if (temp[1] == 0) return result;
+		
 		result = temp[0];
 	}
 }
@@ -334,6 +338,13 @@ void roots(const complex<fp_t>& x, size_t degree, complex<fp_t>* result)
 		first *= rotator;
 		*++result = first;
 	}
+}
+
+
+template<class fp_t>
+constexpr bool is_inf_nan(const complex<fp_t>& x) noexcept
+{
+	return x.real == INFINITY || x.real == -INFINITY || x.real != x.real || x.imag == INFINITY || x.imag == -INFINITY || x.imag != x.imag;
 }
 
 _KSN_END

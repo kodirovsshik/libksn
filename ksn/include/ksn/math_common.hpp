@@ -514,20 +514,20 @@ float_t map(float_t x, float_t from_begin, float_t from_end, float_t to_begin, f
 
 
 
-template<class fp_t>
-bool is_inf_nan(const fp_t& x)
+template<class fp_t> requires(std::floating_point<fp_t>)
+constexpr bool is_inf_nan(const fp_t& x) noexcept
 {
 	using std::isinf;
 	using std::isnan;
-	return isinf(x) || isnan(x);
+	return x == INFINITY || x == -INFINITY || x != x;
 }
 
 template<class fp_t>
-bool is_inf_nan(const std::complex<fp_t>& x)
+constexpr bool is_inf_nan(const std::complex<fp_t>& x) noexcept
 {
 	using std::isinf;
 	using std::isnan;
-	return isinf(x.real()) || isinf(x.imag()) || isnan(x.real()) || isnan(x.imag());
+	return x.real() == INFINITY || x.real() == -INFINITY || x.real() != x.real() || x.imag() == INFINITY || x.imag() == -INFINITY || x.imag() != x.imag();
 }
 
 

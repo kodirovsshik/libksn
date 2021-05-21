@@ -48,13 +48,6 @@ _KSN_DETAIL_END
 
 
 
-template<std::signed_integral T>
-constexpr int ilog2(T x)
-{
-	if (x <= 0) return INT_MIN;
-	
-	return ilog2((std::make_unsigned_t<T>)x);
-}
 template<std::unsigned_integral T>
 constexpr int ilog2(T x)
 {
@@ -113,6 +106,14 @@ constexpr int ilog2(T x)
 	{
 		static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "There was no 128 bit integers in my time");
 	}
+}
+
+template<std::signed_integral T>
+constexpr int ilog2(T x)
+{
+	if (x <= 0) return INT_MIN;
+
+	return ilog2((std::make_unsigned_t<T>)x);
 }
 
 
