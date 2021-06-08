@@ -216,7 +216,7 @@ public:
 	template<arithmetic fp_t2>
 	constexpr friend my_t operator-(const fp_t2& a, const my_t& b)
 	{
-		return my_t{ b.real - a, b.imag };
+		return my_t{ a - b.real, -b.imag };
 	}
 	template<arithmetic fp_t2>
 	constexpr friend my_t operator*(const fp_t2& a, const my_t& b)
@@ -309,14 +309,20 @@ constexpr complex<fp_t> pow(const fp_t& a, const ksn::complex<fp_t>& b) noexcept
 template<class fp_t>
 constexpr complex<fp_t> sqrt(const ksn::complex<fp_t>& x)
 {
-	return pow(x, fp_t(1) / 2);
+	return (x.abs2() == 0) ? 0 : pow(x, fp_t(1) / 2);
 }
 
 
 template<class fp_t>
 constexpr complex<fp_t> cbrt(const ksn::complex<fp_t>& x)
 {
-	return pow(x, fp_t(1) / 3);
+	using std::sin; using std::cos; using std::pow;
+	fp_t len = pow(x.abs2(), 1.0 / 6);
+	fp_t angle = x.arg();
+	if (angle > KSN_PI / 2) angle += 2 * KSN_PI;
+	else if (angle < -KSN_PI / 2) angle -= 2 * KSN_PI;
+	angle /= 3;
+	return { len * cos(angle), len * sin(angle) };
 }
 
 template<class fp_t>
