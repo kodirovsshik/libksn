@@ -8,6 +8,7 @@
 
 #include <concepts>
 #include <numeric>
+#include <string>
 
 #include <cmath>
 
@@ -30,6 +31,21 @@ struct pplf
 private:
 	static void multiply(const pplf* in1, const pplf* in2, pplf* out)
 	{
+		if (in2->exponent == 0x3FFFFFFFFFFFFFFF) //inf or nan
+			return multiply(in2, in1, out);
+
+		if (in1->exponent == 0x3FFFFFFFFFFFFFFF)
+		{
+			if (in2->is_zero())
+			{
+				*out = *in1;
+				out->exponent = 0x3FFFFFFFFFFFFFFF;
+				return;
+			}
+
+		}
+
+
 		uint64_t product[4];
 		unsigned char carry;
 		uint64_t l00, l01, l10, l11, h00, h01, h10, h11;
@@ -119,7 +135,8 @@ private:
 		out->sign = in1->sign ^ in2->sign;
 	}
 
-	void shift_left(size_t bits)
+public:
+	void _shift_left(size_t bits)
 	{
 		if (bits >= 128) _KSN_UNLIKELY
 		{
@@ -143,7 +160,7 @@ private:
 		else return;
 		this->exponent -= bits;
 	}
-	void shift_right(size_t bits)
+	void _shift_right(size_t bits)
 	{
 		if (bits >= 128) _KSN_UNLIKELY
 		{
@@ -168,6 +185,7 @@ private:
 		this->exponent += bits;
 	}
 
+private:
 	static void adjust_exponents(pplf* __restrict pin1, pplf* __restrict pin2)
 	{
 		//size_t less_leading_bits;
@@ -178,19 +196,19 @@ private:
 		//else
 		//	less_leading_bits = bits2;
 
-		//pin1->shift_left(less_leading_bits);
-		//pin2->shift_left(less_leading_bits);
+		//pin1->_shift_left(less_leading_bits);
+		//pin2->_shift_left(less_leading_bits);
 
-		 pin1->shift_left(pin1->leading_zeros());
-		 pin2->shift_left(pin2->leading_zeros());
+		 pin1->_shift_left(pin1->leading_zeros());
+		 pin2->_shift_left(pin2->leading_zeros());
 
 		if (pin1->exponent < pin2->exponent)
 		{
-			pin1->shift_right(pin2->exponent - pin1->exponent);
+			pin1->_shift_right(pin2->exponent - pin1->exponent);
 		}
 		else if (pin1->exponent > pin2->exponent)
 		{
-			pin2->shift_right(pin1->exponent - pin2->exponent);
+			pin2->_shift_right(pin1->exponent - pin2->exponent);
 		}
 	}
 
@@ -208,7 +226,7 @@ private:
 
 			if (carry)
 			{
-				pout->shift_right(1);
+				pout->_shift_right(1);
 				pout->digits[1] |= 0x8000000000000000;
 			}
 		}
@@ -224,6 +242,7 @@ private:
 			carry = _subborrow_u64(carry, pin1->digits[1], pin2->digits[1], &pout->digits[1]);
 
 			//carry is always 0 as we substract smaller value from a bigger one
+			if (carry) throw;
 		}
 
 		pout->sign = pin1->sign;
@@ -317,7 +336,7 @@ public:
 		
 		using std::numeric_limits;
 
-		if  (numeric_limits<T>::digits >= 64)
+		if constexpr (numeric_limits<T>::digits >= 64)
 		{
 			this->digits[0] = 0;
 			this->digits[1] = uint64_t(1) << (numeric_limits<T>::digits - 64);
@@ -566,7 +585,7 @@ public:
 	 //Newton–Raphson division
 	void invert() noexcept
 	{
-		this->shift_right(this->trailing_zeros());
+		this->_shift_right(this->trailing_zeros());
 
 		constexpr pplf c1 = []{ ksn::pplf x{}; x.digits[0] = x.digits[1] = 0xB4B4B4B4B4B4B4B4; x.exponent = -126; x.sign = false; return x; }();
 		constexpr pplf c2 = []{ ksn::pplf x{}; x.digits[0] = x.digits[1] = 0xF0F0F0F0F0F0F0F0; x.exponent = -127; x.sign = true; return x; }();
@@ -646,10 +665,18 @@ static_assert(sizeof(pplf) == 24);
 
 
 
+pplf frexp(pplf x, int64_t* exp)
+{
+	int64_t shift = x.exponent - x.leading_zeros() + 128;
+	x.exponent -= shift;
+	if (exp) *exp = shift;
+	return x;
+}
+
 pplf floor(pplf x) noexcept
 {
 	if (x.exponent < 0) //otherwise x is already integer
-		x.shift_right(-x.exponent);
+		x._shift_right(-x.exponent);
 	return x;
 }
 
@@ -667,7 +694,7 @@ pplf modf(pplf x, pplf* int_part) noexcept
 pplf modf_int(pplf x) noexcept
 {
 	if (x.exponent < 0) //otherwise x is already integer
-		x.shift_right(-x.exponent);
+		x._shift_right(-x.exponent);
 	return x;
 }
 
@@ -679,10 +706,9 @@ pplf divmod(pplf x, pplf y, pplf* q) noexcept
 {
 	pplf truncated;
 	truncated = x / y;
+	modf(truncated, &truncated);
 
 	if (q) *q = truncated;
-
-	modf(truncated, &truncated);
 	return x - truncated * y;
 }
 
@@ -711,49 +737,152 @@ pplf divmod1(pplf x, pplf y, pplf* q) noexcept
 	if (x.sign)
 	{
 		x += y;
-		*q -= pplf(1);
+		if (q) *q -= 1;
 	}
 	return x;
 }
 
 pplf exp(pplf x) noexcept
 {
-	pplf denom = 1;
-	pplf sum = x + pplf(1);
-	pplf num = x;
-	pplf temp;
-
-	size_t i = 2;
-	while (1)
+	/*
+	1) if x < 0 return 1/exp(-x)
+	2) decompose x info fractional and integer parts F and I respectively
+	3) Find e^F using Taylor series expansion and point x=0.5
+	4) Find e^I using binary power raising
+	5) return e^F * E^I
+	*/
+	
+	constexpr static auto small_exp_f = []
+	(pplf x) -> pplf
 	{
-		num *= x;
-		denom *= i;
-		temp = num / denom;
+		constexpr static pplf root_e = []() { pplf x; x.digits[1] = 0xd3094c70f034de4b; x.digits[0] = 0x96ff7d5b6f99fcd9; x.exponent = -127; x.sign = false; return x; }();
+		constexpr static pplf half = []() { pplf x; x.digits[1] = 0; x.digits[0] = 1; x.exponent = -1; x.sign = false; return x; }();
+		
+		x -= half;
+		
+		pplf sum = 1 + x;
+		pplf current = x;
 
-		if (sum + temp == sum) return sum;
+		int upper = (int)ceilf(25 * cbrtf(fabsf(float(x) - 0.5f))) + 8;
+		for (int n = 2; n <= upper; ++n)
+		{
+			current *= x / n;
+			sum += current;
+		}
 
-		sum += temp;
-		++i;
-	}
+		return sum * root_e;
+	};
+
+	constexpr static auto small_exp_i = []
+	(pplf x) -> pplf
+	{
+		pplf result = 1;
+		if (x == 0) return result;
+
+		x._shift_right(x.trailing_zeros());
+		if (x.exponent > 0) return pplf::inf();
+
+		if ((x.digits[1]) || (x.digits[0] & 0x8000000000000000)) return pplf::inf();
+		for (int i = 62; i >= 0; --i)
+		{
+			x *= x;
+			if (x.digits[0] & (uint64_t(1) << i))
+				result *= x;
+		}
+
+		return result;
+	};
+
+	bool invert = x.sign;
+	x.sign = false;
+
+	pplf I, F;
+	F = modf(x, &I);
+
+	F = small_exp_f(F);
+	I = small_exp_i(I);
+
+	x = I * F;
+	if (invert) x.invert();
+	return x;
 }
 
 pplf log(pplf x) noexcept
 {
 	if (x.sign || x.is_zero()) return -pplf::inf();
+	/*if (false && x > 1)
+	{
+		x.invert();
+		return -log(x);
+	}
 	pplf y = x - pplf(1);
 
 	while (1)
 	{
 		pplf temp = exp(y);
-		pplf dy = (x - temp) / (x + temp) * pplf(2);
+		pplf dy = (x - temp) / (x + temp) * 2;
+		dy.exponent += 1;
 
 		if (y + dy == y) return y;
 		y += dy;
+	}*/
+	
+	int64_t shift;
+	x = frexp(x, &shift);
+
+	constexpr static pplf ln2 = [] { pplf x; x.digits[0] = 0xc9e3b39803f2f6af; x.digits[1] = 0xb17217f7d1cf79ab; x.exponent = -128; x.sign = false; return x; }();
+	constexpr static pplf ln3o4 = [] { pplf x; x.digits[0] = 0xdf5bb3b60554e151; x.digits[1] = 0x934b1089a6dc93c1; x.exponent = -129; x.sign = true; return x; }();
+	constexpr static pplf c_4o3 = [] {pplf x; x.digits[0] = x.digits[1] = 0xaaaaaaaaaaaaaaaa; x.exponent = -127; x.sign = false; return x; }();
+
+	double t;
+
+	pplf multiplier = 1 - x * c_4o3;
+	pplf current = multiplier;
+	pplf initial_guess = ln3o4;
+
+	t = multiplier;
+	t = initial_guess;
+	//current = 1
+	//current *= multiplier
+	initial_guess -= current;
+	t = initial_guess;
+	for (int n = 2; n <= 4; ++n)
+	{
+		current *= multiplier;
+		initial_guess -= current / n;
+		t = initial_guess;
 	}
+
+	pplf result = initial_guess;
+	for (int i = 3; i > 0; --i)
+	{
+		pplf temp = exp(result);
+		temp = (x - temp) / (x + temp);
+		temp.exponent++;
+		result += temp;
+		t = result;
+	}
+
+	result += shift * ln2;
+	t = result;
+	return result;
+	//return result + shift * ln2;
 }
 pplf log(pplf x, pplf base) noexcept
 {
 	return log(x) / log(base);
+}
+
+pplf pow(pplf x, pplf y) noexcept
+{
+	if (x.is_zero()) return (y >= 0) ? pplf(y.is_zero()) : pplf::inf();
+	return exp(y * log(x));
+}
+
+pplf abs(pplf x) noexcept
+{
+	x.sign = false;
+	return x;
 }
 
 
