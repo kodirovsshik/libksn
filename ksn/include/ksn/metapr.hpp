@@ -135,6 +135,12 @@ static constexpr bool is_specialization_v = is_specialization<Test, Ref>::value;
 
 
 
+template<typename char_t>
+concept character = is_any_of_v<char_t, char, signed char, unsigned char, wchar_t, char8_t, char16_t, char32_t>;
+
+
+
+
 _KSN_END
 
 
