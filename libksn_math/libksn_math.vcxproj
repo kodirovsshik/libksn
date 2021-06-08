@@ -185,6 +185,7 @@
     <ClInclude Include="..\ksn\include\ksn\math_complex.hpp" />
     <ClInclude Include="..\ksn\include\ksn\math_constants.hpp" />
     <ClInclude Include="..\ksn\include\ksn\math_constexpr.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math_formula.hpp" />
     <ClInclude Include="..\ksn\include\ksn\math_pplf.hpp" />
   </ItemGroup>
   <ItemGroup>
