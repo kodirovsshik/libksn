@@ -250,7 +250,10 @@ struct ppvector
 	template<typename U> requires(std::convertible_to<U, T>)
 	bool push_back(const U& value) noexcept
 	{
-		if (!this->reserve_more(1)) return false;
+		if (this->m_capacity == this->m_count)
+		{
+			if (!this->reserve_more(this->m_capacity == 0 ? 1 : this->m_capacity)) return false;
+		}
 
 		this->m_buffer[this->m_count++] = T(value);
 		return true;
@@ -275,6 +278,10 @@ struct ppvector
 		}
 	}
 
+	void clear() noexcept
+	{
+		this->m_count = 0;
+	}
 	void free() noexcept
 	{
 		::free(this->m_buffer);
