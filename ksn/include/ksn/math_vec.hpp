@@ -59,22 +59,22 @@ public:
 
 
 
-	vec() noexcept
+	constexpr vec() noexcept
 	{
 		for (auto& x : this->data) x = 0;
 	}
 	template<class ofp_t>
-	vec(const vec<N, ofp_t>& other) noexcept
+	constexpr vec(const vec<N, ofp_t>& other) noexcept
 	{
 		for (size_t i = 0; i < N; ++i) (*this)[i] = fp_t(other[i]);
 	}
 	template<class ofp_t>
-	vec(vec<N, ofp_t>&& other) noexcept
+	constexpr vec(vec<N, ofp_t>&& other) noexcept
 	{
 		for (size_t i = 0; i < N; ++i) (*this)[i] = std::move(other[i]);
 	}
 	template<class ofp_t>
-	vec(std::initializer_list<ofp_t> list) noexcept
+	constexpr vec(std::initializer_list<ofp_t> list) noexcept
 	{
 		for (size_t i = 0; i < std::min(list.size(), N); ++i)
 		{
@@ -108,8 +108,11 @@ public:
 		}
 		return result;
 	}
+	
+
+
 	template<class ofp_t> requires (!is_vec_v<ofp_t>)
-		constexpr my_t friend operator*(const my_t& x, ofp_t y) noexcept
+	constexpr my_t friend operator*(const my_t& x, ofp_t y) noexcept
 	{
 		common_vec(fp_t, ofp_t, N) result;
 		for (size_t i = 0; i < N; ++i)
@@ -119,10 +122,23 @@ public:
 		return result;
 	}
 	template<class ofp_t> requires (!is_vec_v<ofp_t>)
-		constexpr my_t friend operator/(const my_t& x, ofp_t y) noexcept
+	constexpr my_t friend operator/(const my_t& x, ofp_t y) noexcept
 	{
 		return x * (1 / y);
 	}
+
+	template<class ofp_t> requires (!is_vec_v<ofp_t>)
+	constexpr my_t friend operator*(ofp_t x, const my_t& y) noexcept
+	{
+		return y * x;
+	}
+	template<class ofp_t> requires (!is_vec_v<ofp_t>)
+	constexpr my_t friend operator/(ofp_t x, const my_t& y) noexcept
+	{
+		return y * (1 / x);
+	}
+
+
 	template<class fp_t1, class fp_t2, size_t N>
 	constexpr std::common_type_t<fp_t1, fp_t2> friend operator*(const vec<N, fp_t1>& a, const vec<N, fp_t2>& b) noexcept
 	{
@@ -130,6 +146,8 @@ public:
 		for (size_t i = 0; i < N; ++i) result += a[i] * b[i];
 		return result;
 	}
+
+
 
 	constexpr fp_t abs2() const noexcept
 	{
@@ -203,6 +221,8 @@ public:
 			if (zero == 0) zero = 0;
 		}
 	}
+
+#undef common_vec
 };
 
 
