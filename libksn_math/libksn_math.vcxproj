@@ -187,6 +187,7 @@
     <ClInclude Include="..\ksn\include\ksn\math_constexpr.hpp" />
     <ClInclude Include="..\ksn\include\ksn\math_formula.hpp" />
     <ClInclude Include="..\ksn\include\ksn\math_pplf.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\math_vec.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="libksn_math_common_impl.cpp" />
