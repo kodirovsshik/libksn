@@ -4,7 +4,13 @@
 
 
 #include <ksn/ksn.hpp>
+#include <ksn/metapr.hpp>
 
+#include <type_traits>
+#include <utility>
+#include <initializer_list>
+
+#include <cmath>
 
 
 _KSN_BEGIN
