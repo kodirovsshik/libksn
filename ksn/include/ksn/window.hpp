@@ -466,22 +466,15 @@ public:
 	std::pair<uint16_t, uint16_t> get_size() const noexcept;
 
 	//automatically enables VSync if FPS > monitor resresh rate and disabled otherwise
-	//must be supported by driver
-	void set_vsync_auto(bool enabled) const noexcept;
+	//must be supported and allowed by driver
+	bool set_vsync_auto(bool enabled) const noexcept;
 	//Enable VSync
-	void set_vsync_enabled(bool enabled) const noexcept;
+	bool set_vsync_enabled(bool enabled) const noexcept;
 	//VSync available in auto mode
 	bool get_vsync_auto_available() const noexcept;
 	//VSync available at all
 	bool get_vsync_available() const noexcept;
-	//Tries to set auto VSync and falls back to default if failed
-	//Return value:
-	//1 if vsync set to auto mode
-	//2 if fallback used
-	//-1 if GLEW failed to find appropriate function
-	//0 if vsync set to disabled
-	int set_vsync_auto_or_enabled(bool enabled) const noexcept;
-
+	
 	void hide() const noexcept;
 	void show() const noexcept;
 };

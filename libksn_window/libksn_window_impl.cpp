@@ -1093,7 +1093,8 @@ bool window_t::is_current() const noexcept
 
 void window_t::swap_buffers() const noexcept
 {
-	SwapBuffers(this->m_impl->m_hdc);
+	//SwapBuffers(this->m_impl->m_hdc);
+	wglSwapLayerBuffers(this->m_impl->m_hdc, WGL_SWAP_MAIN_PLANE);
 }
 
 uint16_t window_t::get_width() const noexcept
@@ -1118,18 +1119,18 @@ std::pair<uint16_t, uint16_t> window_t::get_size() const noexcept
 	return { uint16_t(wi.rcClient.right - wi.rcClient.left), uint16_t(wi.rcClient.bottom - wi.rcClient.top) };
 }
 
-void window_t::set_vsync_auto(bool enabled) const noexcept
+bool window_t::set_vsync_auto(bool enabled) const noexcept
 {
-	if (wglSwapIntervalEXT == nullptr) return;
+	if (wglSwapIntervalEXT == nullptr) return false;
 
-	if (enabled && !this->get_vsync_auto_available()) return;
-	wglSwapIntervalEXT(-(int)enabled);
+	if (enabled && !this->get_vsync_auto_available()) return false;
+	return wglSwapIntervalEXT(-(int)enabled);
 }
-void window_t::set_vsync_enabled(bool enabled) const noexcept
+bool window_t::set_vsync_enabled(bool enabled) const noexcept
 {
-	if (wglSwapIntervalEXT == nullptr) return;
+	if (wglSwapIntervalEXT == nullptr) return false;
 
-	wglSwapIntervalEXT((int)enabled);
+	return wglSwapIntervalEXT((int)enabled);
 }
 bool window_t::get_vsync_auto_available() const noexcept
 {
@@ -1138,29 +1139,6 @@ bool window_t::get_vsync_auto_available() const noexcept
 bool window_t::get_vsync_available() const noexcept
 {
 	return wglSwapIntervalEXT != nullptr;
-}
-int window_t::set_vsync_auto_or_enabled(bool enabled) const noexcept
-{
-	if (wglSwapIntervalEXT == nullptr) return -1;
-
-	if (enabled)
-	{
-		if (this->get_vsync_auto_available())
-		{
-			wglSwapIntervalEXT(-1);
-			return 1;
-		}
-		else
-		{
-			wglSwapIntervalEXT(1);
-			return 0;
-		}
-	}
-	else
-	{
-		wglSwapIntervalEXT(0);
-		return 0;
-	}
 }
 
 void window_t::hide() const noexcept
