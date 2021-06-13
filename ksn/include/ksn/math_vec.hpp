@@ -169,7 +169,8 @@ public:
 		return sqrt(this->abs2());
 	}
 
-	constexpr std::enable_if_t<N == 2, fp_t> arg() const noexcept
+	template<class = void> requires(N == 2)
+	constexpr fp_t arg() const noexcept
 	{
 		using std::atan2;
 		return atan2(this->data[1], this->data[0]);
