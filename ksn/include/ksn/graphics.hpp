@@ -323,7 +323,7 @@ public:
 };
 
 
-//b -> rb -> r -> rg -> g -> gb -> ...
+
 
 _KSN_GRAPHICS_END
 

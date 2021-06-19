@@ -27,7 +27,7 @@ struct opencl_selector_data_t
 	const wchar_t* msgfmt_context_create_error = L"Failed to create OpenCL context, error %i";
 	const void* cl_sources = nullptr;
 	size_t* cl_sources_lengthes = nullptr;
-	size_t cl_sources_number = 0;
+	size_t cl_sources_number = -1;
 	const char* cl_build_parameters = "";
 	const wchar_t* msg_device = L"Device ";
 	const wchar_t* msg_x_reported_build_error = L" has reported an OpenCL program build error\n";

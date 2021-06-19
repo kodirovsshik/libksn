@@ -95,9 +95,9 @@ int opencl_selector(opencl_selector_data_t* data) noexcept
 
 static int selector(opencl_selector_data_t* p) noexcept
 {
-	if (p->cl_sources == nullptr) selector_return(1, L"data->cl_sources not specified");
-	if (p->cl_sources_lengthes == nullptr) selector_return(1, L"data->cl_sources_lengthes not specified");
-	if (p->cl_sources_number == 0) selector_return(1, L"data->cl_sources_number not specified");
+	if (p->cl_sources == nullptr) selector_return(1, L"selector->cl_sources not specified");
+	if (p->cl_sources_lengthes == nullptr) selector_return(1, L"selector->cl_sources_lengthes not specified");
+	if (p->cl_sources_number == -1) selector_return(1, L"selector->cl_sources_number not specified");
 
 	union
 	{
