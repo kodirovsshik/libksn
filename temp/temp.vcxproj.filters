@@ -18,16 +18,13 @@
     <ClCompile Include="libksn_temp1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="libksn_temp.cpp">
+    <ClCompile Include="temp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="libksn_temp64.asm">
+    <None Include="libksn_temp_sum_convergence.cpp">
       <Filter>Source Files</Filter>
-    </MASM>
-    <MASM Include="ksn_long_jump_impl64.asm">
-      <Filter>Source Files</Filter>
-    </MASM>
+    </None>
   </ItemGroup>
 </Project>
