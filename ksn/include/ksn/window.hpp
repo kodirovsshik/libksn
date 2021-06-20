@@ -375,6 +375,9 @@ public:
 		bool ogl_debug : 1 = false;
 	};
 
+	static constexpr context_settings no_opengl_context{0, 0, 0, 0, 0};
+
+
 	using style_t = uint8_t;
 	struct style
 	{

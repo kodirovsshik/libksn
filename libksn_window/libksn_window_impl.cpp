@@ -883,7 +883,7 @@ public:
 				return error::opengl_unsupported_function;
 			}
 		}
-		else //otherwise (if not needed OpenGL > 1.1), use native WGL
+		else if (settings.ogl_version_major > 0) //otherwise (if needed OpenGL 1.1), use native WGL
 		{
 			//Do pixel format style
 			if (!my_t::_process_pfd(this->m_hdc, settings.bits_per_color)) return error::system_error;
@@ -902,6 +902,8 @@ public:
 			wglMakeCurrent(previous_hdc, previous_context);
 			return error::ok;
 		}
+
+		return error::ok;
 	}
 
 	bool is_open() const noexcept
