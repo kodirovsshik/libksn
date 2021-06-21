@@ -246,7 +246,7 @@
 "The size of a " #bytes "-byte variable does not equal to " #bytes " byte" #s ". The library is not guaranteed to work properly. To suppress this error, define _KSN_NO_TRIVIAL_INT_TYPES_SIZES_CHECK_"
 
 	#ifndef _KSN_NO_TRIVIAL_INT_TYPES_SIZES_CHECK_
-		static_assert(sizeof(int8_t) == 1 && sizeof(uint8_t) == 1, _KSN_TRIVIAL_INT_SIZE_FAIL(1));
+		static_assert(sizeof(int8_t) == 1 && sizeof(uint8_t) == 1, _KSN_TRIVIAL_INT_SIZE_FAIL(1, ));
 		static_assert(sizeof(int16_t) == 2 && sizeof(uint16_t) == 2, _KSN_TRIVIAL_INT_SIZE_FAIL(2, s));
 		static_assert(sizeof(int32_t) == 4 && sizeof(uint32_t) == 4, _KSN_TRIVIAL_INT_SIZE_FAIL(4, s));
 		static_assert(sizeof(int64_t) == 8 && sizeof(uint64_t) == 8, _KSN_TRIVIAL_INT_SIZE_FAIL(8, s));
