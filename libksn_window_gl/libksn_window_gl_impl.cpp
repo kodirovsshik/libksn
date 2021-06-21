@@ -210,7 +210,10 @@ public:
 	template<typename char_t>
 	window_open_result_t _Xopen(uint16_t width, uint16_t height, const char_t* window_name, window_gl_t::context_settings settings, window_style_t window_style, window_gl_t* win) noexcept
 	{
-		window_open_result_t result = win->window_t::open(width, height, window_name, window_style | (1 << (sizeof(window_style_t) - 1)));
+		if (memcmp(&settings, &window_gl_t::opengl_no_context, sizeof(window_gl_t::context_settings)) != 0) //If we need a context
+			window_style |= (1 << (sizeof(window_style_t) * CHAR_BIT - 1)); //Ask the base class not to set the pixel format
+
+		window_open_result_t result = win->window_t::open(width, height, window_name, window_style);
 		if (result == window_open_result::ok || result == window_open_result::ok_but_direct_drawing_unsupported)
 		{
 			window_open_result_t context_create_result = this->context_create(settings, win);
@@ -258,7 +261,7 @@ HGLRC window_gl_t::context_native_handle() const noexcept
 }
 void window_gl_t::context_make_current() const noexcept
 {
-	//wglMakeCurrent(this->winapi_get_hdc(), this->m_gl_impl->m_context);
+	if (this->m_gl_impl->m_context) wglMakeCurrent(this->winapi_get_hdc(), this->m_gl_impl->m_context);
 }
 bool window_gl_t::context_is_current() const noexcept
 {

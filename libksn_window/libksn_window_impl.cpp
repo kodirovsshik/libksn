@@ -776,7 +776,7 @@ public:
 
 
 		//Do DC pixel format window_style if necessary
-		if ((window_style & (1 << (sizeof(window_style_t) - 1))))
+		if ((window_style & (1 << (sizeof(window_style_t) * CHAR_BIT - 1))) == 0)
 			if (!my_t::_process_pfd(this->m_hdc)) return window_open_result::system_error;
 		
 
