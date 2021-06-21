@@ -9,6 +9,9 @@
 #include <limits>
 #include <stdexcept>
 
+#undef min
+#undef max
+
 
 
 
