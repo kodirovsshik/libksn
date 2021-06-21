@@ -1,20 +1,11 @@
 
 #include <ksn/window.hpp>
-//#include <ksn/stuff.hpp>
 
 #include <Windows.h>
 
-#include <GL/glew.h>
-#include <GL/wglew.h>
-
 #include <stdio.h>
 
-#include <atomic>
 #include <queue>
-
-
-
-//#pragma warning(disable : 26812) //Unscoped enum
 
 
 
@@ -412,23 +403,17 @@ public:
 
 	using my_t = window_t::_window_impl;
 
-	using error = window_t::error;
-	using error_t = window_t::error_t;
-	
-	using style = window_t::style;
-	using style_t = window_t::style_t;
-
 
 public:
 
 	static HDC s_screen_hdc;
-	static bool glew_initialized;
 
 
 	std::deque<event_t> m_queue;
 	HWND m_window;
-	HGLRC m_context;
 	HDC m_hdc;
+	HDC m_hmdc; //memory device context
+	HBITMAP m_bitmap;
 	std::pair<int32_t, int32_t> m_resizemove_last_pos;
 	std::pair<uint16_t, uint16_t> m_resizemove_last_size;
 	wchar_t m_pending_wchar;
@@ -451,19 +436,18 @@ public:
 
 private:
 
-	static bool _process_pfd(HDC hdc, int bpp)
+	static bool _process_pfd(HDC hdc)
 	{
 		//Do boring repetitive WINAPI stuff 
 		PIXELFORMATDESCRIPTOR pfd{};
 		pfd.nSize = sizeof(pfd);
 		pfd.nVersion = 1;
-		pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+		pfd.dwFlags = PFD_DRAW_TO_WINDOW;
 		pfd.iPixelType = PFD_TYPE_RGBA;
-		pfd.cColorBits = bpp;
+		pfd.cColorBits = 24;
 		pfd.iLayerType = PFD_MAIN_PLANE;
 
 		return SetPixelFormat(hdc, ChoosePixelFormat(hdc, &pfd), &pfd);
-
 	}
 
 	static void _process_msg(MSG& msg)
@@ -613,7 +597,6 @@ public:
 	{
 		this->m_window = nullptr;
 		this->m_hdc = nullptr;
-		this->m_context = nullptr;
 		this->m_is_repetitive_move_enabled = false;
 		this->m_is_repetitive_resize_enabled = false;
 		this->m_is_repetitive_keyboard_enabled = true;
@@ -630,15 +613,14 @@ public:
 	void close() noexcept
 	{
 		this->m_is_closing = true;
-		if (this->m_context)
-		{
-			wglDeleteContext(this->m_context);
-			this->m_context = nullptr;
-		}
 		if (this->m_hdc)
 		{
 			ReleaseDC(this->m_window, this->m_hdc);
+			DeleteDC(this->m_hmdc);
+			DeleteObject(this->m_bitmap);
 			this->m_hdc = nullptr;
+			this->m_hmdc = nullptr;
+			this->m_bitmap = nullptr;
 		}
 		if (this->m_window)
 		{
@@ -651,17 +633,17 @@ public:
 
 
 	template<typename char_t>
-	error_t open(uint16_t width, uint16_t height, const char_t* window_name, window_t::context_settings settings, window_t::style_t style) noexcept
+	window_open_result_t open(uint16_t width, uint16_t height, const char_t* window_name, window_style_t window_style) noexcept
 	{
 		//Just a wrapper function for "real" _Xopen
 
 		this->close();
-		error_t result = this->_Xopen(width, height, window_name, settings, style);
+		window_open_result_t result = this->_Xopen(width, height, window_name, window_style);
 
-		if (result == error::ok)
+		if (result == window_open_result::ok || result == window_open_result::ok_but_direct_drawing_unsupported)
 		{
 			//Window is created hidden initially
-			if (!(style & window_t::style::hidden)) ShowWindow(this->m_window, SW_SHOW);
+			if (!(window_style & window_style::hidden)) ShowWindow(this->m_window, SW_SHOW);
 
 			//Check whether mouse is initially inside the window
 			{
@@ -713,7 +695,7 @@ public:
 		}
 		else
 		{
-			//If something has broken, undid everything that hasn't but preserve the error
+			//If something has broken, undid everything that hasn't but preserve the winapi error
 			int last_error = GetLastError();
 			this->close();
 			SetLastError(last_error);
@@ -722,12 +704,12 @@ public:
 	}
 
 	template<typename char_t>
-	error_t _Xopen(uint16_t width, uint16_t height, const char_t* window_name, window_t::context_settings settings, window_t::style_t style) noexcept
+	window_open_result_t _Xopen(uint16_t width, uint16_t height, const char_t* window_name, window_style_t window_style) noexcept
 	{
 		constexpr static bool is_wide = std::is_same_v<wchar_t, char_t>;
 		static_assert(std::is_same_v<char_t, char> || std::is_same_v<char_t, wchar_t>);
 
-		if (style & window_t::style::fullscreen) return error::unimplemented; //TODO
+		if (window_style & window_style::fullscreen) return window_open_result::unimplemented; //TODO
 
 
 		constexpr static UINT winapi_flags[] =
@@ -742,14 +724,14 @@ public:
 			0
 		};
 
-		DWORD winapi_style = 0;
-		for (int i = 0; i < 8; ++i) if (style & (1 << i)) winapi_style |= winapi_flags[i];
+		DWORD winapi_window_style = 0;
+		for (int i = 0; i < 8; ++i) if (window_style & (1 << i)) winapi_window_style |= winapi_flags[i];
 
 		RECT rect{ 0, 0, (LONG)width, (LONG)height };
-		if (style & ~style::fullscreen) //if not fullscreen
+		if (window_style & ~window_style::fullscreen) //if not fullscreen
 		{
 			//Adjust window size so that client area is exactly WxH
-			AdjustWindowRectEx(&rect, winapi_style, FALSE, 0);
+			AdjustWindowRectEx(&rect, winapi_window_style, FALSE, 0);
 			width = uint16_t(rect.right - rect.left);
 			height = uint16_t(rect.bottom - rect.top);
 		}
@@ -757,153 +739,60 @@ public:
 
 		if constexpr (!is_wide)
 		{
-			this->m_window = CreateWindowA("_LIBKSN_windowA", window_name, winapi_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
+			this->m_window = CreateWindowA("_LIBKSN_windowA", window_name, winapi_window_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
 		}
 		else
 		{
-			this->m_window = CreateWindowW(L"_LIBKSN_windowW", window_name, winapi_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
+			this->m_window = CreateWindowW(L"_LIBKSN_windowW", window_name, winapi_window_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
 		}
 
-		if (this->m_window == nullptr) return error::window_creation_error;
+		if (this->m_window == nullptr) return window_open_result::window_creation_error;
 
+
+		uint16_t client_width, client_height;
+		uint16_t window_width, window_height;
+		
 		{
-			//If the client area size was (for example) 5x5, Windows may create a window that is much larger
-			//If this happens, report size error
-			RECT actual_rect;
-			GetWindowRect(this->m_window, &actual_rect);
-			if (width != (actual_rect.right - actual_rect.left) || height != (actual_rect.bottom - actual_rect.top)) return error::window_size_error;
+			WINDOWINFO result_info;
+			result_info.cbSize = sizeof(result_info);
+			GetWindowInfo(this->m_window, &result_info);
+
+			client_width = (uint16_t)(result_info.rcClient.right - result_info.rcClient.left);
+			client_height = (uint16_t)(result_info.rcClient.bottom - result_info.rcClient.top);
+
+			window_width = (uint16_t)(result_info.rcWindow.right - result_info.rcWindow.left);
+			window_height = (uint16_t)(result_info.rcWindow.bottom - result_info.rcWindow.top);
 		}
 
+		//If the client area size was (for example) 5x5, Windows may create a window that is much larger
+		//If this happens, report size window_open_result
+		if (width != window_width || height != window_height)
+			return window_open_result::window_size_error;
 
+
+		//Create device context
 		this->m_hdc = GetDC(this->m_window);
-		if (this->m_hdc == nullptr) return error::system_error;
+		if (this->m_hdc == nullptr) return window_open_result::system_error;
 
-		//this->m_is_closing = false;
 
-		//For OpenGL version > 1.1 use ARB extension to create a context
-		if (settings.ogl_version_major > 1 || (settings.ogl_version_major == 1 && settings.ogl_version_minor > 1))
+		//Do DC pixel format window_style if necessary
+		if ((window_style & (1 << (sizeof(window_style_t) - 1))))
+			if (!my_t::_process_pfd(this->m_hdc)) return window_open_result::system_error;
+		
+
+		//Create a memory DC and a bitmap to suppport direct color data drawing
+		this->m_hmdc = CreateCompatibleDC(this->m_hdc);
+		this->m_bitmap = CreateCompatibleBitmap(this->m_hdc, client_width, client_height);
+		SelectObject(this->m_hmdc, this->m_bitmap);
+
+
+		if (this->m_hmdc == nullptr || this->m_bitmap == nullptr)
 		{
-			if (my_t::glew_initialized == false)
-			{
-				//Create temporary context and make it current so glew can initialize
-
-				//Do pixel format style
-				if (!my_t::_process_pfd(this->m_hdc, settings.bits_per_color)) window_t::error::system_error;
-
-				HGLRC temp_context = wglCreateContext(this->m_hdc);
-				if (temp_context == nullptr) return error::opengl_error;
-
-				HGLRC previous_context = wglGetCurrentContext();
-				HDC previous_hdc = wglGetCurrentDC();
-
-				wglMakeCurrent(this->m_hdc, temp_context);
-
-				glewExperimental = true; //Make GLEW do it's best
-				auto glew_init_result = glewInit();
-
-				wglMakeCurrent(previous_hdc, previous_context);
-				wglDeleteContext(temp_context);
-
-				if (glew_init_result != GLEW_OK) return error::glew_error;
-
-				my_t::glew_initialized = true;
-			}
-
-			const auto& [v_maj, v_min, bpp, compatibility, debug] = settings;
-			//If extension is available
-			if (wglCreateContextAttribsARB)
-			{
-				int attributes[] =
-				{
-					WGL_CONTEXT_MAJOR_VERSION_ARB, v_maj,
-					WGL_CONTEXT_MINOR_VERSION_ARB, v_min,
-					WGL_CONTEXT_PROFILE_MASK_ARB, compatibility
-						? WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB
-						: WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-					WGL_CONTEXT_FLAGS_ARB, debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0,
-					0
-				};
-
-				this->m_context = wglCreateContextAttribsARB(this->m_hdc, nullptr, attributes);
-				return (this->m_context) ? error::ok : error::opengl_error;
-			}
-			else if (compatibility || v_maj < 3 || (v_maj == 3 && v_min < 2))
-			{
-				//Drivers may be nice to us and create a modern compatibitity context for us by default
-				this->m_context = wglCreateContext(this->m_hdc);
-
-				if (this->m_context == nullptr) return error::opengl_error;
-
-				HDC last_dc = wglGetCurrentDC();
-				HGLRC last_context = wglGetCurrentContext();
-				wglMakeCurrent(this->m_hdc, this->m_context);
-
-
-				int ogl_major = -1, ogl_minor = -1;
-				
-				do
-				{
-					glGetIntegerv(GL_MAJOR_VERSION, &ogl_major);
-					glGetIntegerv(GL_MINOR_VERSION, &ogl_minor);
-
-					if ((ogl_major | ogl_minor) != -1) break;
-
-
-					if (glGetInteger64v)
-					{
-						GLint64 ogl_major64, ogl_minor64;
-						glGetInteger64v(GL_MAJOR_VERSION, &ogl_major64);
-						glGetInteger64v(GL_MINOR_VERSION, &ogl_minor64);
-						ogl_major = (int)ogl_major64;
-						ogl_minor = (int)ogl_minor64;
-					}
-
-					if ((ogl_major | ogl_minor) != -1) break;
-
-					const char* version = (const char*)glGetString(GL_VERSION);
-					if (version)
-					{
-						int result = sscanf_s(version, "%i.%i", &ogl_major, &ogl_minor);
-						if (result == 2 && (ogl_major | ogl_minor) != -1) break;
-					}
-
-				} while (false);
-
-				wglMakeCurrent(last_dc, last_context);
-
-				if ((ogl_major | ogl_minor) == -1) return error::opengl_unsupported_function;
-
-				if (ogl_major > v_maj) return error::ok;
-				else if (ogl_major < v_maj) return error::opengl_error;
-				else return ogl_minor >= v_min ? error::ok : error::opengl_error;
-			}
-			else
-			{
-				//wglCreateContextAttribsARB is unavailable, no way to create modern core context
-				return error::opengl_unsupported_function;
-			}
+			if (this->m_hmdc) DeleteDC(this->m_hmdc);
+			if (this->m_bitmap) DeleteObject(this->m_bitmap);
+			return window_open_result::ok_but_direct_drawing_unsupported;
 		}
-		else if (settings.ogl_version_major > 0) //otherwise (if needed OpenGL 1.1), use native WGL
-		{
-			//Do pixel format style
-			if (!my_t::_process_pfd(this->m_hdc, settings.bits_per_color)) return error::system_error;
-
-			this->m_context = wglCreateContext(this->m_hdc);
-			if (this->m_context == nullptr) return error::opengl_error;
-
-			HGLRC previous_context = wglGetCurrentContext();
-			HDC previous_hdc = wglGetCurrentDC();
-			
-			wglMakeCurrent(this->m_hdc, this->m_context);
-			
-			glewExperimental = true;
-			my_t::glew_initialized = glewInit() == GLEW_OK;
-			
-			wglMakeCurrent(previous_hdc, previous_context);
-			return error::ok;
-		}
-
-		return error::ok;
+		else return window_open_result::ok;
 	}
 
 	bool is_open() const noexcept
@@ -913,12 +802,29 @@ public:
 		info_struct.cbSize = sizeof(WINDOWINFO);
 		return GetWindowInfo(this->m_window, &info_struct) == TRUE;
 	}
+
+
+	void draw_pixels(const void* data, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t bits)
+	{
+		BITMAPINFO bitmapinfo{};
+		bitmapinfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bitmapinfo.bmiHeader.biWidth = this->m_resizemove_last_size.first;
+		bitmapinfo.bmiHeader.biHeight = -(int)this->m_resizemove_last_size.second;
+		bitmapinfo.bmiHeader.biPlanes = 1;
+		bitmapinfo.bmiHeader.biBitCount = bits;
+		bitmapinfo.bmiHeader.biCompression = BI_RGB;
+
+		if (width == uint16_t(-1)) width = this->m_resizemove_last_size.first;
+		if (height == uint16_t(-1)) height = this->m_resizemove_last_size.second;
+
+		SetDIBits(this->m_hmdc, this->m_bitmap, y, height, data, &bitmapinfo, DIB_RGB_COLORS);
+		BitBlt(this->m_hdc, x, y, width, height, this->m_hmdc, x, y, SRCCOPY);
+	}
 };
 
 
 
 HDC window_t::_window_impl::s_screen_hdc = GetDC(nullptr);
-bool window_t::_window_impl::glew_initialized = false;
 
 
 
@@ -963,19 +869,15 @@ window_t::native_window_t window_t::window_native_handle() const noexcept
 {
 	return this->m_impl->m_window;
 }
-window_t::native_context_t window_t::context_native_handle() const noexcept
-{
-	return this->m_impl->m_context;
-}
 
 
-window_t::window_t(uint16_t width, uint16_t height, const char* title, context_settings settings, style_t style) noexcept
+window_t::window_t(uint16_t width, uint16_t height, const char* title, window_style_t window_style) noexcept
 {
-	this->m_impl->open(width, height, title, settings, style);
+	this->m_impl->open(width, height, title, window_style);
 }
-window_t::window_t(uint16_t width, uint16_t height, const wchar_t* title, context_settings settings, style_t style) noexcept
+window_t::window_t(uint16_t width, uint16_t height, const wchar_t* title, window_style_t window_style) noexcept
 {
-	this->m_impl->open(width, height, title, settings, style);
+	this->m_impl->open(width, height, title, window_style);
 }
 
 
@@ -992,13 +894,13 @@ window_t::~window_t() noexcept
 }
 
 
-window_t::error_t window_t::open(uint16_t width, uint16_t height, const char* title, context_settings settings, style_t style) noexcept
+window_open_result_t window_t::open(uint16_t width, uint16_t height, const char* title, window_style_t window_style) noexcept
 {
-	return this->m_impl->open(width, height, title, settings, style);
+	return this->m_impl->open(width, height, title, window_style);
 }
-window_t::error_t window_t::open(uint16_t width, uint16_t height, const wchar_t* title, context_settings settings, style_t style) noexcept
+window_open_result_t window_t::open(uint16_t width, uint16_t height, const wchar_t* title, window_style_t window_style) noexcept
 {
-	return this->m_impl->open(width, height, title, settings, style);
+	return this->m_impl->open(width, height, title, window_style);
 }
 
 
@@ -1014,7 +916,6 @@ bool window_t::poll_event(event_t& event) noexcept
 	MSG native;
 	while (PeekMessageW(&native, this->m_impl->m_window, 0, 0, PM_REMOVE))
 	{
-		//printf("c");
 		TranslateMessage(&native);
 		DispatchMessageW(&native);
 	}
@@ -1027,23 +928,6 @@ bool window_t::poll_event(event_t& event) noexcept
 	}
 	return false;
 }
-//bool window_t::poll_event(event_t& event) noexcept
-//{
-//	MSG native;
-//	if (PeekMessageW(&native, this->m_impl->m_window, 0, 0, PM_REMOVE))
-//	{
-//		TranslateMessage(&native);
-//		DispatchMessageW(&native);
-//	}
-//
-//	if (this->m_impl->m_queue.size() != 0)
-//	{
-//		event = this->m_impl->m_queue.front();
-//		this->m_impl->m_queue.pop_front();
-//		return true;
-//	}
-//	return false;
-//}
 bool window_t::wait_event(event_t& event) noexcept
 {
 	if (this->m_impl->m_queue.size() != 0)
@@ -1084,15 +968,6 @@ bool window_t::is_open() const noexcept
 	return this->m_impl->is_open();
 }
 
-void window_t::make_current() const noexcept
-{
-	wglMakeCurrent(this->m_impl->m_hdc, this->m_impl->m_context);
-}
-bool window_t::is_current() const noexcept
-{
-	return wglGetCurrentContext() == this->m_impl->m_context;
-}
-
 void window_t::swap_buffers() const noexcept
 {
 	//SwapBuffers(this->m_impl->m_hdc);
@@ -1121,26 +996,12 @@ std::pair<uint16_t, uint16_t> window_t::get_size() const noexcept
 	return { uint16_t(wi.rcClient.right - wi.rcClient.left), uint16_t(wi.rcClient.bottom - wi.rcClient.top) };
 }
 
-bool window_t::set_vsync_auto(bool enabled) const noexcept
+uint32_t window_t::get_monitor_framerate() const noexcept
 {
-	if (wglSwapIntervalEXT == nullptr) return false;
-
-	if (enabled && !this->get_vsync_auto_available()) return false;
-	return wglSwapIntervalEXT(-(int)enabled);
-}
-bool window_t::set_vsync_enabled(bool enabled) const noexcept
-{
-	if (wglSwapIntervalEXT == nullptr) return false;
-
-	return wglSwapIntervalEXT((int)enabled);
-}
-bool window_t::get_vsync_auto_available() const noexcept
-{
-	return glewGetExtension("WGL_SWAP_CONTROL_TEAR");
-}
-bool window_t::get_vsync_available() const noexcept
-{
-	return wglSwapIntervalEXT != nullptr;
+	DEVMODEA devmode{};
+	devmode.dmSize = sizeof(devmode);
+	EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &devmode);
+	return devmode.dmDisplayFrequency;
 }
 
 void window_t::hide() const noexcept
@@ -1153,4 +1014,23 @@ void window_t::show() const noexcept
 }
 
 
+HDC window_t::winapi_get_hdc() const noexcept
+{
+	return this->m_impl->m_hdc;
+}
+
+
+
+void window_t::draw_pixels_bgr_front(const void* data, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+	this->m_impl->draw_pixels(data, x, y, width, height, 24);
+}
+void window_t::draw_pixels_bgra_front(const void* data, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+	this->m_impl->draw_pixels(data, x, y, width, height, 32);
+}
+
+
 _KSN_END
+
+#include "libksn_window_impl_independend.cpp"
