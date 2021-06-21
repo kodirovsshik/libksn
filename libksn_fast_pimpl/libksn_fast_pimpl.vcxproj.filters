@@ -23,5 +23,8 @@
     <ClInclude Include="..\ksn\include\ksn\fast_pimpl.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\ksn\include\ksn\forward_declared_storage.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
