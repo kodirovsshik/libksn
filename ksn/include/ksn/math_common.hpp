@@ -24,10 +24,146 @@
 _KSN_BEGIN
 
 
+template<class fp1_t, class fp2_t>
+std::vector<std::common_type_t<fp1_t, fp2_t>> polynomial_multiplication(const std::vector<fp2_t>& v1, const std::vector<fp2_t>& v2);
 
-std::vector<double> polynomial_multiplication(const std::vector<double>& v1, const std::vector<double>& v2);
+template<class fpy_t, class fpx_t>
+std::vector<fpy_t> polynomial_interpolation(const std::vector<std::pair<fpx_t, fpy_t>>& points);
 
-std::vector<double> polynomial_interpolation(const std::vector<std::pair<double, double>>& points);
+template<class fp_t>
+std::vector<fp_t> polynomial_roots(std::vector<fp_t> coeffs)
+{
+	for (size_t i = 0; i < coeffs.size(); ++i)
+	{
+		if (coeffs[coeffs.size() - i - 1] == 0)
+			coeffs.pop_back();
+		else
+			break;
+	}
+	using std::sqrt;
+	using std::cbrt;
+	using std::cos;
+	using std::acos;
+	using std::pow;
+
+	if (coeffs.size() <= 1) return {};
+	if (coeffs.size() == 2) return { -coeffs[0] / coeffs[1] };
+	if (coeffs.size() == 3)
+	{
+		//Quadratic
+		fp_t a = std::move(coeffs[2]);
+		fp_t b = std::move(coeffs[1]);
+		fp_t c = std::move(coeffs[0]);
+		b = b / a / 2;
+		c = c / a;
+		fp_t D = b * b - c;
+		if (c < 0) return {};
+		D = sqrt(D);
+		return { -b - D, -b + D };
+	}
+	if (coeffs.size() == 4)
+	{
+		//Cubic
+		fp_t a = std::move(coeffs[3]);
+		fp_t b = std::move(coeffs[2]);
+		fp_t c = std::move(coeffs[1]);
+		fp_t d = std::move(coeffs[0]);
+		a = 1 / a;
+		b *= a;
+		c *= a;
+		d *= a;
+		b /= 3;
+		fp_t b1 = -b;
+		a = c - 3 * b * b;
+		d = b * (2 * b * b - c) + d;
+		d /= 2; //q
+		a /= 3; //p
+		fp_t D = d * d + a * a * a;
+		if (D <= 0)
+		{
+			//Three real roots
+			d /= a;
+			a = sqrt(-a);
+			fp_t k = 2 * a;
+			a = 1 / a;
+			fp_t t = acos(d * a);
+			return
+			{
+				fp_t(k * cos((t) / 3) + b1),
+				fp_t(k * cos((t - 2 * KSN_PI) / 3) + b1),
+				fp_t(k * cos((t - 4 * KSN_PI) / 3) + b1)
+			};
+		}
+		else
+		{
+			d = -d;
+			D = sqrt(D);
+			return { fp_t(cbrt(d + D) + cbrt(d - D) + b1) };
+		}
+	}
+	if (coeffs.size() == 5)
+	{
+		//Quartic
+		fp_t a = 1 / std::move(coeffs[4]);
+		fp_t b = a * std::move(coeffs[3]);
+		fp_t c = a * std::move(coeffs[2]);
+		fp_t d = a * std::move(coeffs[1]);
+		fp_t e = a * std::move(coeffs[0]);
+		b /= 2;
+		fp_t q = d + b * (b * b - c);
+		b /= 2;
+		fp_t b1 = b;
+		fp_t p = c - 6 * b * b;
+		fp_t r = e + b * (-d + b * (c - 3 * b));
+		r *= -4;
+		b = (r - p * p / 3);
+		p /= -3;
+		a = (p * (2 * p * p - r) - q * q - 3 * r * p) * -0.5;
+		c = a * a + b * b * b;
+		if (c < 0)
+		{
+			c = -c;
+			a = 2 * pow(a * a + c, 1.0 / 6) * cos(1.0 / 3 * atan2(sqrt(c), a));
+		}
+		else
+		{
+			c = sqrt(c);
+			a = cbrt(a + c) + cbrt(a - c);
+		}
+		a = (a - p) / 2;
+		d = a * a - r;
+		if (d < 0) return {};
+		d = sqrt(d);
+		b = a + d; //omega2
+		a = a - d; //omega1
+		if (d != 0)
+			d = p / (c - b);
+		else
+			d = sqrt(c + b + 3 * p);
+		d /= 2; //d <- z/2
+		c = d * d;
+		a = c - a;
+		b = c - b;
+
+		std::vector<fp_t> result;
+		if (a > 0)
+		{
+			a = sqrt(a);
+			result.push_back(-d - a);
+			result.push_back(-d + a);
+		}
+		if (b > 0)
+		{
+			b = sqrt(b);
+			result.push_back(d - b);
+			result.push_back(d + b);
+		}
+		for (auto& x : result) x -= b1;
+		return result;
+	}
+	throw 0;
+	//TODO: implement the ultimate algorithm for solving algebraic equations
+}
 
 
 
@@ -88,9 +224,6 @@ std::vector<double> polynomial_interpolation(const std::vector<std::pair<double,
 //}
 
 
-
-//I do need to take the input by copy
-std::vector<int64_t> solve_integer_polynomial(std::vector<int64_t> coefficients);
 
 
 
