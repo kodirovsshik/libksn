@@ -244,7 +244,7 @@ struct texture_t
 class shape_buffer_t
 {
 	struct _shape_buffer_impl;
-	ksn::fast_pimpl<_shape_buffer_impl, 4*4*sizeof(void*) + 2*sizeof(void*), sizeof(void*), true, true, true, true> m_impl;
+	ksn::fast_pimpl<_shape_buffer_impl, 4*4*sizeof(void*) + 2*sizeof(void*), sizeof(void*)> m_impl;
 
 public:
 
@@ -289,7 +289,7 @@ class graphics_engine_t
 private:
 
 	struct _graphics_engine_impl;
-	fast_pimpl<_graphics_engine_impl, 1, 1, true, true, true, true> m_impl;
+	fast_pimpl<_graphics_engine_impl, 1, 1> m_impl;
 
 
 public:
@@ -309,7 +309,7 @@ public:
 class render_texture_t
 {
 	struct _render_texture_impl;
-	ksn::fast_pimpl< _render_texture_impl, sizeof(void*) * 6, sizeof(void*), true, true, true, true> m_impl;
+	ksn::fast_pimpl< _render_texture_impl, sizeof(void*) * 6, sizeof(void*)> m_impl;
 
 public:
 
