@@ -659,8 +659,6 @@ bool shape_buffer_t::reserve_vertexes_add(size_t add) noexcept
 }
 
 
-
-
 _KSN_GRAPHICS_END
 
 _KSN_END

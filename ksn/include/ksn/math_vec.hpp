@@ -111,28 +111,28 @@ public:
 	
 
 
-	template<class ofp_t> requires (!is_vec_v<ofp_t>)
+	template<class ofp_t> requires(std::is_convertible_v<ofp_t, fp_t>)
 	constexpr my_t friend operator*(const my_t& x, ofp_t y) noexcept
 	{
 		common_vec(fp_t, ofp_t, N) result;
 		for (size_t i = 0; i < N; ++i)
 		{
-			result[i] = x[i] * y;
+			result[i] = x[i] * (fp_t)y;
 		}
 		return result;
 	}
-	template<class ofp_t> requires (!is_vec_v<ofp_t>)
+	template<class ofp_t> requires(std::is_convertible_v<ofp_t, fp_t>)
 	constexpr my_t friend operator/(const my_t& x, ofp_t y) noexcept
 	{
 		return x * (1 / y);
 	}
 
-	template<class ofp_t> requires (!is_vec_v<ofp_t>)
+	template<class ofp_t> requires(std::is_convertible_v<ofp_t, fp_t>)
 	constexpr my_t friend operator*(ofp_t x, const my_t& y) noexcept
 	{
 		return y * x;
 	}
-	template<class ofp_t> requires (!is_vec_v<ofp_t>)
+	template<class ofp_t> requires(std::is_convertible_v<ofp_t, fp_t>)
 	constexpr my_t friend operator/(ofp_t x, const my_t& y) noexcept
 	{
 		return y * (1 / x);

@@ -13,25 +13,13 @@
 
 _KSN_BEGIN
 
-template<class T, size_t size, size_t alignment,
-	bool is_nothrow_copy_constructible = false,
-	bool is_nothrow_move_constructible = false,
-	bool is_nothrow_destructible = false,
-	bool is_nothrow_constructible = false,
-	bool is_nothrow_copy_assignable = false,
-	bool is_nothrow_move_assignable = false
->
+template<class T, size_t size, size_t alignment>
 class fast_pimpl
 {
 
 private:
 		
-	using my_t = fast_pimpl<T, size, alignment, 
-		is_nothrow_copy_constructible, 
-		is_nothrow_move_constructible, 
-		is_nothrow_destructible, 
-		is_nothrow_constructible
-	>;
+	using my_t = fast_pimpl<T, size, alignment>;
 	
 
 
@@ -84,33 +72,33 @@ public:
 
 
 	template<class... args_t>
-	fast_pimpl(args_t&& ...args) noexcept(is_nothrow_constructible)
+	fast_pimpl(args_t&& ...args)
 	{
 		new ((void*)this->ptr()) T(std::forward<args_t>(args)...);
 	}
-	fast_pimpl(const my_t& other) noexcept(is_nothrow_copy_constructible)
+	fast_pimpl(const my_t& other)
 	{
 		new (this->ptr()) T{ *other };
 	}
-	fast_pimpl(my_t&& other) noexcept(is_nothrow_move_constructible)
+	fast_pimpl(my_t&& other)
 	{
 		new (this->ptr()) T{ std::move(*other) };
 	}
 
 	
-	~fast_pimpl() noexcept(is_nothrow_destructible)
+	~fast_pimpl()
 	{
 		my_t::validate<sizeof(T), alignof(T)>(0);
 		this->ptr()->~T();
 	}
 
-	fast_pimpl& operator=(const my_t& other) noexcept(is_nothrow_copy_assignable)
+	fast_pimpl& operator=(const my_t& other)
 	{
 		*this->ptr() = *other.ptr();
 		return *this;
 	}
 
-	fast_pimpl& operator=(my_t&& other) noexcept(is_nothrow_move_assignable)
+	fast_pimpl& operator=(my_t&& other)
 	{
 		std::iter_swap(this->ptr(), other.ptr());
 		return *this;

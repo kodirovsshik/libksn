@@ -3,18 +3,16 @@
 #define _KSN_WINDOW_HPP_
 
 
+
 #include <ksn/ksn.hpp>
 #include <ksn/fast_pimpl.hpp>
 
-//TODO: remove after troubleshooting
-#include <stdio.h>
-#include <string.h>
 
 
 #ifdef _WIN32
 
 struct HWND__;
-struct HGLRC__;
+struct HDC__;
 struct tagMSG;
 
 #endif
@@ -282,11 +280,11 @@ struct event_t
 		case event_type_t::maximized: return "maximized";
 		case event_type_t::minimized: return "minimized";
 		case event_type_t::text: return "text";
-		default: return nullptr;
+		default: return "<corrupted event>";
 		}
 	}
 
-	void dump(FILE* f = stdout)
+	/*void dump(FILE* f = stdout)
 	{
 		const char* p = this->to_string();
 
@@ -332,7 +330,61 @@ struct event_t
 		{
 			fwrite(": Dump not implemented\n", sizeof(char), 23, stdout);
 		}
-	}
+	}*/
+};
+
+
+
+using window_open_result_t = uint8_t;
+struct window_open_result
+{
+	//All fine
+	static constexpr window_open_result_t ok = 0;
+
+	//Not (possibly yet) implemented by the library
+	static constexpr window_open_result_t unimplemented = 1;
+
+	//Error after calling system API
+	//(except for window creation function itself)
+	static constexpr window_open_result_t system_error = 2;
+
+	//Error after calling OpenGL API
+	static constexpr window_open_result_t opengl_error = 3;
+
+	//Window creation system function failed
+	static constexpr window_open_result_t window_creation_error = 4;
+
+	//Invalid window size (too big/small)
+	static constexpr window_open_result_t window_size_error = 5;
+
+	//Failed to initialize GLEW
+	static constexpr window_open_result_t glew_error = 6;
+
+	//OpenGL feature required is not supported
+	static constexpr window_open_result_t opengl_unsupported_function = 7;
+
+	//Everything went fine except that window is not ready for direct drawing with window_t::draw_pixels_*
+	static constexpr window_open_result_t ok_but_direct_drawing_unsupported = 8;
+
+};
+
+
+
+using window_style_t = uint16_t;
+struct window_style
+{
+	static constexpr window_style_t border = 1;
+	static constexpr window_style_t close_button = 2;
+	static constexpr window_style_t min_button = 4;
+	static constexpr window_style_t resize = 8;
+	static constexpr window_style_t caption = 16;
+	static constexpr window_style_t fullscreen = 32;
+	static constexpr window_style_t max_button = 64;
+	static constexpr window_style_t hidden = 128;
+
+	static constexpr window_style_t close_min_max = min_button | max_button | close_button;
+
+	static constexpr window_style_t default_style = border | close_min_max | resize | caption;
 };
 
 
@@ -342,110 +394,50 @@ class window_t
 public:
 	
 	class _window_impl;
+	class _window_independend_impl; //OS-independend stuff
 
-
-
-public:
-
-#ifdef _WIN32
+#if defined _KSN_COMPILER_MSVC && defined _WIN32
 
 	using native_window_t = HWND__*;
-	using native_context_t = HGLRC__*;
 	using native_event_t = tagMSG;
 
-	#ifdef _WIN64
-		ksn::fast_pimpl<_window_impl, 80, 8, true, true, true, true> m_impl;
-	#else
-		ksn::fast_pimpl<_window_impl, 48, 4, true, true, true, true> m_impl;
-	#endif
+#ifdef _WIN64
+	ksn::fast_pimpl<_window_impl, 88, 8> m_impl;
+#else
+	ksn::fast_pimpl<_window_impl, 52, 4> m_impl;
+#endif
 #else
 
 #error This platform is not (possibly yet) supported by <ksn/window.hpp>
 
 #endif
 
+	ksn::fast_pimpl<_window_independend_impl, sizeof(uint64_t) + 2 * sizeof(uint32_t), alignof(uint64_t)> m_impl_indep;
 
 
-	struct context_settings
-	{
-		uint8_t ogl_version_major = 1;
-		uint8_t ogl_version_minor = 1;
-		uint8_t bits_per_color = 24;
-		bool ogl_compatibility_profile : 1 = true;
-		bool ogl_debug : 1 = false;
-	};
 
-	using style_t = uint8_t;
-	struct style
-	{
-		static constexpr style_t border = 1;
-		static constexpr style_t close_button = 2;
-		static constexpr style_t min_button = 4;
-		static constexpr style_t resize = 8;
-		static constexpr style_t caption = 16;
-		static constexpr style_t fullscreen = 32;
-		static constexpr style_t max_button = 64;
-		static constexpr style_t hidden = 128;
-
-		static constexpr style_t close_min_max = min_button | max_button | close_button	;
-
-		static constexpr style_t default_style = border | close_min_max | resize | caption;
-	};
-
-	using error_t = uint8_t;
-	struct error
-	{
-		//All fine
-		static constexpr error_t ok = 0;
-
-		//Not (possibly yet) implemented by the library
-		static constexpr error_t unimplemented = 1;
-
-		//Error after calling system API
-		//(except for window creation function itself)
-		static constexpr error_t system_error = 2;
-
-		//Error after calling OpenGL API
-		static constexpr error_t opengl_error = 3;
-
-		//Window creation system function failed
-		static constexpr error_t window_creation_error = 4;
-
-		//Invalid window size (too big/small)
-		static constexpr error_t window_size_error = 5;
-
-		//Failed to initialize GLEW
-		static constexpr error_t glew_error = 6;
-
-		//OpenGL feature required is not supported
-		static constexpr error_t opengl_unsupported_function = 7;
-		
-	};
-
-	
+public:
 
 
 
 
 
 	native_window_t window_native_handle() const noexcept;
-	native_context_t context_native_handle() const noexcept;
 
 	window_t() noexcept;
 	window_t(const window_t&) = delete;
 	window_t(window_t&&) noexcept;
 	~window_t() noexcept;
 
-	window_t(uint16_t width, uint16_t height, const char* title = "", context_settings settings = {}, style_t style = style::default_style) noexcept;
-	window_t(uint16_t width, uint16_t height, const wchar_t* title, context_settings settings = {}, style_t style = style::default_style) noexcept;
+	window_t(uint16_t width, uint16_t height, const char* title = "", window_style_t style = window_style::default_style) noexcept;
+	window_t(uint16_t width, uint16_t height, const wchar_t* title, window_style_t style = window_style::default_style) noexcept;
 
-	error_t open(uint16_t width, uint16_t height, const char* title = "", context_settings settings = {}, style_t style = style::default_style) noexcept;
-	error_t open(uint16_t width, uint16_t height, const wchar_t* title, context_settings settings = {}, style_t style = style::default_style) noexcept;
+	virtual window_open_result_t open(uint16_t width, uint16_t height, const char* title = "", window_style_t style = window_style::default_style) noexcept;
+	virtual window_open_result_t open(uint16_t width, uint16_t height, const wchar_t* title, window_style_t style = window_style::default_style) noexcept;
 
-	void close() noexcept;
+	virtual void close() noexcept;
 
 	bool poll_event(event_t&) noexcept;
-	//bool poll_events(event_t&) noexcept;
 	bool wait_event(event_t&) noexcept;
 
 	void discard_all_events() noexcept;
@@ -453,11 +445,21 @@ public:
 
 	bool is_open() const noexcept;
 
-	void make_current() const noexcept;
-	bool is_current() const noexcept;
-
 	bool has_focus() const noexcept;
 	void request_focus() const noexcept;
+
+	//Limits the frame rate (use window_t::tick() to wait for a frame end)
+	//0 = unlimited framerate
+	//Unlimited by default
+	void set_framerate(uint32_t fps) noexcept;
+	uint32_t get_framerate() const noexcept;
+
+	//Refresh rate of the monitor the OS considers window to be on
+	uint32_t get_monitor_framerate() const noexcept;
+
+	//Updates internal time counter and waits for a frame end according to set framerate
+	//is a no-op if framerate is unlimited (that is, 0)
+	void tick() noexcept;
 
 	void swap_buffers() const noexcept;
 
@@ -465,19 +467,25 @@ public:
 	uint16_t get_height() const noexcept;
 	std::pair<uint16_t, uint16_t> get_size() const noexcept;
 
-	//automatically enables VSync if FPS > monitor resresh rate and disabled otherwise
-	//must be supported and allowed by driver
-	bool set_vsync_auto(bool enabled) const noexcept;
-	//Enable VSync
-	bool set_vsync_enabled(bool enabled) const noexcept;
-	//VSync available in auto mode
-	bool get_vsync_auto_available() const noexcept;
-	//VSync available at all
-	bool get_vsync_available() const noexcept;
-	
 	void hide() const noexcept;
 	void show() const noexcept;
+
+
+#ifdef _WIN32
+	HDC__* winapi_get_hdc() const noexcept;
+#endif
+
+	//Draw a rectangle of pixels in BGR format (3 bytes per pixel) right into the screen front buffer at position (x; y) ((0; 0) is top left)
+	//Size dimension of -1 means the whole window size
+	void draw_pixels_bgr_front(const void*, uint16_t x = 0, uint16_t y = 0, uint16_t width = -1, uint16_t height = -1);
+
+	//Draw a rectangle of pixels in BGRA format (4 bytes per pixel) right into the screen front buffer at position (x; y) ((0; 0) is top left)
+	//Size dimension of -1 means the whole window size
+	//Alpha channel is discarded
+	void draw_pixels_bgra_front(const void*, uint16_t x = 0, uint16_t y = 0, uint16_t width = -1, uint16_t height = -1);
+
 };
+
 
 
 _KSN_END

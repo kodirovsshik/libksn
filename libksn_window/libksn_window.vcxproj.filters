@@ -24,4 +24,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="libksn_window_impl_independend.cpp">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>
