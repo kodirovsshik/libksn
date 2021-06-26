@@ -1,7 +1,6 @@
 
 
 #include <ksn/stuff.hpp>
-#include <ksn/x86_instruction_set.hpp>
 
 #include <intrin.h>
 
@@ -100,33 +99,6 @@ size_t _memory_dump_t::operator()(const void* _p, size_t bytes, size_t bytes_per
 	}
 
 	return result;
-}
-
-
-
-
-
-const void* memnotchr(const void* block, uint8_t value, size_t length)
-{
-	if (x86_features->avx512_bw)
-	{
-		//_mm512_cmpeq_epi8_mask gives 1 on equeal
-	}
-	else if (x86_features->avx2)
-	{
-		//_mm256_cmpeq_epi8 gives -1 on equal
-	}
-	else if (x86_features->sse2)
-	{
-		//_mm_cmpeq_epi8
-		size_t local_size = length / 16;
-	}
-	else
-	{
-
-	}
-
-	throw 0;
 }
 
 

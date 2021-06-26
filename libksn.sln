@@ -6,11 +6,8 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_math", "libksn_math\libksn_math.vcxproj", "{10F256BC-7FB7-4307-926E-8B4B78D1DDA5}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_stuff", "libksn_stuff\libksn_stuff.vcxproj", "{0371B446-4D34-4E8E-B272-65A3B784D6EA}"
-	ProjectSection(ProjectDependencies) = postProject
-		{EE3EEB13-F09A-4D5A-A9F3-E87B2F110E3C} = {EE3EEB13-F09A-4D5A-A9F3-E87B2F110E3C}
-	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_x86_instruction_set", "x86_instruction_set\x86_instruction_set.vcxproj", "{EE3EEB13-F09A-4D5A-A9F3-E87B2F110E3C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_x86", "x86_instruction_set\x86_instruction_set.vcxproj", "{EE3EEB13-F09A-4D5A-A9F3-E87B2F110E3C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_debug_utils", "ksn_debug_utils\ksn_debug_utils.vcxproj", "{BDF29E23-A261-459B-9556-20D282FFAFA5}"
 EndProject

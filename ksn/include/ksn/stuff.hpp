@@ -109,7 +109,7 @@ struct malloc_guard
 
 
 //Tests if there is any value in memory other than the one passed into the function
-const void* memnotchr(const void* block, uint8_t value, size_t length);
+//const void* memnotchr(const void* block, uint8_t value, size_t length);
 
 
 
