@@ -21,6 +21,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_fast_pimpl", "libksn_fast_pimpl\libksn_fast_pimpl.vcxproj", "{2D0434B9-B896-4887-A552-41DCFEBC4316}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_window", "libksn_window\libksn_window.vcxproj", "{96C8428A-562A-4B64-94E8-8F5D3CE70320}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7D904459-42DF-46B7-9BBF-299190A1D98F} = {7D904459-42DF-46B7-9BBF-299190A1D98F}
+		{2D0434B9-B896-4887-A552-41DCFEBC4316} = {2D0434B9-B896-4887-A552-41DCFEBC4316}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "temp_linux1", "temp_linux1\temp_linux1.vcxproj", "{F539D2C9-302F-4ABC-A681-14865A4EAA2F}"
 EndProject
@@ -34,6 +38,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_window_gl", "libksn_window_gl\libksn_window_gl.vcxproj", "{FC1D49DA-912B-4807-B671-CFCF4BE01A70}"
 	ProjectSection(ProjectDependencies) = postProject
 		{96C8428A-562A-4B64-94E8-8F5D3CE70320} = {96C8428A-562A-4B64-94E8-8F5D3CE70320}
+		{2D0434B9-B896-4887-A552-41DCFEBC4316} = {2D0434B9-B896-4887-A552-41DCFEBC4316}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_time", "libksn_time\libksn_time.vcxproj", "{7D904459-42DF-46B7-9BBF-299190A1D98F}"

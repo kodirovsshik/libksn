@@ -24,7 +24,7 @@
     <ProjectGuid>{ee3eeb13-f09a-4d5a-a9f3-e87b2f110e3c}</ProjectGuid>
     <RootNamespace>x86instructionset</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>libksn_x86_instruction_set</ProjectName>
+    <ProjectName>libksn_x86</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -182,10 +182,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\1\ksn\include\ksn\x86_instruction_set.hpp" />
+    <ClInclude Include="..\..\..\1\ksn\include\ksn\x86.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ksn_x86_instruction_set_impl.cpp" />
+    <ClCompile Include="ksn_x86_impl.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
