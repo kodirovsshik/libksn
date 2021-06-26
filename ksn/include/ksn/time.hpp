@@ -63,8 +63,10 @@ public:
 
 	void start() noexcept;
 	time restart() noexcept; //returns 0 if not started
-	time current() noexcept; //returns 0 if not started
+	time current() const noexcept; //returns 0 if not started
 	time stop() noexcept;
+
+	bool is_started() const noexcept;
 };
 
 

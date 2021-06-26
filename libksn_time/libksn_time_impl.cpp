@@ -130,7 +130,7 @@ time stopwatch::restart() noexcept
 		return time();
 	}
 }
-time stopwatch::current() noexcept
+time stopwatch::current() const noexcept
 {
 	if (this->m_last_time)
 		return time::now() - this->m_last_time;
@@ -139,9 +139,18 @@ time stopwatch::current() noexcept
 }
 time stopwatch::stop() noexcept
 {
-	time saved_time = this->m_last_time;
-	this->m_last_time = time();
-	return saved_time;
+	if (this->m_last_time)
+	{
+		time saved_time = this->m_last_time;
+		this->m_last_time = time();
+		return saved_time - time::now();
+	}
+	else
+		return time();
+}
+bool stopwatch::is_started() const noexcept
+{
+	return this->m_last_time;
 }
 
 
