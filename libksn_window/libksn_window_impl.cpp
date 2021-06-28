@@ -968,12 +968,6 @@ bool window_t::is_open() const noexcept
 	return this->m_impl->is_open();
 }
 
-void window_t::swap_buffers() const noexcept
-{
-	//SwapBuffers(this->m_impl->m_hdc);
-	wglSwapLayerBuffers(this->m_impl->m_hdc, WGL_SWAP_MAIN_PLANE);
-}
-
 uint16_t window_t::get_width() const noexcept
 {
 	WINDOWINFO wi;

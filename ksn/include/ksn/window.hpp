@@ -412,7 +412,7 @@ public:
 
 #endif
 
-	ksn::fast_pimpl<_window_independend_impl, sizeof(uint64_t) + 2 * sizeof(uint32_t), alignof(uint64_t)> m_impl_indep;
+	ksn::fast_pimpl<_window_independend_impl, sizeof(uint64_t) + sizeof(uint64_t), alignof(uint64_t)> m_impl_indep;
 
 
 
@@ -460,8 +460,6 @@ public:
 	//Updates internal time counter and waits for a frame end according to set framerate
 	//is a no-op if framerate is unlimited (that is, 0)
 	void tick() noexcept;
-
-	void swap_buffers() const noexcept;
 
 	uint16_t get_width() const noexcept;
 	uint16_t get_height() const noexcept;

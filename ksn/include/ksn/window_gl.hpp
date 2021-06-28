@@ -73,6 +73,8 @@ public:
 
 
 
+	void swap_buffers() const noexcept;
+
 	void context_make_current() const noexcept;
 	bool context_is_current() const noexcept;
 

@@ -1,5 +1,6 @@
 
 #include <ksn/window.hpp>
+#include <ksn/time.hpp>
 
 #include <chrono>
 #include <thread>
@@ -17,10 +18,8 @@ class window_t::_window_independend_impl
 
 	friend class window_t;
 
-	uint64_t m_last_tick = 0;
+	stopwatch m_sw;
 	uint32_t m_framerate = 0;
-	uint32_t m_vsync_type = 0;
-	static FILE* m_log;
 
 
 public:
@@ -31,25 +30,18 @@ public:
 
 	void tick() noexcept
 	{
-		using namespace std::chrono;
-		using clock = steady_clock;
-
-		uint64_t current_tick = (uint64_t)duration_cast<nanoseconds>(clock::now().time_since_epoch()).count();
-
 		if (this->m_framerate != 0)
 		{
-			uint64_t desired_dt = uint64_t(1e9f / this->m_framerate);
-
-			std::this_thread::sleep_until(time_point<clock>() + nanoseconds(m_last_tick + desired_dt));
-			this->m_last_tick = (uint64_t)duration_cast<nanoseconds>(clock::now().time_since_epoch()).count();
+			if (this->m_sw.is_started())
+			{
+				time desired_dt = time::from_nsec(1000000000 / this->m_framerate);
+				time dt = this->m_sw.stop();
+				sleep_for(desired_dt - dt);
+			}
+			this->m_sw.start();
 		}
-		else
-			this->m_last_tick = current_tick;
-
 	}
 };
-
-FILE* window_t::_window_independend_impl::m_log = fopen("log.txt", "w");
 
 
 

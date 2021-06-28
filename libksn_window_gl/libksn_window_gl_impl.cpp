@@ -255,6 +255,14 @@ window_open_result_t window_gl_t::open(uint16_t width, uint16_t height, const wc
 
 
 
+void window_gl_t::swap_buffers() const noexcept
+{
+	//SwapBuffers(this->m_impl->m_hdc);
+	wglSwapLayerBuffers(this->winapi_get_hdc(), WGL_SWAP_MAIN_PLANE);
+}
+
+
+
 HGLRC window_gl_t::context_native_handle() const noexcept
 {
 	return this->m_gl_impl->m_context;
