@@ -143,7 +143,7 @@ time stopwatch::stop() noexcept
 	{
 		time saved_time = this->m_last_time;
 		this->m_last_time = time();
-		return saved_time - time::now();
+		return time::now() - saved_time;
 	}
 	else
 		return time();
