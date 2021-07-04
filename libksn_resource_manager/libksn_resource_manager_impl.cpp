@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include <stdexcept>
+#include <filesystem>
 
 
 
@@ -108,6 +109,7 @@ namespace
 } //!namespace <anonimous>
 
 
+
 resource_manager_t::resource_manager_t() noexcept {}
 
 resource_manager_t::resource_manager_t(const std::string& fname) noexcept
@@ -138,8 +140,6 @@ resource_load_result_t resource_manager_t::load(const std::string& fname) noexce
 		return resource_load_result::unknown;
 	}
 }
-
-
 
 resource_load_result_t resource_manager_t::_load(const std::string& fname)
 {
@@ -195,6 +195,33 @@ resource_load_result_t resource_manager_t::_load(const std::string& fname)
 	}
 
 	return result;
+}
+
+resource_load_result_t resource_manager_t::load_raw(const std::string& filename, const std::string& resource_name) noexcept
+{
+	if (this->resource_present(resource_name))
+		return resource_load_result::resource_overlap;
+
+	FILE* f = fopen(filename.c_str(), "rb");
+	if (!f) return resource_load_result::file_unavailable;
+
+	ksn::malloc_guard mg;
+	if (!mg.reserve(1))
+		return resource_load_result::out_of_memory;
+
+	size_t size = std::filesystem::file_size(filename);	
+	uint8_t* data = (uint8_t*)mg.alloc(size);
+	if (!data) 
+		return resource_load_result::out_of_memory;
+
+	fread(data, sizeof(char), size, f);
+	this->m_resources.emplace(
+		std::piecewise_construct,
+		std::forward_as_tuple(resource_name),
+		std::forward_as_tuple(data, data + size)
+	);
+
+	return resource_load_result::ok;
 }
 
 

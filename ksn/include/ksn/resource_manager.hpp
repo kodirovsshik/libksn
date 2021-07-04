@@ -14,6 +14,7 @@
 _KSN_BEGIN
 
 
+
 using resource_load_result_t = uint8_t;
 struct resource_load_result
 {
@@ -76,6 +77,11 @@ public:
 
 	//Loads all the resources from the resource file
 	resource_load_result_t load(const std::string& resource_file) noexcept;
+
+	//Load raw file as a resource
+	resource_load_result_t load_raw(const std::string& filename, const std::string& resource_name) noexcept;
+
+
 
 	//Frees all the loaded resources
 	//All references are invalidated
