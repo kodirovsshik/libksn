@@ -18,7 +18,10 @@
     <ClCompile Include="libksn_temp1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="temp.cpp">
+    <ClCompile Include="temp0.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="temp1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,5 +29,15 @@
     <None Include="libksn_temp_sum_convergence.cpp">
       <Filter>Source Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="temp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="frame.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
   </ItemGroup>
 </Project>
