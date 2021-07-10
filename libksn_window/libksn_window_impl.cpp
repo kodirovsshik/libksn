@@ -806,16 +806,18 @@ public:
 
 	void draw_pixels(const void* data, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t bits)
 	{
+		if (width == uint16_t(-1)) width = this->m_resizemove_last_size.first;
+		if (height == uint16_t(-1)) height = this->m_resizemove_last_size.second;
+
 		BITMAPINFO bitmapinfo{};
 		bitmapinfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-		bitmapinfo.bmiHeader.biWidth = this->m_resizemove_last_size.first;
-		bitmapinfo.bmiHeader.biHeight = -(int)this->m_resizemove_last_size.second;
+		//bitmapinfo.bmiHeader.biWidth = this->m_resizemove_last_size.first;
+		//bitmapinfo.bmiHeader.biHeight = -(int)this->m_resizemove_last_size.second;
+		bitmapinfo.bmiHeader.biWidth = (int)width;
+		bitmapinfo.bmiHeader.biHeight = -(int)height;
 		bitmapinfo.bmiHeader.biPlanes = 1;
 		bitmapinfo.bmiHeader.biBitCount = bits;
 		bitmapinfo.bmiHeader.biCompression = BI_RGB;
-
-		if (width == uint16_t(-1)) width = this->m_resizemove_last_size.first;
-		if (height == uint16_t(-1)) height = this->m_resizemove_last_size.second;
 
 		SetDIBits(this->m_hmdc, this->m_bitmap, y, height, data, &bitmapinfo, DIB_RGB_COLORS);
 		BitBlt(this->m_hdc, x, y, width, height, this->m_hmdc, x, y, SRCCOPY);
