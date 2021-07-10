@@ -1,14 +1,9 @@
 
-#pragma once
-
 #ifndef _KSN_STUFF_HPP_
 #define _KSN_STUFF_HPP_
 
 
 #include <ksn/ksn.hpp>
-
-#include <locale.h>
-#include <string.h>
 
 #include <chrono>
 #include <type_traits>
@@ -31,10 +26,7 @@ constexpr size_t countof(const T(&)[N]) noexcept
 
 
 template<class ...args_t>
-constexpr void nop(args_t&&...) noexcept
-{
-
-}
+constexpr void nop(args_t&&...) noexcept {}
 
 
 
@@ -108,13 +100,6 @@ struct malloc_guard
 
 
 
-//Tests if there is any value in memory other than the one passed into the function
-//const void* memnotchr(const void* block, uint8_t value, size_t length);
-
-
-
-
-
 void dynamic_assert(int nonzero, const char* expr, const char* msg, int line, const char* file, ...);
 #define ksn_dynamic_assert(true_expr, msg, ...) ksn::dynamic_assert(!!(true_expr), #true_expr, msg, __LINE__, __FILE__, __VA_ARGS__);
 
@@ -122,6 +107,46 @@ void dynamic_assert(int nonzero, const char* expr, const char* msg, int line, co
 
 
 void memset_parallel(void* void_dst, uint8_t byte, size_t size);
+
+
+
+
+
+template<class int_t>
+constexpr int_t align_up(const int_t& value, const int_t& alignment) noexcept;
+template<class int_t>
+constexpr int_t align_down(const int_t& value, const int_t& alignment) noexcept;
+
+template<class int_t>
+constexpr int_t align_up_log2(const int_t& value, size_t log2_alignment) noexcept;
+template<class int_t>
+constexpr int_t align_down_log2(const int_t& value, size_t log2_alignment) noexcept;
+
+template<class int_t>
+constexpr int_t alignment_up_miss(const int_t& value, const int_t& alignment) noexcept;
+template<class int_t>
+constexpr int_t alignment_down_miss(const int_t& value, const int_t& alignment) noexcept;
+
+template<class int_t>
+constexpr int_t alignment_up_log2_miss(const int_t& value, const int_t& log2_alignment) noexcept;
+template<class int_t>
+constexpr int_t alignment_down_log2_miss(const int_t& value, const int_t& log2_alignment) noexcept;
+
+template <class int_t>
+constexpr bool alignment_check(const int_t& value, const int_t& alignment) noexcept;
+template <class int_t>
+constexpr bool alignment_check_log2(const int_t& value, const int_t& log2_alignment) noexcept;
+
+
+
+
+
+template<class trivial_t>
+bool file_read_bin_data(FILE* fd, trivial_t& data) noexcept;
+
+template<class trivial_t>
+constexpr void bswap(trivial_t& data) noexcept;
+
 
 
 
@@ -232,6 +257,111 @@ RetType&& convert_or_forward(ArgType&& to_be_converted, const RetType& to_be_ret
 
 
 
+
+
+template<class int_t>
+constexpr int_t align_up(const int_t& value, const int_t& alignment) noexcept
+{
+	return value + alignment_up_miss(value, alignment);
+}
+template<class int_t>
+constexpr int_t align_down(const int_t& value, const int_t& alignment) noexcept
+{
+	return value - (value % alignment);
+}
+
+
+template<class int_t>
+constexpr int_t align_up_log2(const int_t& value, size_t log2_alignment) noexcept
+{
+	//TODO: fix
+	return value + alignment_up_log2_miss(value, log2_alignment);
+}
+template<class int_t>
+constexpr int_t align_down_log2(const int_t& value, size_t log2_alignment) noexcept
+{
+	return value - (value >> log2_alignment);
+}
+
+
+template<class int_t>
+constexpr int_t alignment_up_miss(const int_t& value, const int_t& alignment) noexcept
+{
+	int_t remainder = value % alignment;
+	return remainder == 0 ? 0 : alignment - remainder;
+}
+template<class int_t>
+constexpr int_t alignment_down_miss(const int_t& value, const int_t& alignment) noexcept
+{
+	return value % alignment;
+}
+
+
+template<class int_t>
+constexpr int_t alignment_up_log2_miss(const int_t& value, const int_t& log2_alignment) noexcept
+{
+	int_t remainder = value & ((int_t(1) << log2_alignment) - 1);
+	return remainder == 0 ? 0 : (int_t(1) << log2_alignment) - remainder;
+}
+template<class int_t>
+constexpr int_t alignment_down_log2_miss(const int_t& value, const int_t& log2_alignment) noexcept
+{
+	return value & ((int_t(1) << log2_alignment) - 1);
+}
+
+
+
+
+
+template <class int_t>
+constexpr bool alignment_check(const int_t& value, const int_t& alignment) noexcept
+{
+	return (value % alignment) == 0;
+}
+template <class int_t>
+constexpr bool alignment_check_log2(const int_t& value, const int_t& log2_alignment) noexcept
+{
+	int_t magic_const = (int_t(1) << log2_alignment) - 1;
+	return (value & magic_const) == 0;
+}
+template<class trivial_t>
+bool file_read_bin_data(FILE* fd, trivial_t& data) noexcept
+{
+	if (!fd) return false;
+
+	static constexpr size_t size = sizeof(data);
+	uint8_t* p = (uint8_t*)std::addressof(data);
+
+	if (fread(p, 1, size, fd) != size)
+		return false;
+
+	return true;
+}
+
+#ifdef _KSN_COMPILER_MSVC
+#pragma warning(push)
+#pragma warning(disable : 6294)
+#endif
+
+template<class trivial_t>
+constexpr void bswap(trivial_t& data) noexcept
+{
+	static constexpr size_t size = sizeof(data);
+	uint8_t* p = (uint8_t*)std::addressof(data);
+
+	//Screw you, big endian
+	for (size_t i = 0; i < size / 2; ++i)
+	{
+		std::iter_swap(p + i, p + size - i - 1);
+	}
+}
+
+#ifdef _KSN_COMPILER_MSVC
+#pragma warning(pop)
+#endif
+
 _KSN_END
+
+
 
 #endif //!_KSN_STUFF_HPP_
