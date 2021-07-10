@@ -37,6 +37,14 @@
 
 
 
+//Well, this is not an "external linkage" function in fact, but it behaves
+//as an external linkage variable and can be defined the same way
+//in many files without violating ODR and causing linker errors
+#define KSN_EXTERNAL_LINKAGE_FUNCTION inline
+
+
+
+
 
 //Check for current compiler
 
