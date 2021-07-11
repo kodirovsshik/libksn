@@ -1,19 +1,18 @@
 
+//TODO: conversions
+
 #ifndef _KSN_COLOR_HPP_
 #define _KSN_COLOR_HPP_
 
 
 
 #include <ksn/ksn.hpp>
-#include <ksn/math_constants.hpp>
-#include <ksn/math_constexpr.hpp>
+#include <ksn/color_defs.hpp>
 
 
 
 _KSN_BEGIN
 
-
-struct color_bgra_t;
 
 struct color_bgr_t
 {
@@ -21,16 +20,12 @@ struct color_bgr_t
 	
 
 	constexpr color_bgr_t() noexcept;
-	constexpr color_bgr_t(color_bgra_t rgba) noexcept;
 	constexpr color_bgr_t(uint8_t r, uint8_t g, uint8_t b) noexcept;
 	constexpr color_bgr_t(uint32_t hex) noexcept;
+	constexpr color_bgr_t(detail::_color_generic_value) noexcept;
 
 	constexpr color_bgr_t& operator=(const color_bgr_t&) noexcept = default;
 	constexpr color_bgr_t& operator=(color_bgr_t&&) noexcept = default;
-
-	constexpr color_bgr_t& operator=(uint32_t hex) noexcept;
-
-	constexpr explicit operator uint32_t() const noexcept;
 
 	constexpr uint32_t rgb() const noexcept;
 	constexpr uint32_t bgr() const noexcept;
@@ -39,8 +34,6 @@ struct color_bgr_t
 	constexpr color_bgr_t(const color_bgr_t&) noexcept = default;
 	constexpr color_bgr_t(color_bgr_t&&) noexcept = default;
 };
-
-
 
 
 
@@ -60,16 +53,13 @@ struct color_bgra_t
 	constexpr color_bgra_t(uint8_t r, uint8_t g, uint8_t b, uint8_t a) noexcept;
 	constexpr color_bgra_t(uint32_t hex) noexcept;
 	constexpr color_bgra_t(uint32_t value, int unused) noexcept;
-	constexpr color_bgra_t(color_bgr_t rgb) noexcept;
+	constexpr color_bgra_t(detail::_color_generic_value) noexcept;
 
 	constexpr color_bgra_t(const color_bgra_t&) noexcept = default;
 	constexpr color_bgra_t(color_bgra_t&&) noexcept = default;
 
 	constexpr color_bgra_t& operator=(const color_bgra_t&) noexcept = default;
 	constexpr color_bgra_t& operator=(color_bgra_t&&) noexcept = default;
-	constexpr color_bgra_t& operator=(uint32_t hex) noexcept;
-
-	constexpr explicit operator uint32_t() const noexcept;
 
 	constexpr uint32_t rgba() const noexcept;
 	constexpr uint32_t bgra() const noexcept;
@@ -77,9 +67,59 @@ struct color_bgra_t
 
 
 
+struct color_rgb_t
+{
+	uint8_t r, g, b;
 
 
-struct color_hsv_t
+	constexpr color_rgb_t() noexcept;
+	constexpr color_rgb_t(uint8_t r, uint8_t g, uint8_t b) noexcept;
+	constexpr color_rgb_t(uint32_t hex) noexcept;
+	constexpr color_rgb_t(detail::_color_generic_value) noexcept;
+
+	constexpr color_rgb_t(const color_rgb_t&) noexcept = default;
+	constexpr color_rgb_t(color_rgb_t&&) noexcept = default;
+
+	constexpr color_rgb_t& operator=(const color_rgb_t&) noexcept = default;
+	constexpr color_rgb_t& operator=(color_rgb_t&&) noexcept = default;
+
+	constexpr uint32_t rgb() const noexcept;
+	constexpr uint32_t bgr() const noexcept;
+};
+
+
+
+struct color_rgba_t
+{
+	union
+	{
+		struct
+		{
+			uint8_t r, g, b, a;
+		};
+		uint32_t color;
+	};
+
+	constexpr color_rgba_t() noexcept;
+	constexpr color_rgba_t(uint8_t r, uint8_t g, uint8_t b) noexcept;
+	constexpr color_rgba_t(uint8_t r, uint8_t g, uint8_t b, uint8_t a) noexcept;
+	constexpr color_rgba_t(uint32_t hex) noexcept;
+	constexpr color_rgba_t(uint32_t value, int unused) noexcept;
+	constexpr color_rgba_t(detail::_color_generic_value) noexcept;
+
+	constexpr color_rgba_t(const color_rgba_t&) noexcept = default;
+	constexpr color_rgba_t(color_rgba_t&&) noexcept = default;
+
+	constexpr color_rgba_t& operator=(const color_rgba_t&) noexcept = default;
+	constexpr color_rgba_t& operator=(color_rgba_t&&) noexcept = default;
+
+	constexpr uint32_t rgba() const noexcept;
+	constexpr uint32_t bgra() const noexcept;
+};
+
+
+
+struct color_hsva_t
 {
 	//uint16_t hue : 10; //0 - 359
 	//uint8_t saturation : 7; //0-100
@@ -88,14 +128,15 @@ struct color_hsv_t
 
 	//What was the point of introducing a bit fields in the language if they are not packed
 
-
 	uint32_t m_data;
+
 
 
 	constexpr int16_t hue() const noexcept;
 	constexpr uint8_t saturation() const noexcept;
 	constexpr uint8_t value() const noexcept;
 	constexpr uint8_t alpha() const noexcept;
+
 	constexpr void hue(uint16_t hue) noexcept;
 	constexpr void saturation(uint8_t saturation) noexcept;
 	constexpr void value(uint8_t value) noexcept;
@@ -103,22 +144,14 @@ struct color_hsv_t
 
 
 
-	constexpr color_hsv_t() noexcept;
-	constexpr color_hsv_t(color_bgra_t rgb) noexcept;
-	constexpr color_hsv_t(uint16_t hue, uint8_t saturation, uint8_t value) noexcept;
-	constexpr color_hsv_t(uint16_t hue, uint8_t saturation, uint8_t value, uint8_t alpha) noexcept;
+	constexpr color_hsva_t() noexcept;
+	constexpr color_hsva_t(uint16_t hue, uint8_t saturation, uint8_t value) noexcept;
+	constexpr color_hsva_t(uint16_t hue, uint8_t saturation, uint8_t value, uint8_t alpha) noexcept;
+	constexpr color_hsva_t(detail::_color_generic_value) noexcept;
 
-	constexpr color_hsv_t(const color_hsv_t&) noexcept = default;
-	constexpr color_hsv_t(color_hsv_t&&) noexcept = default;
+	constexpr color_hsva_t(const color_hsva_t&) noexcept = default;
+	constexpr color_hsva_t(color_hsva_t&&) noexcept = default;
 
-	constexpr color_bgra_t to_rgb() const noexcept;
-	constexpr operator color_bgra_t() const noexcept;
-
-
-private:
-
-	//cos(x)+0.5 but bounded by y º [0; 1]
-	constexpr static float limited_cos(float hue) noexcept;
 };
 
 
@@ -151,10 +184,6 @@ constexpr color_bgr_t::color_bgr_t() noexcept
 	: b(0), g(0), r(0)
 {
 }
-constexpr color_bgr_t::color_bgr_t(color_bgra_t rgba) noexcept
-	: b(rgba.b), g(rgba.g), r(rgba.r)
-{
-}
 constexpr color_bgr_t::color_bgr_t(uint8_t r, uint8_t g, uint8_t b) noexcept
 	: b(b), g(g), r(r)
 {
@@ -164,15 +193,9 @@ constexpr color_bgr_t::color_bgr_t(uint32_t hex) noexcept
 {
 }
 
-constexpr color_bgr_t& color_bgr_t::operator=(uint32_t hex) noexcept
+constexpr color_bgr_t::color_bgr_t(detail::_color_generic_value x) noexcept
+	: b(x.b), g(x.g), r(x.r)
 {
-	this->color_bgr_t::color_bgr_t(hex);
-	return *this;
-}
-
-constexpr color_bgr_t::operator uint32_t() const noexcept
-{
-	return this->bgr();
 }
 
 constexpr uint32_t color_bgr_t::rgb() const noexcept
@@ -201,27 +224,18 @@ constexpr color_bgra_t::color_bgra_t(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 }
 constexpr color_bgra_t::color_bgra_t(uint32_t hex) noexcept
-	: color(hex | 0xFF000000)
+	: color(hex)
 {
+	this->a = 0xFF;
 }
-constexpr color_bgra_t::color_bgra_t(uint32_t value, int unused) noexcept
+constexpr color_bgra_t::color_bgra_t(uint32_t value, int) noexcept
 	: color(value)
 {
 }
-constexpr color_bgra_t::color_bgra_t(color_bgr_t rgb) noexcept
-	: r(rgb.r), g(rgb.g), b(rgb.b), a(0xFF)
-{
-}
 
-constexpr color_bgra_t& color_bgra_t::operator=(uint32_t hex) noexcept
+constexpr color_bgra_t::color_bgra_t(detail::_color_generic_value x) noexcept
+	: color(x.m_value)
 {
-	this->color = hex | 0xFF000000;
-	return *this;
-}
-
-constexpr color_bgra_t::operator uint32_t() const noexcept
-{
-	return this->color;
 }
 
 constexpr uint32_t color_bgra_t::rgba() const noexcept
@@ -237,42 +251,117 @@ constexpr uint32_t color_bgra_t::bgra() const noexcept
 
 
 
-constexpr int16_t color_hsv_t::hue() const noexcept
+constexpr color_rgb_t::color_rgb_t() noexcept
+	: r(0), g(0), b(0)
+{
+}
+constexpr color_rgb_t::color_rgb_t(uint8_t r, uint8_t g, uint8_t b) noexcept
+	: r(r), g(g), b(b)
+{
+}
+constexpr color_rgb_t::color_rgb_t(uint32_t hex) noexcept
+	: r(uint8_t(hex >> 16)), g(uint8_t(hex >> 8)), b((uint8_t)hex)
+{
+}
+constexpr color_rgb_t::color_rgb_t(detail::_color_generic_value x) noexcept
+	: r(x.r), g(x.g), b(x.b)
+{
+}
+
+constexpr uint32_t color_rgb_t::rgb() const noexcept
+{
+	return
+		((uint32_t)this->b) |
+		((uint32_t)this->g >> 8) |
+		((uint32_t)this->r >> 16);
+}
+constexpr uint32_t color_rgb_t::bgr() const noexcept
+{
+	return
+		((uint32_t)this->b >> 16) |
+		((uint32_t)this->g >> 8) |
+		((uint32_t)this->r);
+}
+
+
+
+
+
+constexpr color_rgba_t::color_rgba_t() noexcept
+	: color(0)
+{
+}
+constexpr color_rgba_t::color_rgba_t(uint8_t r, uint8_t g, uint8_t b) noexcept
+	: r(r), g(g), b(b), a(0xFF)
+{
+}
+constexpr color_rgba_t::color_rgba_t(uint8_t r, uint8_t g, uint8_t b, uint8_t a) noexcept
+	: r(r), g(g), b(b), a(a)
+{
+}
+constexpr color_rgba_t::color_rgba_t(uint32_t hex) noexcept
+	: color(hex)
+{
+}
+constexpr color_rgba_t::color_rgba_t(uint32_t value, int unused) noexcept
+	: b((uint8_t)value), g(uint8_t(value >> 8)), r(uint8_t(value >> 16)), a(value >> 24)
+{
+}
+constexpr color_rgba_t::color_rgba_t(detail::_color_generic_value x) noexcept
+	: b((uint8_t)x.m_value), g(uint8_t(x.m_value >> 8)), r(uint8_t(x.m_value >> 16)), a(x.m_value >> 24)
+{
+}
+
+constexpr uint32_t color_rgba_t::rgba() const noexcept
+{
+	return this->color;
+}
+constexpr uint32_t color_rgba_t::bgra() const noexcept
+{
+	return detail::_color_generic_value::from_rgba(this->color).m_value;
+}
+
+
+
+
+
+constexpr int16_t color_hsva_t::hue() const noexcept
 {
 	return (int16_t)(m_data & 1023);
 }
-constexpr uint8_t color_hsv_t::saturation() const noexcept
+constexpr uint8_t color_hsva_t::saturation() const noexcept
 {
 	return (uint8_t)((m_data & 131071) >> 10);
 }
-constexpr uint8_t color_hsv_t::value() const noexcept
+constexpr uint8_t color_hsva_t::value() const noexcept
 {
 	return (uint8_t)((m_data & 16777215) >> 17);
 }
-constexpr uint8_t color_hsv_t::alpha() const noexcept
+constexpr uint8_t color_hsva_t::alpha() const noexcept
 {
 	return (uint8_t)(m_data >> 24);
 }
-constexpr void color_hsv_t::hue(uint16_t hue) noexcept
+
+constexpr void color_hsva_t::hue(uint16_t hue) noexcept
 {
 	this->m_data = (this->m_data & 4294966272) | (hue & 1023);
 }
-constexpr void color_hsv_t::saturation(uint8_t saturation) noexcept
+constexpr void color_hsva_t::saturation(uint8_t saturation) noexcept
 {
 	this->m_data = (this->m_data & (uint32_t)4294837247) | (uint32_t(saturation & 127) << 10);
 }
-constexpr void color_hsv_t::value(uint8_t value) noexcept
+constexpr void color_hsva_t::value(uint8_t value) noexcept
 {
 	this->m_data = (this->m_data & (uint32_t)4278321151) | (uint32_t(value & 127) << 17);
 }
-constexpr void color_hsv_t::alpha(uint8_t alpha) noexcept
+constexpr void color_hsva_t::alpha(uint8_t alpha) noexcept
 {
 	this->m_data = (this->m_data & (uint32_t)16777215) | (uint32_t(alpha) << 24);
 }
 
 
 
-constexpr color_hsv_t::color_hsv_t() noexcept
+constexpr color_hsva_t::color_hsva_t() noexcept
 {
 	sizeof(*this);
 	this->hue(0);
@@ -280,11 +369,19 @@ constexpr color_hsv_t::color_hsv_t() noexcept
 	this->value(0);
 	this->alpha(255);
 }
-constexpr color_hsv_t::color_hsv_t(color_bgra_t rgb) noexcept
+constexpr color_hsva_t::color_hsva_t(uint16_t hue, uint8_t saturation, uint8_t value) noexcept
 {
-	uint8_t max_color = rgb.r;
-	if (rgb.g > max_color) max_color = rgb.g;
-	if (rgb.b > max_color) max_color = rgb.b;
+	this->m_data = (hue & 1023) | ((saturation & 127) << 10) | ((value & 127) << 17) | (-16777216);
+}
+constexpr color_hsva_t::color_hsva_t(uint16_t hue, uint8_t saturation, uint8_t value, uint8_t alpha) noexcept
+{
+	this->m_data = (hue & 1023) | ((saturation & 127) << 10) | ((value & 127) << 17) | ((alpha) << 24);
+}
+constexpr color_hsva_t::color_hsva_t(detail::_color_generic_value x) noexcept
+{
+	uint8_t max_color = x.r;
+	if (x.g > max_color) max_color = x.g;
+	if (x.b > max_color) max_color = x.b;
 	this->value(max_color * 100 / 255);
 
 	max_color += max_color == 1;
@@ -292,68 +389,22 @@ constexpr color_hsv_t::color_hsv_t(color_bgra_t rgb) noexcept
 	uint8_t max_diff = 0;
 	//calculates the difference and updates max_diff if necessary
 #define check_diff(a, b) { uint8_t temp = a >= b ? a - b : b - a; if (temp > max_diff) max_diff = temp; } ((void)0)
-	check_diff(rgb.r, rgb.b);
-	check_diff(rgb.r, rgb.g);
-	check_diff(rgb.b, rgb.g);
+	check_diff(x.r, x.b);
+	check_diff(x.r, x.g);
+	check_diff(x.b, x.g);
 #undef check_diff
 	this->saturation(max_diff * 100 / max_color);
 
 
-	uint16_t sum = rgb.r + rgb.b + rgb.g;
+	uint16_t sum = x.r + x.b + x.g;
 	sum += sum == 0;
-	float hx = (rgb.r - (rgb.g + rgb.b) / 2.0f) / sum;
-	float hy = (rgb.g - rgb.b) * ksn::sin(2 * KSN_PIf / 3) / sum;
+	float hx = (x.r - (x.g + x.b) / 2.0f) / sum;
+	float hy = (x.g - x.b) * ksn::sin(2 * KSN_PIf / 3) / sum;
 	this->hue(int16_t(180 / KSN_PIf * ksn::fmod(ksn::atan2(hy, hx, 0.01f), 2 * KSN_PIf)));
 
-	this->alpha(rgb.a);
-}
-constexpr color_hsv_t::color_hsv_t(uint16_t hue, uint8_t saturation, uint8_t value) noexcept
-{
-	this->m_data = (hue & 1023) | ((saturation & 127) << 10) | ((value & 127) << 17) | (-16777216);
-}
-constexpr color_hsv_t::color_hsv_t(uint16_t hue, uint8_t saturation, uint8_t value, uint8_t alpha) noexcept
-{
-	this->m_data = (hue & 1023) | ((saturation & 127) << 10) | ((value & 127) << 17) | ((alpha) << 24);
+	this->alpha(x.a);
 }
 
-constexpr color_bgra_t color_hsv_t::to_rgb() const noexcept
-{
-	color_bgra_t result;
-
-	float max_color = 2.5500001f * this->value();
-	float hue_rad = this->hue() * KSN_PIf / 180.0f;
-	constexpr float pi3 = KSN_PIf / 3;
-
-	result.r = uint8_t(max_color * (this->saturation() / 100.f * (limited_cos(hue_rad + -0 * pi3) - 1) + 1));
-	result.g = uint8_t(max_color * (this->saturation() / 100.f * (limited_cos(hue_rad - 2 * pi3) - 1) + 1));
-	result.b = uint8_t(max_color * (this->saturation() / 100.f * (limited_cos(hue_rad + 2 * pi3) - 1) + 1));
-	result.a = this->alpha();
-	return result;
-}
-constexpr color_hsv_t::operator color_bgra_t() const noexcept
-{
-	return this->to_rgb();
-}
-
-//cos(x)+0.5 but bounded by y º [0; 1]
-constexpr float color_hsv_t::limited_cos(float hue) noexcept
-{
-	constexpr float pi3 = KSN_PIf / 3;
-	constexpr float _2pi = KSN_PIf * 2;
-
-	//hue = fmodf(fabsf(hue), 2 * KSN_PIf);
-	if (hue < 0) hue = -hue;
-	if (hue > _2pi)
-	{
-		size_t int_part = size_t(hue / _2pi);
-		hue -= _2pi * int_part;
-	}
-	if (hue <= pi3) return 1;
-	if (hue < 2 * pi3) return (pi3 - hue) / pi3 + 1;
-	if (hue <= 4 * pi3) return 0;
-	if (hue < 5 * pi3) return (hue - 4 * pi3) / pi3 + 1;
-	return 1;
-};
 
 
 

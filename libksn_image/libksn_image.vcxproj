@@ -160,10 +160,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\ksn\include\ksn\color.cpp" />
     <ClCompile Include="libksn_image_impl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ksn\include\ksn\color.hpp" />
+    <ClInclude Include="..\ksn\include\ksn\color_defs.hpp" />
     <ClInclude Include="..\ksn\include\ksn\image.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

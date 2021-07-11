@@ -13,24 +13,24 @@
 _KSN_BEGIN
 
 
-class image_t
+class image_bgra_t
 {
 
 public:
 
-	std::vector<ksn::color_rgba_t> m_data;
+	std::vector<ksn::color_bgra_t> m_data;
 	uint32_t width, height;
 
 
 
-	image_t() noexcept;
-	image_t(const image_t&) noexcept = default;
-	image_t(image_t&&) noexcept;
+	image_bgra_t() noexcept;
+	image_bgra_t(const image_bgra_t&) noexcept = default;
+	image_bgra_t(image_bgra_t&&) noexcept;
 
-	~image_t() noexcept = default;
+	~image_bgra_t() noexcept = default;
 
-	image_t& operator=(const image_t&) noexcept = default;
-	image_t& operator=(image_t&&) noexcept;
+	image_bgra_t& operator=(const image_bgra_t&) noexcept = default;
+	image_bgra_t& operator=(image_bgra_t&&) noexcept;
 	
 
 
@@ -52,7 +52,7 @@ public:
 		//Integrity check fail or necessary data is missing
 		constexpr static load_result_t file_corrupted = 4;
 
-		//File contains something format decoder is not [yet] implemented for
+		//File contains something format decoder is aware of, but not [possibly yet] implemented for
 		constexpr static load_result_t unimplemented = 5;
 
 
@@ -64,7 +64,7 @@ public:
 
 	void clear() noexcept;
 
-	void swap(image_t& other) noexcept;
+	void swap(image_bgra_t& other) noexcept;
 };
 
 
