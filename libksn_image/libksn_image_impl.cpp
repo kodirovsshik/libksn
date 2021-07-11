@@ -32,29 +32,29 @@ _KSN_BEGIN
 
 
 
-image_t::image_t() noexcept
+image_bgra_t::image_bgra_t() noexcept
 	: width(0), height(0)
 {
 }
 
-image_t::image_t(image_t&& other) noexcept
+image_bgra_t::image_bgra_t(image_bgra_t&& other) noexcept
 {
 	this->swap(other);
 }
 
-image_t& image_t::operator=(image_t&& rhs) noexcept
+image_bgra_t& image_bgra_t::operator=(image_bgra_t&& rhs) noexcept
 {
 	this->swap(rhs);
 	return *this;
 }
 
-void image_t::clear() noexcept
+void image_bgra_t::clear() noexcept
 {
 	this->width = this->height = 0;
 	this->m_data.clear();
 }
 
-void image_t::swap(image_t& other) noexcept
+void image_bgra_t::swap(image_bgra_t& other) noexcept
 {
 	this->m_data.swap(other.m_data);
 	std::swap(this->width, other.width);
@@ -62,10 +62,10 @@ void image_t::swap(image_t& other) noexcept
 }
 
 
-image_t::load_result_t try_load_png(FILE* fd, image_t* data);
-image_t::load_result_t try_load_bmp(FILE* fd, image_t* data);
+image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* data);
+image_bgra_t::load_result_t try_load_bmp(FILE* fd, image_bgra_t* data);
 
-image_t::load_result_t image_t::load_from_file(const char* fname) noexcept
+image_bgra_t::load_result_t image_bgra_t::load_from_file(const char* fname) noexcept
 {
 	this->clear();
 
@@ -80,7 +80,7 @@ image_t::load_result_t image_t::load_from_file(const char* fname) noexcept
 			~__on_return_t() { fclose(f); }
 		} __on_return_t{ f };
 
-		load_result_t(*load_handlers[])(FILE*, image_t*) =
+		load_result_t(*load_handlers[])(FILE*, image_bgra_t*) =
 		{
 			try_load_png
 		};
@@ -119,7 +119,7 @@ bool check_signature(FILE* f, const char* data, size_t size)
 
 
 
-#define assert_corrupted(expr) if (!(expr)) { return image_t::load_result::file_corrupted; } else ksn::nop()
+#define assert_corrupted(expr) if (!(expr)) { return image_bgra_t::load_result::file_corrupted; } else ksn::nop()
 #define assert_storage(storage, minimum_size) if (storage.size() < minimum_size) { storage.resize(minimum_size); } else ksn::nop()
 #define update_crc_with_var(crc, data) if constexpr (true) { crc = ksn::crc32_update(&(data), sizeof(data), crc); } else ksn::nop()
 #define read_var(fd, var, crc) if constexpr (true) { assert_corrupted(file_read_bin_data(fd, var)); update_crc_with_var(crc, var); bswap(var); } else ksn::nop()
@@ -156,10 +156,10 @@ static thread_local std::vector<uint8_t> png_decompressed_storage;
 
 
 
-image_t::load_result_t try_load_png(FILE* fd, image_t* image)
+image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* image)
 {
 	if (!check_signature(fd, "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A", 8))
-		return image_t::load_result::file_invalid;
+		return image_bgra_t::load_result::file_invalid;
 
 	auto& data = image->m_data;
 
@@ -170,7 +170,7 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 	size_t pic_size;
 	uint8_t channels;
 
-	static color_rgb_t palette[256];
+	static color_bgr_t palette[256];
 	uint8_t palette_size;
 
 	int dtemp;
@@ -235,7 +235,7 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 		read_var(fd, interlace_method, header_crc_expected);
 
 		//It is already kinda painful to implement ones that are currently present
-		if (compression_method || filter_method || interlace_method) return image_t::load_result::unimplemented;
+		if (compression_method || filter_method || interlace_method) return image_bgra_t::load_result::unimplemented;
 
 		uint32_t header_crc;
 		read_var_nocrc(fd, header_crc);
@@ -256,8 +256,8 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 	switch (dtemp)
 	{
 	case Z_OK: break;
-	case Z_MEM_ERROR: return image_t::load_result::out_of_memory;
-	default: return image_t::load_result::internal_error;
+	case Z_MEM_ERROR: return image_bgra_t::load_result::out_of_memory;
+	default: return image_bgra_t::load_result::internal_error;
 	}
 
 	struct _destruct_sentry_t
@@ -533,7 +533,7 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 			case 1: worker(png_recompress_data<1, 1>()); break;
 			case 2: worker(png_recompress_data<1, 2>()); break;
 			case 4: worker(png_recompress_data<1, 4>()); break;
-			default: return image_t::load_result::internal_error;
+			default: return image_bgra_t::load_result::internal_error;
 			};
 			break;
 
@@ -543,7 +543,7 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 			case 1: worker(png_recompress_data<3, 1>()); break;
 			case 2: worker(png_recompress_data<3, 2>()); break;
 			case 4: worker(png_recompress_data<3, 4>()); break;
-			default: return image_t::load_result::internal_error;
+			default: return image_bgra_t::load_result::internal_error;
 			};
 			break;
 
@@ -553,7 +553,7 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 			case 1: worker(png_recompress_data<2, 1>()); break;
 			case 2: worker(png_recompress_data<2, 2>()); break;
 			case 4: worker(png_recompress_data<2, 4>()); break;
-			default: return image_t::load_result::internal_error;
+			default: return image_bgra_t::load_result::internal_error;
 			};
 			break;
 
@@ -563,12 +563,12 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 			case 1: worker(png_recompress_data<4, 1>()); break;
 			case 2: worker(png_recompress_data<4, 2>()); break;
 			case 4: worker(png_recompress_data<4, 4>()); break;
-			default: return image_t::load_result::internal_error;
+			default: return image_bgra_t::load_result::internal_error;
 			};
 			break;
 
 		default:
-			return image_t::load_result::internal_error;
+			return image_bgra_t::load_result::internal_error;
 		}
 
 		std::swap(png_recompressed_storage, png_decompressed_storage);
@@ -618,9 +618,9 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 		{
 			uint8_t value = uint8_t(*pin++ / max * 255 + 0.5f);
 			if constexpr (decltype(with_alpha)::value)
-				*pout++ = color_rgba_t(value, value, value, uint8_t(*pin++ / max * 255 + 0.5f));
+				*pout++ = color_bgra_t(value, value, value, uint8_t(*pin++ / max * 255 + 0.5f));
 			else
-				*pout++ = color_rgba_t(value, value, value, 255);
+				*pout++ = color_bgra_t(value, value, value, 255);
 		}
 	};
 
@@ -634,9 +634,9 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 			uint8_t valueG = uint8_t(*pin++ / max * 255 + 0.5f);
 			uint8_t valueB = uint8_t(*pin++ / max * 255 + 0.5f);
 			if constexpr (decltype(with_alpha)::value)
-				*pout++ = color_rgba_t(valueR, valueG, valueB, uint8_t(*pin++ / max * 255 + 0.5f));
+				*pout++ = color_bgra_t(valueR, valueG, valueB, uint8_t(*pin++ / max * 255 + 0.5f));
 			else
-				*pout++ = color_rgba_t(valueR, valueG, valueB, 255);
+				*pout++ = color_bgra_t(valueR, valueG, valueB, 255);
 		}
 	};
 
@@ -685,7 +685,7 @@ image_t::load_result_t try_load_png(FILE* fd, image_t* image)
 		break;
 	}
 
-	return image_t::load_result::ok;
+	return image_bgra_t::load_result::ok;
 }
 
 
