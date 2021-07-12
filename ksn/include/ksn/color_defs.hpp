@@ -7,6 +7,7 @@
 #include <ksn/ksn.hpp>
 #include <ksn/math_constants.hpp>
 #include <ksn/math_constexpr.hpp>
+#include <ksn/metapr.hpp>
 
 
 
@@ -22,6 +23,10 @@ struct color_bgra_t;
 struct color_hsv_t;
 struct color_hsv3_t;
 struct color_hsva_t;
+
+
+template<class color_t>
+concept color = is_any_of_v<color_t, color_rgb_t, color_rgba_t, color_bgr_t, color_bgra_t, color_hsv_t, color_hsv3_t, color_hsva_t>;
 
 
 
@@ -84,6 +89,16 @@ public:
 	//Memory layout: H[2], S, V, A
 	//5 bytes in total
 	static constexpr _color_generic_value from_hsva(const uint8_t* data) noexcept;
+	
+	
+	
+	static constexpr _color_generic_value from_color(color_bgr_t) noexcept;
+	static constexpr _color_generic_value from_color(color_bgra_t) noexcept;
+	static constexpr _color_generic_value from_color(color_rgb_t) noexcept;
+	static constexpr _color_generic_value from_color(color_rgba_t) noexcept;
+	static constexpr _color_generic_value from_color(color_hsv_t) noexcept;
+	static constexpr _color_generic_value from_color(color_hsv3_t) noexcept;
+	static constexpr _color_generic_value from_color(color_hsva_t) noexcept;
 
 
 
