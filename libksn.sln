@@ -13,8 +13,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_debug_utils", "ksn_d
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "temp", "temp\temp.vcxproj", "{414455DB-EB79-48E6-921E-A38211C76730}"
 	ProjectSection(ProjectDependencies) = postProject
-		{82EB5CB3-8EA4-4D02-84C7-0A9864E68B14} = {82EB5CB3-8EA4-4D02-84C7-0A9864E68B14}
-		{BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9} = {BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9}
+		{96C8428A-562A-4B64-94E8-8F5D3CE70320} = {96C8428A-562A-4B64-94E8-8F5D3CE70320}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_opencl_stuff", "libksn_opencl_stuff\libksn_opencl_stuff.vcxproj", "{7A33F167-97A1-41F1-ACAB-47E3603ECA5B}"
@@ -48,6 +47,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_resource_manager", "
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_image", "libksn_image\libksn_image.vcxproj", "{82EB5CB3-8EA4-4D02-84C7-0A9864E68B14}"
+	ProjectSection(ProjectDependencies) = postProject
+		{BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9} = {BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
