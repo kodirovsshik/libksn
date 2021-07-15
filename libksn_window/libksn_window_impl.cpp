@@ -45,11 +45,11 @@ public:
 			return 0;
 		}
 
-		if (msg == WM_GETMINMAXINFO)
+		else if (msg == WM_GETMINMAXINFO)
 		{
-			MINMAXINFO* info = reinterpret_cast<MINMAXINFO*>(l);
+			MINMAXINFO* info = (MINMAXINFO*)l;
 			info->ptMaxTrackSize.x = 65535;
-			info->ptMaxTrackSize.x = 65535;
+			info->ptMaxTrackSize.y = 65535;
 			return 0;
 		}
 
@@ -86,8 +86,9 @@ public:
 		}
 
 
-
-		if (msg == WM_CLOSE)
+		switch (msg)
+		{
+		case WM_CLOSE:
 		{
 			event_t ev;
 			ev.type = event_type_t::close;
@@ -95,8 +96,9 @@ public:
 			q.push_back(ev);
 			return 0;
 		}
+		break;
 
-		else if (msg == WM_SIZE)
+		case WM_SIZE:
 		{
 			if (w == SIZE_MAXIMIZED)
 			{
@@ -110,60 +112,78 @@ public:
 				ev.type = event_type_t::minimized;
 				q.push_back(ev);
 			}
-			else if (w == SIZE_RESTORED && win_impl.m_is_resizemove && win_impl.m_is_repetitive_resize_enabled)
+			else if (w == SIZE_RESTORED && win_impl.m_is_resizemove)
 			{
-				RECT client_area;
-				GetClientRect(wnd, &client_area);
+				WINDOWINFO info;
+				info.cbSize = sizeof(info);
+				GetWindowInfo(win_impl.m_window, &info);
+				ClipCursor(&info.rcClient);
 
-				uint16_t width = uint16_t(client_area.right - client_area.left);
-				uint16_t height = uint16_t(client_area.bottom - client_area.top);
+				RECT client_area = info.rcClient;
 
-				auto new_size = std::pair<uint16_t, uint16_t>(width, height);
+				if (win_impl.m_is_clipping)
+					ClipCursor(&client_area);
 
-				if (new_size != win_impl.m_resizemove_last_size)
+				if (win_impl.m_is_repetitive_resize_enabled)
 				{
-					event_t ev;
-					ev.type = event_type_t::resize;
+					uint16_t width = uint16_t(client_area.right - client_area.left);
+					uint16_t height = uint16_t(client_area.bottom - client_area.top);
 
-					ev.window_resize_data.width_new = width;
-					ev.window_resize_data.height_new = height;
+					auto new_size = std::pair<uint16_t, uint16_t>(width, height);
 
-					ev.window_resize_data.width_old = win_impl.m_resizemove_last_size.first;
-					ev.window_resize_data.height_old = win_impl.m_resizemove_last_size.second;
+					if (new_size != win_impl.m_resizemove_last_size)
+					{
+						event_t ev;
+						ev.type = event_type_t::resize;
 
-					q.push_back(ev);
+						ev.window_resize_data.width_new = width;
+						ev.window_resize_data.height_new = height;
 
-					win_impl.m_resizemove_last_size = new_size;
+						ev.window_resize_data.width_old = win_impl.m_resizemove_last_size.first;
+						ev.window_resize_data.height_old = win_impl.m_resizemove_last_size.second;
+
+						q.push_back(ev);
+
+						win_impl.m_resizemove_last_size = new_size;
+					}
 				}
 			}
 		}
+		break;
 
-		else if (msg == WM_MOVE)
+		case WM_MOVE:
 		{
-			if (win_impl.m_is_resizemove && win_impl.m_is_repetitive_move_enabled)
+			if (win_impl.m_is_resizemove)
 			{
 				RECT client_area;
 				GetClientRect(win_impl.m_window, &client_area);
 
-				auto new_pos = std::pair<int32_t, int32_t>((int32_t)client_area.left, (int32_t)client_area.top);
-
-				if (new_pos != win_impl.m_resizemove_last_pos)
+				if (win_impl.m_is_repetitive_move_enabled)
 				{
-					event_t ev;
-					ev.type = event_type_t::move;
+					auto new_pos = std::pair<int32_t, int32_t>((int32_t)client_area.left, (int32_t)client_area.top);
 
-					ev.window_move_data.x_new = new_pos.first;
-					ev.window_move_data.y_new = new_pos.second;
-					ev.window_move_data.x_old = win_impl.m_resizemove_last_pos.first;
-					ev.window_move_data.y_old = win_impl.m_resizemove_last_pos.second;
+					if (new_pos != win_impl.m_resizemove_last_pos)
+					{
+						event_t ev;
+						ev.type = event_type_t::move;
 
-					q.push_back(ev);
+						ev.window_move_data.x_new = new_pos.first;
+						ev.window_move_data.y_new = new_pos.second;
+						ev.window_move_data.x_old = win_impl.m_resizemove_last_pos.first;
+						ev.window_move_data.y_old = win_impl.m_resizemove_last_pos.second;
+
+						q.push_back(ev);
+					}
 				}
+
 			}
 		}
+		break;
 
-		else if (msg == WM_ENTERSIZEMOVE)
+		case WM_ENTERSIZEMOVE:
 		{
+			ClipCursor(NULL);
+
 			RECT client_area;
 			GetClientRect(win_impl.m_window, &client_area);
 
@@ -175,11 +195,17 @@ public:
 
 			win_impl.m_is_resizemove = true;
 		}
+		break;
 
-		else if (msg == WM_EXITSIZEMOVE)
+		case WM_EXITSIZEMOVE:
 		{
-			RECT client_area;
-			GetClientRect(win_impl.m_window, &client_area);
+			WINDOWINFO info;
+			info.cbSize = sizeof(info);
+			GetWindowInfo(win_impl.m_window, &info);
+			RECT client_area = info.rcClient;;
+			
+			if (win_impl.m_is_clipping)
+				ClipCursor(&client_area);
 
 			uint16_t width = uint16_t(client_area.right - client_area.left);
 			uint16_t height = uint16_t(client_area.bottom - client_area.top);
@@ -216,16 +242,28 @@ public:
 				q.push_back(ev);
 			}
 		}
+		break;
 
-		else if (msg == WM_SETFOCUS)
+		case WM_SETFOCUS:
 		{
+			if (win_impl.m_is_clipping)
+			{
+				WINDOWINFO info;
+				info.cbSize = sizeof(info);
+				GetWindowInfo(win_impl.m_window, &info);
+				ClipCursor(&info.rcClient);
+			}
+
 			event_t ev;
 			ev.type = event_type_t::focus_gained;
 			q.push_back(ev);
 		}
+		break;
 
-		else if (msg == WM_KILLFOCUS)
+		case WM_KILLFOCUS:
 		{
+			ClipCursor(NULL);
+
 			if (!win_impl.m_is_closing)
 			{
 				event_t ev;
@@ -233,8 +271,9 @@ public:
 				q.push_back(ev);
 			}
 		}
+		break;
 
-		else if (msg == WM_CHAR)
+		case WM_CHAR:
 		{
 			if (win_impl.m_is_repetitive_keyboard_enabled || (l & 0xFFFF) == 0)
 			{
@@ -267,8 +306,9 @@ public:
 				}
 			}
 		}
+		break;
 
-		else if (msg == WM_UNICHAR)
+		case WM_UNICHAR:
 		{
 			if (w == UNICODE_NOCHAR) return FALSE; //As microsoft intended
 
@@ -279,8 +319,12 @@ public:
 				ev.character = (uint32_t)w;
 			}
 		}
+		break;
 
-		else if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN || msg == WM_KEYUP || msg == WM_SYSKEYUP)
+		case WM_KEYDOWN: 
+		case WM_SYSKEYDOWN:
+		case WM_KEYUP:
+		case WM_SYSKEYUP:
 		{
 			bool repeated = HIWORD(l) & KF_REPEAT;
 			if (win_impl.m_is_repetitive_keyboard_enabled || !repeated)
@@ -288,7 +332,7 @@ public:
 				event_t ev;
 				if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
 				{
-					if (repeated) 
+					if (repeated)
 						ev.type = event_type_t::keyboard_hold;
 					else
 						ev.type = event_type_t::keyboard_press;
@@ -308,40 +352,55 @@ public:
 				q.push_back(ev);
 			}
 		}
+		break;
 
-		else if (msg == WM_MOUSEWHEEL) push_mouse_scroll_event(true)
+		case WM_MOUSEWHEEL:
+			push_mouse_scroll_event(true);
+		break;
 
-		else if (msg == WM_MOUSEHWHEEL) push_mouse_scroll_event(false)
+		case WM_MOUSEHWHEEL:
+			push_mouse_scroll_event(false);
+		break;
 
-		else if (msg == WM_LBUTTONDOWN) push_mouse_event(left, true)
+		case WM_LBUTTONDOWN:
+			push_mouse_event(left, true);
+		break;
 
-		else if (msg == WM_LBUTTONUP) push_mouse_event(left, false)
+		case WM_LBUTTONUP:
+			push_mouse_event(left, false);
+		break;
 
-		else if (msg == WM_RBUTTONDOWN) push_mouse_event(right, true)
+		case WM_RBUTTONDOWN:
+			push_mouse_event(right, true);
+		break;
 
-		else if (msg == WM_RBUTTONUP) push_mouse_event(right, false)
+		case WM_RBUTTONUP:
+			push_mouse_event(right, false);
+		break;
 
-		else if (msg == WM_MBUTTONDOWN) push_mouse_event(middle, true)
+		case WM_MBUTTONDOWN:
+			push_mouse_event(middle, true);
+		break;
 
-		else if (msg == WM_MBUTTONUP) push_mouse_event(middle, false)
+		case WM_MBUTTONUP:
+			push_mouse_event(middle, false);
+		break;
 
-		else if (msg == WM_XBUTTONUP)
-		{
+		case WM_XBUTTONUP:
 			if (HIWORD(w) == XBUTTON1)
 				push_mouse_event(extra1, true)
 			else
 				push_mouse_event(extra2, true);
-		}
+		break;
 
-		else if (msg == WM_XBUTTONDOWN)
-		{
+		case WM_XBUTTONDOWN:
 			if (HIWORD(w) == XBUTTON1)
 				push_mouse_event(extra1, false)
 			else
 				push_mouse_event(extra2, false);
-		}
+		break;
 
-		else if (msg == WM_MOUSELEAVE)
+		case WM_MOUSELEAVE:
 		{
 			if (win_impl.m_mouse_inside)
 			{
@@ -353,11 +412,12 @@ public:
 				q.push_back(ev);
 			}
 		}
+		break;
 
-		else if (msg == WM_MOUSEMOVE)
+		case WM_MOUSEMOVE:
 		{
 			event_t ev;
-			
+
 			if (win_impl.m_mouse_inside == false)
 			{
 				ev.type = event_type_t::mouse_entered;
@@ -379,11 +439,11 @@ public:
 
 			q.push_back(ev);
 		}
+		break;
 
-		else
-		{
-			//_KSN_DEBUG_EXPR(printf("Proc%c handled %04X: %016zX %016zX\n", is_wide ? 'W' : 'A', LOWORD(msg), (size_t)w, (size_t)l));
-		}
+
+		default: break;
+		};
 
 
 		if ((msg == WM_SYSCOMMAND) && (w == SC_KEYMENU))
@@ -428,6 +488,7 @@ public:
 			bool m_check_special_keys_on_keyboard_event : 1;
 			bool m_mouse_inside : 1;
 			bool m_is_closing : 1;
+			bool m_is_clipping : 1;
 		};
 		uint8_t m_bitfields;
 	};
@@ -603,6 +664,7 @@ public:
 		this->m_is_resizemove = false;
 		this->m_check_special_keys_on_keyboard_event = true;
 		this->m_is_closing = false;
+		this->m_is_clipping = false;
 	}
 	~_window_impl() noexcept
 	{
@@ -753,6 +815,8 @@ public:
 		uint16_t window_width, window_height;
 		
 		{
+			//SetWindowPos(this->m_window, NULL, 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE);
+
 			WINDOWINFO result_info;
 			result_info.cbSize = sizeof(result_info);
 			GetWindowInfo(this->m_window, &result_info);
@@ -765,7 +829,7 @@ public:
 		}
 
 		//If the client area size was (for example) 5x5, Windows may create a window that is much larger
-		//If this happens, report size window_open_result
+		//If this happens, report size error
 		if (width != window_width || height != window_height)
 			return window_open_result::window_size_error;
 
@@ -843,8 +907,8 @@ namespace
 			wcA.lpszClassName = "_LIBKSN_windowA";
 			wcW.lpszClassName = L"_LIBKSN_windowW";
 
-			wcA.hCursor = LoadCursorA(nullptr, (LPCSTR)IDC_ARROW);
-			wcW.hCursor = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
+			//wcA.hCursor = LoadCursorA(nullptr, (LPCSTR)IDC_ARROW);
+			//wcW.hCursor = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
 
 			wcA.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procA;
 			wcW.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procW;
@@ -970,26 +1034,43 @@ bool window_t::is_open() const noexcept
 	return this->m_impl->is_open();
 }
 
-uint16_t window_t::get_width() const noexcept
-{
-	WINDOWINFO wi;
-	wi.cbSize = sizeof(wi);
-	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return 0;
-	return uint16_t(wi.rcClient.right - wi.rcClient.left);
-}
-uint16_t window_t::get_height() const noexcept
-{
-	WINDOWINFO wi;
-	wi.cbSize = sizeof(wi);
-	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return 0;
-	return uint16_t(wi.rcClient.bottom - wi.rcClient.top);
-}
-std::pair<uint16_t, uint16_t> window_t::get_size() const noexcept
+std::pair<uint16_t, uint16_t> window_t::get_client_size() const noexcept
 {
 	WINDOWINFO wi;
 	wi.cbSize = sizeof(wi);
 	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return { 0, 0 };
 	return { uint16_t(wi.rcClient.right - wi.rcClient.left), uint16_t(wi.rcClient.bottom - wi.rcClient.top) };
+}
+
+void window_t::set_client_size(uint16_t width, uint16_t height) const noexcept
+{
+	RECT size = { 0, 0, (long)width, (long)height };
+	auto window = this->m_impl->m_window;
+	AdjustWindowRectEx(&size, GetWindowLongA(window, GWL_STYLE), false, 0);
+	SetWindowPos(window, NULL, 0, 0, (uint16_t)(size.right - size.left), (uint16_t)(size.bottom - size.top), SWP_NOMOVE | SWP_NOZORDER);
+}
+
+std::pair<int16_t, int16_t> window_t::get_client_position() const noexcept
+{
+	WINDOWINFO wi;
+	wi.cbSize = sizeof(wi);
+	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return { 0, 0 };
+	return { int16_t(wi.rcClient.left), int16_t(wi.rcClient.top) };
+}
+
+void window_t::set_client_position(int16_t x, int16_t y) const noexcept
+{
+	RECT pos;
+	auto window = this->m_impl->m_window;
+	GetClientRect(window, &pos);
+
+	pos.right += x - pos.left;
+	pos.bottom += y - pos.top;
+	pos.left = x;
+	pos.top = y;
+
+	AdjustWindowRectEx(&pos, GetWindowLongA(window, GWL_STYLE), false, 0);
+	SetWindowPos(window, NULL, pos.left, pos.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
 uint32_t window_t::get_monitor_framerate() const noexcept
@@ -1024,6 +1105,54 @@ void window_t::draw_pixels_bgr_front(const void* data, uint16_t x, uint16_t y, u
 void window_t::draw_pixels_bgra_front(const void* data, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
 {
 	this->m_impl->draw_pixels(data, x, y, width, height, 32);
+}
+
+
+
+void window_t::set_fullscreen_windowed() const noexcept
+{
+	HMONITOR monitor = MonitorFromWindow(this->m_impl->m_window, MONITOR_DEFAULTTONEAREST);
+	if (monitor == nullptr) return;
+
+	auto window = this->m_impl->m_window;
+
+	MONITORINFO info;
+	info.cbSize = sizeof(info);
+	GetMonitorInfoA(monitor, &info);
+	AdjustWindowRectEx(&info.rcMonitor, GetWindowLongA(window, GWL_STYLE), false, 0);
+	SetWindowPos(window, HWND_TOP, info.rcMonitor.left, info.rcMonitor.top, info.rcMonitor.right - info.rcMonitor.left, info.rcMonitor.bottom - info.rcMonitor.top, 0);
+}
+
+void window_t::set_cursor_capture(bool capture) noexcept
+{
+	this->m_impl->m_is_clipping = capture;
+
+	if (!capture)
+		return (void)ClipCursor(NULL);
+	
+	WINDOWINFO info;
+	info.cbSize = sizeof(info);
+	GetWindowInfo(this->m_impl->m_window, &info);
+	ClipCursor(&info.rcClient);
+}
+
+bool window_t::has_focus() const noexcept
+{
+	return this->m_impl->m_window && GetActiveWindow() == this->m_impl->m_window;
+}
+void window_t::request_focus() const noexcept
+{
+	auto win = this->m_impl->m_window;
+	if (!win) return;
+
+	if (IsIconic(win))
+		ShowWindow(win, SW_RESTORE);
+	SetActiveWindow(win);
+}
+
+void window_t::set_cursor_visible(bool visible) const noexcept
+{
+	SetCursor(visible ? LoadCursorA(NULL, (LPCSTR)IDC_ARROW) : NULL);
 }
 
 

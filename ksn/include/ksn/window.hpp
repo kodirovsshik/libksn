@@ -461,9 +461,25 @@ public:
 	//is a no-op if framerate is unlimited (that is, 0)
 	void tick() noexcept;
 
-	uint16_t get_width() const noexcept;
-	uint16_t get_height() const noexcept;
-	std::pair<uint16_t, uint16_t> get_size() const noexcept;
+	uint16_t get_client_width() const noexcept;
+	uint16_t get_client_height() const noexcept;
+	std::pair<uint16_t, uint16_t> get_client_size() const noexcept;
+
+	void set_client_width(uint16_t) const noexcept;
+	void set_client_height(uint16_t) const noexcept;
+	void set_client_size(uint16_t width, uint16_t height) const noexcept;
+	void set_client_size(std::pair<uint16_t, uint16_t>) const noexcept;
+
+	int16_t get_client_x() const noexcept;
+	int16_t get_client_y() const noexcept;
+	std::pair<int16_t, int16_t> get_client_position() const noexcept;
+
+	void set_client_x(int16_t) const noexcept;
+	void set_client_y(int16_t) const noexcept;
+	void set_client_position(int16_t x, int16_t y) const noexcept;
+	void set_client_position(std::pair<int16_t, int16_t>) const noexcept;
+
+	void set_cursor_visible(bool visible = true) const noexcept;
 
 	void hide() const noexcept;
 	void show() const noexcept;
@@ -481,6 +497,11 @@ public:
 	//Size dimension of -1 means the whole window size
 	//Alpha channel is discarded
 	void draw_pixels_bgra_front(const void*, uint16_t x = 0, uint16_t y = 0, uint16_t width = -1, uint16_t height = -1);
+
+
+	void set_fullscreen_windowed() const noexcept;
+
+	void set_cursor_capture(bool capture = true) noexcept;
 
 };
 
