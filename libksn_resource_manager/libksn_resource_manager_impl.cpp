@@ -167,7 +167,7 @@ resource_load_result_t resource_manager_t::_load(const std::string& fname)
 		do
 		{
 			read = fread(buffer, 1, ksn::countof(buffer), f);
-			crc = ksn::crc64_ecma(buffer, read, crc);
+			crc = ksn::crc64_ecma_update(buffer, read, crc);
 		}
 		while (read > 0);
 
@@ -287,9 +287,9 @@ bool resource_manager_t::save(const std::string& name) const noexcept
 
 
 
-#define output_str(s) { fwrite(s, 1, ksn::countof(s) - 1, f); crc = ksn::crc64_ecma(s, ksn::countof(s) - 1, crc); }
-#define output_std(s) { fwrite(s.data(), 1, s.size(), f); crc = ksn::crc64_ecma(s.data(), s.size(), crc); }
-#define output_data(s) { fwrite(&s, 1, sizeof(s), f); crc = ksn::crc64_ecma(&s, sizeof(s), crc); }
+#define output_str(s) { fwrite(s, 1, ksn::countof(s) - 1, f); crc = ksn::crc64_ecma_update(s, ksn::countof(s) - 1, crc); }
+#define output_std(s) { fwrite(s.data(), 1, s.size(), f); crc = ksn::crc64_ecma_update(s.data(), s.size(), crc); }
+#define output_data(s) { fwrite(&s, 1, sizeof(s), f); crc = ksn::crc64_ecma_update(&s, sizeof(s), crc); }
 
 
 	//version 0x0001
