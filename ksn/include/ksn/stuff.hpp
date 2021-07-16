@@ -16,17 +16,14 @@ _KSN_BEGIN
 
 
 template<class T, size_t N>
-constexpr size_t countof(const T(&)[N]) noexcept
-{
-	return N;
-}
+consteval size_t countof(const T(&)[N]) noexcept;
 
 
 
 
 
 template<class ...args_t>
-constexpr void nop(args_t&&...) noexcept {}
+constexpr void nop(args_t&&...) noexcept {};
 
 
 
@@ -41,10 +38,10 @@ size_t c32len(const char32_t* String);
 
 
 template<class RetType, class ArgType>
-RetType&& convert_or_create(ArgType&&);
+constexpr RetType&& convert_or_create(ArgType&&);
 
 template<class RetType, class ArgType>
-RetType&& convert_or_forward(ArgType&&, const RetType&);
+constexpr RetType&& convert_or_forward(ArgType&&, const RetType&);
 
 
 
@@ -88,6 +85,9 @@ struct malloc_guard
 	malloc_guard() noexcept;
 	malloc_guard(const malloc_guard&) = delete;
 	malloc_guard(malloc_guard&&) noexcept;
+
+	malloc_guard& operator=(const malloc_guard&) = delete;
+	malloc_guard& operator=(malloc_guard&&) noexcept;
 
 	bool reserve(size_t n_adresses) noexcept;
 	bool reserve_more(size_t n_new_adresses) noexcept;
@@ -151,6 +151,12 @@ constexpr void bswap(trivial_t& data) noexcept;
 
 
 
+inline volatile int raise_DE();
+
+
+
+
+
 _KSN_END
 
 
@@ -161,7 +167,7 @@ _KSN_END
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//Template stuff implementation
+//Template, inline and constexpr stuff implementation
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -172,6 +178,33 @@ _KSN_END
 
 
 _KSN_BEGIN
+
+
+
+template<class T, size_t N>
+consteval size_t countof(const T(&)[N]) noexcept
+{
+	return N;
+}
+
+
+
+
+//
+//template<class ...args_t>
+//consteval void nop(args_t&&...) noexcept {}
+
+
+
+
+
+inline volatile int raise_DE()
+{
+	int x = 0;
+	return x / x;
+}
+
+
 
 
 
@@ -242,14 +275,14 @@ _KSN_DETAIL_END
 
 
 template<class RetType, class ArgType>
-RetType&& convert_or_create(ArgType&& to_be_converted)
+constexpr RetType&& convert_or_create(ArgType&& to_be_converted)
 {
 	return detail::convert_or_create_helper<std::remove_reference_t<RetType>>
 		(std::is_constructible<RetType, decltype(to_be_converted)>(), to_be_converted);
 }
 
 template<class RetType, class ArgType>
-RetType&& convert_or_forward(ArgType&& to_be_converted, const RetType& to_be_returned_on_convertion_failure)
+constexpr RetType&& convert_or_forward(ArgType&& to_be_converted, const RetType& to_be_returned_on_convertion_failure)
 {
 	return detail::convert_or_forward_helper<std::remove_reference_t<RetType>>
 		(std::is_constructible<RetType, decltype(to_be_converted)>(), to_be_converted, to_be_returned_on_convertion_failure);
@@ -324,6 +357,11 @@ constexpr bool alignment_check_log2(const int_t& value, const int_t& log2_alignm
 	int_t magic_const = (int_t(1) << log2_alignment) - 1;
 	return (value & magic_const) == 0;
 }
+
+
+
+
+
 template<class trivial_t>
 bool file_read_bin_data(FILE* fd, trivial_t& data) noexcept
 {
@@ -359,6 +397,8 @@ constexpr void bswap(trivial_t& data) noexcept
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(pop)
 #endif
+
+
 
 _KSN_END
 

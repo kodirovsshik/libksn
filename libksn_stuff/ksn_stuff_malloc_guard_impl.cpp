@@ -78,4 +78,13 @@ malloc_guard::~malloc_guard() noexcept
 }
 
 
+malloc_guard& malloc_guard::operator=(malloc_guard&& x) noexcept
+{
+	std::swap(this->m_capacity, x.m_capacity);
+	std::swap(this->m_count, x.m_count);
+	std::swap(this->m_data, x.m_data);
+	return *this;
+}
+
+
 _KSN_END
