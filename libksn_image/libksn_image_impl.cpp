@@ -151,15 +151,14 @@ struct png_recompress_data
 
 
 
-static thread_local std::vector<uint8_t> png_compressed_storage;
-static thread_local std::vector<uint8_t> png_decompressed_storage;
-
-
-
 image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* image)
 {
 	if (!check_signature(fd, "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A", 8))
 		return image_bgra_t::load_result::file_invalid;
+
+
+	std::vector<uint8_t> png_compressed_storage;
+	std::vector<uint8_t> png_decompressed_storage;
 
 	auto& data = image->m_data;
 
@@ -201,7 +200,7 @@ image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* image)
 		read_var(fd, width, header_crc_expected);
 		read_var(fd, height, header_crc_expected);
 		assert_corrupted(width && height);
-		data.reserve(pic_size = size_t(width) * height);
+		data.resize(pic_size = size_t(width) * height);
 
 		read_var(fd, bit_depth, header_crc_expected);
 		assert_corrupted(bit_depth <= 16 && bit_depth > 0 && (bit_depth & (bit_depth - 1)) == 0);
@@ -365,6 +364,8 @@ image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* image)
 	//data_stream.avail_in is set during IDAT chunk(s) processing
 
 	dtemp = inflate(&data_stream, Z_FINISH);
+	png_compressed_storage.clear();
+	png_compressed_storage.shrink_to_fit();
 	assert_corrupted(dtemp == Z_STREAM_END);
 
 
@@ -469,16 +470,22 @@ image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* image)
 	}
 
 
-	
 	//Remove filter type bytes
-	for (size_t i = height; i --> 0;)
 	{
-		size_t off = i * byte_width + i;
-		auto* p = png_decompressed_storage.data() + off;
-		memmove(p, p + 1, (height - i) * byte_width);
+		std::vector<uint8_t> png_unfiltered_data(pic_size * bpp);
+
+		const uint8_t* p1 = png_decompressed_storage.data() + 1;
+		uint8_t* p2 = png_unfiltered_data.data();
+		for (size_t i = height; i-- > 0;)
+		{
+			memcpy(p2, p1, byte_width);
+			p1 += byte_width + 1;
+			p2 += byte_width;
+		}
+
+		png_decompressed_storage = std::move(png_unfiltered_data);
 	}
 
-	png_decompressed_storage.resize(pic_size * bpp);
 
 
 
@@ -571,7 +578,7 @@ image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* image)
 			return image_bgra_t::load_result::internal_error;
 		}
 
-		std::swap(png_recompressed_storage, png_decompressed_storage);
+		png_decompressed_storage = std::move(png_recompressed_storage);
 	}
 	else if (bit_depth == 16) //convert to 8 bits per sample
 	{
