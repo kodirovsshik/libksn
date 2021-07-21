@@ -89,15 +89,26 @@ int opencl_selector(opencl_selector_data_t* data) noexcept
 		clReleaseProgram(data->program);
 		clReleaseCommandQueue(data->q);
 		clReleaseContext(data->context);
+
+		data->program = nullptr;
+		data->q = nullptr;
+		data->context = nullptr;
+		data->device = nullptr;
+		data->platform = nullptr;
 	}
 	return code;
 }
 
 static int selector(opencl_selector_data_t* p) noexcept
 {
-	if (p->cl_sources == nullptr) selector_return(1, L"selector->cl_sources not specified");
-	if (p->cl_sources_lengthes == nullptr) selector_return(1, L"selector->cl_sources_lengthes not specified");
-	if (p->cl_sources_number == -1) selector_return(1, L"selector->cl_sources_number not specified");
+	if (p->cl_sources == nullptr && p->cl_sources_number) selector_return(1, L"selector->cl_sources not specified");
+	if (p->cl_sources_lengthes == nullptr && p->cl_sources_number) selector_return(1, L"selector->cl_sources_lengthes not specified");
+
+	const char* const aux_sources[1] = { 0 };
+	const size_t aux_sources_lengthes[1] = { 0 };
+
+	if (p->cl_sources == nullptr) p->cl_sources = aux_sources;
+	if (p->cl_sources_lengthes == nullptr) p->cl_sources_lengthes = aux_sources_lengthes;
 
 	union
 	{
@@ -166,7 +177,7 @@ static int selector(opencl_selector_data_t* p) noexcept
 
 	size_t platform_index;
 
-	if (p->platform == 0)
+	if (p->preselected_platform == 0)
 	{
 		setvbuf(stdout, (char*)p->io_buffer, _IOFBF, p->io_buffer_size);
 		print(p->msg_platform_list);
@@ -206,15 +217,17 @@ static int selector(opencl_selector_data_t* p) noexcept
 			if (platforms_situable[platform_index / 8] & (1 << (platform_index % 8))) break;
 		} while (true);
 
-		p->platform = platform_index + 1;
+		p->preselected_platform = platform_index + 1;
 	}
 	else
 	{
-		size_t n = p->platform - 1;
+		size_t n = p->preselected_platform - 1;
 		if (n >= platforms_count || (platforms_situable[n / 8] & (1 << (n % 8))) == 0)
 			selector_return(1, L"Wrong preselected platform");
 		platform_index = n;
 	}
+
+	p->platform = platforms[platform_index];
 
 	cl_uint num_devices = 0;
 	temp = clGetDeviceIDs(platforms[platform_index], CL_DEVICE_TYPE_ALL, 4096 / sizeof(cl_device_id), (cl_device_id*)buffer4k, &num_devices);
@@ -225,56 +238,61 @@ static int selector(opencl_selector_data_t* p) noexcept
 	p->context = clCreateContext(context_properties, num_devices, (cl_device_id*)buffer4k, nullptr, nullptr, (cl_int*)&temp);
 	if (temp != 0 || p->context == nullptr) selector_return(1, p->msgfmt_context_create_error, (int)temp);
 
-	p->program = clCreateProgramWithSource(p->context, (cl_uint)p->cl_sources_number, (const char**)p->cl_sources, p->cl_sources_lengthes, (cl_int*)&temp);
-	cl_int tempi = clBuildProgram(p->program, num_devices, (cl_device_id*)buffer4k, p->cl_build_parameters, nullptr, nullptr);
-	if (tempi != CL_BUILD_SUCCESS)
+	cl_int tempi = 0;
+
+	if (p->cl_sources_number)
 	{
-		print_fd = wide_open(p->build_log_file_name, p->build_log_file_open_format);
-		setvbuf(stdout, (char*)p->io_buffer, _IOFBF, p->io_buffer_size);
-		for (cl_uint i = 0; i < num_devices; ++i)
+		p->program = clCreateProgramWithSource(p->context, (cl_uint)p->cl_sources_number, (const char**)p->cl_sources, p->cl_sources_lengthes, (cl_int*)&temp);
+		tempi = clBuildProgram(p->program, num_devices, (cl_device_id*)buffer4k, p->cl_build_parameters, nullptr, nullptr);
+		if (tempi != CL_BUILD_SUCCESS)
 		{
-			auto& device = ((cl_device_id*)buffer4k)[i];
-			clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_STATUS, sizeof(temp), &temp, nullptr);
-			if (temp != CL_BUILD_SUCCESS)
+			print_fd = wide_open(p->build_log_file_name, p->build_log_file_open_format);
+			setvbuf(stdout, (char*)p->io_buffer, _IOFBF, p->io_buffer_size);
+			for (cl_uint i = 0; i < num_devices; ++i)
 			{
-				char smol_buffer[256];
-				size_t length = 0;
-				temp = clGetDeviceInfo(device, CL_DEVICE_NAME, 256, smol_buffer, nullptr);
-				print(p->msg_device);
-				print(smol_buffer);
-				print(p->msg_x_reported_build_error);
-				print(p->msg_build_log);
-				temp = clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &length);
-				char* big_buffer = (char*)malloc(length);
-				if (big_buffer == nullptr)
-					print(p->msg_build_log_not_allocated);
-				else
+				auto& device = ((cl_device_id*)buffer4k)[i];
+				clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_STATUS, sizeof(temp), &temp, nullptr);
+				if (temp != CL_BUILD_SUCCESS)
 				{
-					temp = clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_LOG, length, big_buffer, nullptr);
-					print(big_buffer);
-					putchar('\n');
-					putchar('\n');
-					free(big_buffer);
+					char smol_buffer[256];
+					size_t length = 0;
+					temp = clGetDeviceInfo(device, CL_DEVICE_NAME, 256, smol_buffer, nullptr);
+					print(p->msg_device);
+					print(smol_buffer);
+					print(p->msg_x_reported_build_error);
+					print(p->msg_build_log);
+					temp = clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &length);
+					char* big_buffer = (char*)malloc(length);
+					if (big_buffer == nullptr)
+						print(p->msg_build_log_not_allocated);
+					else
+					{
+						temp = clGetProgramBuildInfo(p->program, device, CL_PROGRAM_BUILD_LOG, length, big_buffer, nullptr);
+						print(big_buffer);
+						putchar('\n');
+						putchar('\n');
+						free(big_buffer);
+					}
 				}
 			}
-		}
 
-		setvbuf(stdout, nullptr, _IONBF, 0);
-		if (print_fd)
-		{
-			fclose(print_fd);
-			print_fd = nullptr;
-			print(p->msg_build_log_saved_to);
-			print(p->build_log_file_name);
-			putchar('\n');
+			setvbuf(stdout, nullptr, _IONBF, 0);
+			if (print_fd)
+			{
+				fclose(print_fd);
+				print_fd = nullptr;
+				print(p->msg_build_log_saved_to);
+				print(p->build_log_file_name);
+				putchar('\n');
+			}
+			selector_return(1);
 		}
-		selector_return(1);
+		else if (tempi != CL_BUILD_SUCCESS)
+			selector_return((int)tempi, L"OpenCL program build error %i\n", (int)tempi);
 	}
-	else if (tempi != CL_BUILD_SUCCESS)
-		selector_return(1, L"OpenCL program build error %i\n", (int)tempi);
 
 	int device_id;
-	if (p->device == 0)
+	if (p->preselected_device == 0)
 	{
 		setvbuf(stdout, (char*)p->io_buffer, _IOFBF, p->io_buffer_size);
 		print(p->msg_devices_list);
@@ -306,20 +324,18 @@ static int selector(opencl_selector_data_t* p) noexcept
 			break;
 		}
 
-		p->device = (size_t)device_id;
+		p->preselected_device = (size_t)device_id;
 	}
 	else
 	{
-		if (p->device > num_devices || p->device == 0)
+		if (p->preselected_device > num_devices || p->preselected_device == 0)
 			selector_return(1);
 	}
 
-	p->q = clCreateCommandQueue(p->context, ((cl_device_id*)buffer4k)[p->device - 1], 0, (int*)&temp);
-	//p->context = context;
-	//p->program = program;
+	p->device = ((cl_device_id*)buffer4k)[p->preselected_device - 1];
+	p->q = clCreateCommandQueue(p->context, ((cl_device_id*)buffer4k)[p->preselected_device - 1], 0, &tempi);
 
-
-	return p->q == nullptr ? 1 : INT_MAX;
+	return p->q == nullptr ? tempi : INT_MAX;
 }
 
 
