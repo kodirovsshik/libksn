@@ -32,12 +32,9 @@ public:
 	{
 		if (this->m_framerate != 0)
 		{
-			if (this->m_sw.is_started())
-			{
-				time desired_dt = time::from_nsec(1000000000 / this->m_framerate);
-				time dt = this->m_sw.stop();
-				sleep_for(desired_dt - dt);
-			}
+			time desired_dt = time::from_nsec(1000000000 / this->m_framerate);
+			time dt = this->m_sw.stop();
+			sleep_for(desired_dt - dt);
 			this->m_sw.start();
 		}
 	}
@@ -48,6 +45,10 @@ public:
 void window_t::set_framerate(uint32_t new_framerate) noexcept
 {
 	this->m_impl_indep->m_framerate = new_framerate;
+	if (new_framerate)
+		this->m_impl_indep->m_sw.start();
+	else
+		this->m_impl_indep->m_sw.stop();
 }
 uint32_t window_t::get_framerate() const noexcept
 {

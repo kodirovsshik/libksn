@@ -1,11 +1,13 @@
 
 #include <ksn/window.hpp>
+#include <ksn/unicode.hpp>
 
 #include <Windows.h>
 
 #include <stdio.h>
 
 #include <queue>
+#include <codecvt>
 
 
 
@@ -22,10 +24,9 @@ class window_t::_window_impl
 
 public:
 
-	template<class char_t>
 	static LRESULT WINAPI __ksn_wnd_proc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	{
-		static constexpr bool is_wide = std::is_same_v<char_t, wchar_t>;
+		static constexpr bool is_wide = true;
 
 		msg = LOWORD(msg);
 
@@ -457,8 +458,6 @@ public:
 #undef push_mouse_scroll_event
 	}
 
-#define __ksn_wnd_procA __ksn_wnd_proc<char>
-#define __ksn_wnd_procW __ksn_wnd_proc<wchar_t>
 
 
 	using my_t = window_t::_window_impl;
@@ -658,6 +657,9 @@ public:
 	{
 		this->m_window = nullptr;
 		this->m_hdc = nullptr;
+		this->m_hmdc = nullptr;
+		this->m_bitmap = nullptr;
+		this->m_pending_wchar = 0;
 		this->m_is_repetitive_move_enabled = false;
 		this->m_is_repetitive_resize_enabled = false;
 		this->m_is_repetitive_keyboard_enabled = true;
@@ -695,12 +697,21 @@ public:
 
 
 	template<typename char_t>
+	static std::wstring to_wchar(const char_t* str)
+	{
+		if constexpr (std::is_same_v<char_t, wchar_t>)
+			return std::wstring(str);
+		
+		return ksn::unicode_string_convert<std::wstring>(std::basic_string<char_t>(str));
+	}
+
+	template<typename char_t>
 	window_open_result_t open(uint16_t width, uint16_t height, const char_t* window_name, window_style_t window_style) noexcept
 	{
 		//Just a wrapper function for "real" _Xopen
 
 		this->close();
-		window_open_result_t result = this->_Xopen(width, height, window_name, window_style);
+		window_open_result_t result = this->_Xopen(width, height, to_wchar(window_name).data(), window_style);
 
 		if (result == window_open_result::ok || result == window_open_result::ok_but_direct_drawing_unsupported)
 		{
@@ -765,12 +776,8 @@ public:
 		return result;
 	}
 
-	template<typename char_t>
-	window_open_result_t _Xopen(uint16_t width, uint16_t height, const char_t* window_name, window_style_t window_style) noexcept
+	window_open_result_t _Xopen(uint16_t width, uint16_t height, const wchar_t* window_name, window_style_t window_style) noexcept
 	{
-		constexpr static bool is_wide = std::is_same_v<wchar_t, char_t>;
-		static_assert(std::is_same_v<char_t, char> || std::is_same_v<char_t, wchar_t>);
-
 		if (window_style & window_style::fullscreen) return window_open_result::unimplemented; //TODO
 
 
@@ -799,15 +806,7 @@ public:
 		}
 
 
-		if constexpr (!is_wide)
-		{
-			this->m_window = CreateWindowA("_LIBKSN_windowA", window_name, winapi_window_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
-		}
-		else
-		{
-			this->m_window = CreateWindowW(L"_LIBKSN_windowW", window_name, winapi_window_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
-		}
-
+		this->m_window = CreateWindowW(L"_LIBKSN_window_", window_name, winapi_window_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
 		if (this->m_window == nullptr) return window_open_result::window_creation_error;
 
 
@@ -875,8 +874,6 @@ public:
 
 		BITMAPINFO bitmapinfo{};
 		bitmapinfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-		//bitmapinfo.bmiHeader.biWidth = this->m_resizemove_last_size.first;
-		//bitmapinfo.bmiHeader.biHeight = -(int)this->m_resizemove_last_size.second;
 		bitmapinfo.bmiHeader.biWidth = (int)width;
 		bitmapinfo.bmiHeader.biHeight = -(int)height;
 		bitmapinfo.bmiHeader.biPlanes = 1;
@@ -885,6 +882,16 @@ public:
 
 		SetDIBits(this->m_hmdc, this->m_bitmap, y, height, data, &bitmapinfo, DIB_RGB_COLORS);
 		BitBlt(this->m_hdc, x, y, width, height, this->m_hmdc, x, y, SRCCOPY);
+	}
+
+	template<class char_t>
+	bool set_title(const char_t* s) const noexcept
+	{
+		std::wstring namae = to_wchar(s);
+		if (namae.length() == 0 && *s != 0)
+			return false;
+
+		return SetWindowTextW(this->m_window, namae.c_str());
 	}
 };
 
@@ -901,27 +908,16 @@ namespace
 	{
 		__library_constructor_t() noexcept
 		{
-			WNDCLASSA wcA{};
 			WNDCLASSW wcW{};
-
-			wcA.lpszClassName = "_LIBKSN_windowA";
-			wcW.lpszClassName = L"_LIBKSN_windowW";
-
-			//wcA.hCursor = LoadCursorA(nullptr, (LPCSTR)IDC_ARROW);
-			//wcW.hCursor = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
-
-			wcA.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procA;
-			wcW.lpfnWndProc = window_t::_window_impl::__ksn_wnd_procW;
-
-			RegisterClassA(&wcA);
+			wcW.lpszClassName = L"_LIBKSN_window_";
+			wcW.lpfnWndProc = window_t::_window_impl::__ksn_wnd_proc;
 			RegisterClassW(&wcW);
 		}
 
 		~__library_constructor_t() noexcept
 		{
 			ReleaseDC(nullptr, window_t::_window_impl::s_screen_hdc);
-			UnregisterClassA("_LIBKSN_windowA", NULL);
-			UnregisterClassW(L"_LIBKSN_windowW", NULL);
+			UnregisterClassA("_LIBKSN_window_", NULL);
 		}
 
 	} static __library_constructor;
@@ -937,14 +933,6 @@ window_t::native_window_t window_t::window_native_handle() const noexcept
 }
 
 
-window_t::window_t(uint16_t width, uint16_t height, const char* title, window_style_t window_style) noexcept
-{
-	this->m_impl->open(width, height, title, window_style);
-}
-window_t::window_t(uint16_t width, uint16_t height, const wchar_t* title, window_style_t window_style) noexcept
-{
-	this->m_impl->open(width, height, title, window_style);
-}
 
 
 window_t::window_t() noexcept
@@ -960,11 +948,24 @@ window_t::~window_t() noexcept
 }
 
 
+
 window_open_result_t window_t::open(uint16_t width, uint16_t height, const char* title, window_style_t window_style) noexcept
 {
 	return this->m_impl->open(width, height, title, window_style);
 }
 window_open_result_t window_t::open(uint16_t width, uint16_t height, const wchar_t* title, window_style_t window_style) noexcept
+{
+	return this->m_impl->open(width, height, title, window_style);
+}
+window_open_result_t window_t::open(uint16_t width, uint16_t height, const char8_t* title, window_style_t window_style) noexcept
+{
+	return this->m_impl->open(width, height, title, window_style);
+}
+window_open_result_t window_t::open(uint16_t width, uint16_t height, const char16_t* title, window_style_t window_style) noexcept
+{
+	return this->m_impl->open(width, height, title, window_style);
+}
+window_open_result_t window_t::open(uint16_t width, uint16_t height, const char32_t* title, window_style_t window_style) noexcept
 {
 	return this->m_impl->open(width, height, title, window_style);
 }
@@ -1134,6 +1135,27 @@ void window_t::set_cursor_capture(bool capture) noexcept
 	info.cbSize = sizeof(info);
 	GetWindowInfo(this->m_impl->m_window, &info);
 	ClipCursor(&info.rcClient);
+}
+
+bool window_t::set_title(const char* name) const noexcept
+{
+	return this->m_impl->set_title(name);
+}
+bool window_t::set_title(const wchar_t* name) const noexcept
+{
+	return this->m_impl->set_title(name);
+}
+bool window_t::set_title(const char8_t* name) const noexcept
+{
+	return this->m_impl->set_title(name);
+}
+bool window_t::set_title(const char16_t* name) const noexcept
+{
+	return this->m_impl->set_title(name);
+}
+bool window_t::set_title(const char32_t* name) const noexcept
+{
+	return this->m_impl->set_title(name);
 }
 
 bool window_t::has_focus() const noexcept

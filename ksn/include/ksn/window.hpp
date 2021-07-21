@@ -429,11 +429,13 @@ public:
 	window_t(window_t&&) noexcept;
 	~window_t() noexcept;
 
-	window_t(uint16_t width, uint16_t height, const char* title = "", window_style_t style = window_style::default_style) noexcept;
-	window_t(uint16_t width, uint16_t height, const wchar_t* title, window_style_t style = window_style::default_style) noexcept;
 
-	virtual window_open_result_t open(uint16_t width, uint16_t height, const char* title = "", window_style_t style = window_style::default_style) noexcept;
-	virtual window_open_result_t open(uint16_t width, uint16_t height, const wchar_t* title, window_style_t style = window_style::default_style) noexcept;
+	virtual window_open_result_t open(uint16_t width, uint16_t height, const char* title, window_style_t style = window_style::default_style) noexcept;
+	virtual window_open_result_t open(uint16_t width, uint16_t height, const wchar_t* title = L"", window_style_t style = window_style::default_style) noexcept;
+	virtual window_open_result_t open(uint16_t width, uint16_t height, const char8_t* title, window_style_t style = window_style::default_style) noexcept;
+	virtual window_open_result_t open(uint16_t width, uint16_t height, const char16_t* title, window_style_t style = window_style::default_style) noexcept;
+	virtual window_open_result_t open(uint16_t width, uint16_t height, const char32_t* title, window_style_t style = window_style::default_style) noexcept;
+
 
 	virtual void close() noexcept;
 
@@ -458,7 +460,7 @@ public:
 	uint32_t get_monitor_framerate() const noexcept;
 
 	//Updates internal time counter and waits for a frame end according to set framerate
-	//is a no-op if framerate is unlimited (that is, 0)
+	//Is a no-op if framerate is unlimited (that is, 0)
 	void tick() noexcept;
 
 	uint16_t get_client_width() const noexcept;
@@ -502,6 +504,13 @@ public:
 	void set_fullscreen_windowed() const noexcept;
 
 	void set_cursor_capture(bool capture = true) noexcept;
+
+
+	bool set_title(const char* name) const noexcept;
+	bool set_title(const wchar_t* name) const noexcept;
+	bool set_title(const char8_t* name) const noexcept;
+	bool set_title(const char16_t* name) const noexcept;
+	bool set_title(const char32_t* name) const noexcept;
 
 };
 
