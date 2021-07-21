@@ -348,8 +348,8 @@ out_str_t unicode_string_convert(const in_str_t& str)
 		p += local_result;
 
 		local_result = detail::utf32le_to_unicode_le<strict, out_char_t>(c32, nullptr);
-		result.resize(result.size() + local_result);
-		local_result = detail::utf32le_to_unicode_le<strict>(c32, result.data() + result.size());
+		result.resize(result.size() + local_result, ' ');
+		local_result = detail::utf32le_to_unicode_le<strict>(c32, result.data() + result.size() - local_result);
 	}
 
 	return result;
