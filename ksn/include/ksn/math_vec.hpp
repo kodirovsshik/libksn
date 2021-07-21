@@ -21,6 +21,8 @@ struct vec
 {
 private:
 
+	static_assert(N != 0);
+
 	template<class...>
 	struct is_vec : std::false_type
 	{
@@ -71,40 +73,40 @@ public:
 	template<class ofp_t>
 	constexpr vec(vec<N, ofp_t>&& other) noexcept
 	{
-		for (size_t i = 0; i < N; ++i) (*this)[i] = std::move(other[i]);
+		for (size_t i = 0; i < N; ++i) (*this)[i] = (fp_t)std::move(other[i]);
 	}
 	template<class ofp_t>
 	constexpr vec(std::initializer_list<ofp_t> list) noexcept
 	{
 		for (size_t i = 0; i < std::min(list.size(), N); ++i)
 		{
-			this->data[i] = list.begin()[i];
+			this->data[i] = (fp_t)list.begin()[i];
 		}
 		for (size_t i = std::min(list.size(), N); i < N; ++i)
 		{
-			this->data[i] = 0;
+			this->data[i] = (fp_t)0;
 		}
 	}
 
 
 
-	template<class fp_t1, class fp_t2, size_t N>
-	constexpr common_vec(fp_t1, fp_t2, N) friend operator+(const vec<N, fp_t1>& a, const vec<N, fp_t2>& b) noexcept
+	template<class ofp_t>
+	constexpr common_vec(fp_t, ofp_t, N) operator+(const vec<N, ofp_t>& rhs) noexcept
 	{
-		common_vec(fp_t1, fp_t2, N) result;
+		common_vec(fp_t, ofp_t, N) result;
 		for (size_t i = 0; i < N; ++i)
 		{
-			result[i] = a[i] + b[i];
+			result[i] = (*this)[i] + rhs[i];
 		}
 		return result;
 	}
-	template<class fp_t1, class fp_t2, size_t N>
-	constexpr common_vec(fp_t1, fp_t2, N) friend operator-(const vec<N, fp_t1>& a, const vec<N, fp_t2>& b) noexcept
+	template<class ofp_t>
+	constexpr common_vec(fp_t, ofp_t, N) operator-(const vec<N, ofp_t>& rhs) noexcept
 	{
-		common_vec(fp_t1, fp_t2, N) result;
+		common_vec(fp_t, ofp_t, N) result;
 		for (size_t i = 0; i < N; ++i)
 		{
-			result[i] = a[i] - b[i];
+			result[i] = (*this)[i] - rhs[i];
 		}
 		return result;
 	}
@@ -139,11 +141,11 @@ public:
 	}
 
 
-	template<class fp_t1, class fp_t2, size_t N>
-	constexpr std::common_type_t<fp_t1, fp_t2> friend operator*(const vec<N, fp_t1>& a, const vec<N, fp_t2>& b) noexcept
+	template<class ofp_t, size_t N>
+	constexpr std::common_type_t<fp_t, ofp_t> friend operator*(const vec<N, ofp_t>& b) noexcept
 	{
-		std::common_type_t<fp_t1, fp_t2> result = 0;
-		for (size_t i = 0; i < N; ++i) result += a[i] * b[i];
+		std::common_type_t<fp_t, ofp_t> result = 0;
+		for (size_t i = 0; i < N; ++i) result += (*this)[i] * b[i];
 		return result;
 	}
 
@@ -161,7 +163,6 @@ public:
 		using std::hypot;
 		using std::sqrt;
 
-		if constexpr (N == 0) return 0; //wtf
 		if constexpr (N == 1) return this->data[0];
 		if constexpr (N == 2) return hypot(this->data[0], this->data[1]);
 		if constexpr (N == 3) return hypot(this->data[0], this->data[1], this->data[2]);

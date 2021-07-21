@@ -7,6 +7,7 @@
 
 #include <ksn/ksn.hpp>
 #include <ksn/math_complex.hpp>
+#include <ksn/math_matrix.hpp>
 
 #include <vector>
 #include <stdexcept>
@@ -838,6 +839,8 @@ fp_t differentiate4(callable_t&& f, const fp_t& x)
 
 
 
+
+
 _KSN_DETAIL_BEGIN
 
 template<class fp_t, class callable>
@@ -886,7 +889,6 @@ fp_t limit(fp_t(*f)(fp_t), fp_t x)
 	if (x == -INFINITY) return detail::limit_inf<fp_t>([&](const fp_t& x) {return f(-x); });
 
 	fp_t temp;
-	//if (temp == temp) return temp;
 
 	constexpr fp_t epsilon = std::numeric_limits<fp_t>::epsilon();
 
@@ -930,24 +932,24 @@ fp_t limit(fp_t(*f)(fp_t), fp_t x)
 	/*
 
 	Let dn{f} denote n'th derivative of f
-	Let A_k be 1/2 * [ f(x + k*dx) + f(x - k*dx) ]
+	Let A_k := 1/2 * [ f(x + k*dx) + f(x - k*dx) ]
 
 
 	Using Taylor series axpansion at point x, one can get:
-	A_k = f(x) + 1/(2!)*d2{f}*(k*dx)^2 + d4{f}*(k*dx)^4 / 4! ... up to some dN{f}
+	A_k = f(x) + d2{f}*(k*dx)^2 / 2! + d4{f}*(k*dx)^4 / 4! ... up to some dN{f}
 	Where f(x) and all it's derivatives are unknowns
 
-	Select N such that dx^N < machine_epsilon => dx^n -> 0
+	Select N such that dx^N < machine_epsilon => dx^N -> 0
 	N > log base dx of epsilon
 	N > ln(eps) / ln(dx)
-	Equation (1) calculates nuber of equations needed (taking into account that we can only have even integer powers)
+	From there, one cal calculate nuber of equations needed (taking into account that we can only have even integer powers)
 
 	All the equations are in form of A_k = f(...)
-	Since we easily can compute all the A_k after we found some nice neighbourhood of the point [x - dx; x + dx] where f(x) can be computed
+	Since we easily can compute all the A_k after we found some nice neighbourhood of the point [x - dx; x + dx] where f(x) can be computed,
 
 	Combine all the A_k into system of equations
 
-	Note: initial aumented matrix looks like
+	Note: initial augmented matrix looks like
 	[   1   (1*dx)^2/(2!)   (1*dx)^4/(4!)   ...   |   A_1   ]
 	[   1   (2*dx)^2/(2!)   (2*dx)^4/(4!)   ...   |   A_2   ]
 	[   1   (3*dx)^2/(2!)   (3*dx)^4/(4!)   ...   |   A_3   ]
@@ -963,12 +965,13 @@ fp_t limit(fp_t(*f)(fp_t), fp_t x)
 	f(x) = SUM from n=1 to N of [ (-1)^(n+1) * A_n * Falling(N, n) / Rising(N+1, n) ],
 
 	where Rising(N, n) and Falling(N, n) denote rising and falling N factorials respectively
+	And C(n, k) is a binomial coefficient
 
 
 	P.S.
 	I compute f(x) by using the values of a function in some neighbourhood of x
 	And it gets more and more and more precise as N -> infinity
-	So yeah, I bet I have derived some kind of reverse of the Taylor series expansion
+	So yeah, I bet I have derived some kind of inverse of the Taylor series expansion
 	¯\_(ツ)_/¯
 
 	*/
@@ -987,12 +990,67 @@ fp_t limit(fp_t(*f)(fp_t), fp_t x)
 
 //Tries it's best to approximate the value of f(x) if it can not be directly evalueated in x but can be in [x-Ndx; x+Ndx]
 template<class fp_t, class callable>
-fp_t neighbourhood_approximator(callable f, const fp_t& x, size_t N, const fp_t& dx = fp_t(0.0001))
+constexpr fp_t neighbourhood_approximator(callable f, const fp_t& x, size_t N, const fp_t& dx = fp_t(0.0001))
 {
 	fp_t c = fp_t(N);
 	c /= N + 1;
 	return c * (f(x + dx) + f(x - dx)) + detail::neighbourhood_approximator1(f, x, N, dx, c);
 }
+
+
+
+
+
+//x1 is for t = 0
+//x2 is for t = 1
+template<class fp_t>
+constexpr fp_t interpolate_linear(fp_t x1, fp_t x2, fp_t t)
+{
+	return x1 + (x2 - x1) * t;
+}
+
+
+//x1 is for t = 0
+//x2 is for t = 1/2
+//x3 is for t = 1
+template<class fp_t>
+constexpr fp_t interpolate_quadratic(fp_t x1, fp_t x2, fp_t x3, fp_t t)
+{
+	constexpr auto matrix = ksn::matrix<3, 3, fp_t>
+	{ {
+		{ 1, 0, 0 },
+		{ -3, 4, -1 },
+		{ 2, -4, 2 }
+	} };
+
+	auto coeffs = matrix * ksn::vec<3, fp_t>{ x1, x2, x3 };
+
+	return (coeffs[2] * t + coeffs[1]) * t + coeffs[0];
+}
+
+
+//x1 is for t = 0
+//x2 is for t = 1/3
+//x3 is for t = 2/3
+//x4 is for t = 1
+template<class fp_t>
+constexpr fp_t interpolate_cubic(fp_t x1, fp_t x2, fp_t x3, fp_t x4, fp_t t)
+{
+	constexpr fp_t half = fp_t(1) / 2;
+
+	constexpr auto matrix = ksn::matrix<4, 4, fp_t>
+	{{
+		{ 1, 0, 0, 0 },
+		{ -11 * half , 9, -9 * half, 1 },
+		{ 9, -45 * half, 18, -9 * half },
+		{-9 * half, 27 * half, -27 * half, 9 * half },
+	}};
+	
+	auto coeffs = matrix * ksn::vec<4, fp_t>{ x1, x2, x3, x4 };
+
+	return ((coeffs[3] * t + coeffs[2]) * t + coeffs[1]) * t + coeffs[0];
+}
+
 
 
 _KSN_END
