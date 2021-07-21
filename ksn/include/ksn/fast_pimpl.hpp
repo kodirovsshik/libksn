@@ -80,7 +80,7 @@ public:
 	{
 		new (this->ptr()) T{ *other };
 	}
-	fast_pimpl(my_t&& other)
+	fast_pimpl(my_t&& other) noexcept(false)
 	{
 		new (this->ptr()) T{ std::move(*other) };
 	}
