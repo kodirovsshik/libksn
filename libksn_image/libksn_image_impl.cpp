@@ -105,6 +105,79 @@ image_bgra_t::load_result_t image_bgra_t::load_from_file(const char* fname) noex
 }
 
 
+
+image_bgra_t image_bgra_t::scaled(uint16_t new_width, uint16_t new_height) const
+{
+	if (new_width == 0 || new_height == 0)
+		return {};
+
+	image_bgra_t result;
+	result.m_data.resize(new_height * (size_t)new_width);
+	result.width = new_width;
+	result.height = new_height;
+
+	float ratio_x = float(this->width) / new_width;
+	float ratio_y = float(this->height) / new_height;
+
+	auto avg = [&]
+	(float y, float x) -> ksn::color_bgra_t
+	{
+		float x1 = x;
+		float b = 0, g = 0, r = 0, a = 0;
+
+		for (float bound_y = std::min(y + ratio_y, (float)this->height); y < bound_y;)
+		{
+			float dy = std::min(1 - (y - (int)y), bound_y - y);
+
+			for (float bound_x = std::min(x + ratio_x, (float)this->width); x < bound_x;)
+			{
+				float dx = std::min(1 - (x - (int)x), bound_x - x);
+
+				ksn::color_bgra_t pixel = this->m_data[(size_t)x + this->width * (size_t)y];
+
+				float ds = dx * dy;
+				b += pixel.b * ds;
+				g += pixel.g * ds;
+				r += pixel.r * ds;
+				a += pixel.a * ds;
+
+				x += dx;
+			}
+
+			y += dy;
+			x = x1;
+		}
+
+		float S = ratio_x * ratio_y;
+		b /= S;
+		g /= S;
+		r /= S;
+		a /= S;
+		return ksn::color_bgra_t((uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)a);
+	};
+
+	size_t downscaled_offset = (size_t)new_width * new_height;
+
+	for (size_t i = result.height; i-- > 0;)
+	{
+		for (size_t j = result.width; j-- > 0;)
+		{
+			result.m_data[--downscaled_offset] = avg(i * ratio_y, j * ratio_x);
+		}
+	}
+
+	return result;
+}
+
+void image_bgra_t::scale(uint16_t new_width, uint16_t new_height)
+{
+	*this = this->scaled(new_width, new_height);
+}
+
+
+
+
+
 bool check_signature(FILE* f, const char* data, size_t size)
 {
 	const uint8_t* p = (const uint8_t*)data;
@@ -115,7 +188,6 @@ bool check_signature(FILE* f, const char* data, size_t size)
 	}
 	return true;
 }
-
 
 
 

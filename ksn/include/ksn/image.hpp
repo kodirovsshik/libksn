@@ -65,6 +65,17 @@ public:
 	void clear() noexcept;
 
 	void swap(image_bgra_t& other) noexcept;
+
+
+
+	ksn::image_bgra_t scaled(uint16_t new_width, uint16_t new_height) const;
+	void scale(uint16_t new_width, uint16_t new_height);
+
+	ksn::image_bgra_t scaled_down_by_int(size_t scale_factor) const;
+	void scale_down_by_int(size_t scale_factor) const;
+
+	ksn::image_bgra_t scaled_up_by_int(size_t scale_factor) const;
+	void scale_up_by_int(size_t scale_factor) const;
 };
 
 
