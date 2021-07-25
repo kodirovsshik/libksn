@@ -28,16 +28,17 @@ public:
 	_window_independend_impl() noexcept {}
 	~_window_independend_impl() noexcept {}
 
-	void tick() noexcept
+	void tick(void(*sleeper)(ksn::time)) noexcept
 	{
 		if (this->m_framerate != 0)
 		{
 			time desired_dt = time::from_nsec(1000000000 / this->m_framerate);
 			time dt = this->m_sw.stop();
-			sleep_for(desired_dt - dt);
+			sleeper(desired_dt - dt);
 			this->m_sw.start();
 		}
 	}
+
 };
 
 
@@ -56,7 +57,14 @@ uint32_t window_t::get_framerate() const noexcept
 }
 void window_t::tick() noexcept
 {
-	this->m_impl_indep->tick();
+	this->m_impl_indep->tick(ksn::sleep_for);
+}
+void window_t::tick_hybrid_sleep() noexcept
+{
+	if (ksn::get_hybrid_sleep_threshold())
+		this->m_impl_indep->tick(ksn::hybrid_sleep_for);
+	else
+		this->m_impl_indep->tick(ksn::sleep_for);
 }
 
 

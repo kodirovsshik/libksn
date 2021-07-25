@@ -462,6 +462,10 @@ public:
 	//Updates internal time counter and waits for a frame end according to set framerate
 	//Is a no-op if framerate is unlimited (that is, 0)
 	void tick() noexcept;
+	//The same as tick(), but uses hybrid sleep instead of the usual one 
+	//if it has been configured by ksn::init_hybid_sleep_threshold
+	//Otherwise, is the same as tick()
+	void tick_hybrid_sleep() noexcept;
 
 	uint16_t get_client_width() const noexcept;
 	uint16_t get_client_height() const noexcept;
