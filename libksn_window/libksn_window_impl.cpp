@@ -885,6 +885,10 @@ public:
 		bitmapinfo.bmiHeader.biBitCount = bits;
 		bitmapinfo.bmiHeader.biCompression = BI_RGB;
 
+		//Quick time measure shows that this is slower than me waking up on weekend
+		//Jokes aside, 4-5x slower
+		//StretchDIBits(this->m_hdc, x, y, width, height, x, y, width, height, data, &bitmapinfo, DIB_RGB_COLORS, SRCCOPY);
+
 		SetDIBits(this->m_hmdc, this->m_bitmap, y, height, data, &bitmapinfo, DIB_RGB_COLORS);
 		BitBlt(this->m_hdc, x, y, width, height, this->m_hmdc, x, y, SRCCOPY);
 	}
