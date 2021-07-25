@@ -184,7 +184,7 @@ public:
 	constexpr my_t& normalize() noexcept
 	{
 		fp_t multiplier = 1 / this->abs();
-		for (auto& x : this->data) x /= multiplier;
+		for (auto& x : this->data) x *= multiplier;
 		return *this;
 	}
 
@@ -222,6 +222,22 @@ public:
 		{
 			if (zero == 0) zero = 0;
 		}
+	}
+
+
+	constexpr bool operator==(const my_t& other) const noexcept
+	{
+		for (size_t i = N; i --> 0;)
+		{
+			if (this->data[i] != other.data[i])
+				return false;
+		}
+
+		return true;
+	}
+	constexpr bool operator!=(const my_t& other) const noexcept
+	{
+		return !(*this == other);
 	}
 
 #undef common_vec
