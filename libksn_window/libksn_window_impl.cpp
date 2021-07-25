@@ -442,8 +442,8 @@ public:
 		}
 		break;
 
-
-		default: break;
+		default:
+			break;
 		};
 
 
@@ -719,6 +719,7 @@ public:
 			if (!(window_style & window_style::hidden)) ShowWindow(this->m_window, SW_SHOW);
 
 			//Check whether mouse is initially inside the window
+			if constexpr (true)
 			{
 				POINT cursor_pos;
 				GetCursorPos(&cursor_pos);
@@ -742,6 +743,7 @@ public:
 			}
 
 			//Set mouse tracking for WM_MOUSELEAVE
+			if constexpr (true)
 			{
 				TRACKMOUSEEVENT track_info;
 				track_info.cbSize = sizeof(track_info);
@@ -750,8 +752,12 @@ public:
 				TrackMouseEvent(&track_info);
 			}
 
+			//Set cursor to be an arrow and not the whatever-comes-to-os's-mind
+			SetCursor(LoadCursorW(nullptr, IDC_ARROW));
+
+			//Get rid of all "default" messages
+			if constexpr (true)
 			{
-				//Get rid of all "default" messages
 				MSG msg;
 				int threshold = 32; //But don't keep going for too long
 				while (threshold-- > 0)
@@ -768,7 +774,7 @@ public:
 		}
 		else
 		{
-			//If something has broken, undid everything that hasn't but preserve the winapi error
+			//If something has broken, undid everything that hasn't but preserve the WinAPI error
 			int last_error = GetLastError();
 			this->close();
 			SetLastError(last_error);
@@ -813,9 +819,8 @@ public:
 		uint16_t client_width, client_height;
 		uint16_t window_width, window_height;
 		
+		if constexpr (true)
 		{
-			//SetWindowPos(this->m_window, NULL, 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE);
-
 			WINDOWINFO result_info;
 			result_info.cbSize = sizeof(result_info);
 			GetWindowInfo(this->m_window, &result_info);
@@ -1180,4 +1185,9 @@ void window_t::set_cursor_visible(bool visible) const noexcept
 
 _KSN_END
 
+
+
+//I don't remember why did i decide to not build that file and rather just include it here
+//but it works and i'm a little bit scared to change soething
+//I hope it will pay off when i will write implementations for other OS'es (if that day will ever come)
 #include "libksn_window_impl_independend.cpp"
