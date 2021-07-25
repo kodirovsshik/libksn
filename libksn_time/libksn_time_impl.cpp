@@ -2,7 +2,14 @@
 #include <ksn/time.hpp>
 
 #include <chrono>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <Windows.h>
+#endif
+
 #include <thread>
+
 
 
 
@@ -155,10 +162,27 @@ bool stopwatch::is_started() const noexcept
 
 
 
-#ifdef _KSN_COMPILER_MSVC
 
-#define NOMINMAX
-#include <Windows.h>
+
+namespace
+{
+	void busy_nanosleep(int64_t dt, bool absolute)
+	{
+		if (dt < 0)
+			return;
+
+		if (!absolute)
+			dt += ksn::time::now().as_nsec();
+
+		while (ksn::time::now().as_nsec() < dt);
+	}
+
+	ksn::time hybrid_sleep_threshold;
+}
+
+
+
+#ifdef _WIN32
 
 namespace
 {
@@ -212,6 +236,27 @@ namespace
 	} _sentry;
 }
 
+
+#else
+
+namespace
+{
+	void nanosleep(int64_t dt, bool absolute)
+	{
+		if (dt < 0)
+			return;
+
+		if (!absolute)
+			dt += ksn::time::now().as_nsec();
+
+		std::this_thread::sleep_for(std::chrono::nanoseconds(dt));
+	}
+}
+
+#endif
+
+
+
 void sleep_for(time dt)
 {
 	nanosleep(dt.as_nsec(), false);
@@ -221,12 +266,73 @@ void sleep_until(time point)
 	nanosleep(point.as_nsec(), true);
 }
 
+void busy_sleep_for(time dt)
+{
+	busy_nanosleep(dt.as_nsec(), false);
+}
+void busy_sleep_until(time point)
+{
+	busy_nanosleep(point.as_nsec(), true);
+}
 
-#else
+void hybrid_sleep_for(time dt)
+{
+	if (!hybrid_sleep_threshold || dt < hybrid_sleep_threshold)
+		busy_sleep_for(dt);
+	else
+		sleep_for(dt);
+}
+void hybrid_sleep_until(time point)
+{
+	if (!hybrid_sleep_threshold || (point - ksn::time::now()) < hybrid_sleep_threshold)
+		busy_sleep_until(point);
+	else
+		sleep_until(point);
+}
 
-#error Not implemented for this platform
 
-#endif
+ksn::time init_hybrid_sleep_threshold(float tolerance) noexcept
+{
+	ksn::sleep_for(ksn::time::from_msec(16));
+
+	auto single_test = [&]() -> size_t
+	{
+		ksn::stopwatch sw;
+
+		size_t low = 1;
+		size_t high = 16;
+		size_t dt;
+
+		while (low != high)
+		{
+			size_t mid = (low + high) / 2;
+
+			sw.start();
+			ksn::sleep_for(ksn::time::from_msec(mid));
+			dt = sw.stop().as_usec();
+
+			if (fabsf(dt * 1e-3f / mid - 1) > tolerance)
+				low = mid + 1;
+			else
+				high = mid;
+		}
+
+		return low;
+	};
+
+	size_t total = 0;
+
+	static constexpr size_t N = 10;
+
+	for (size_t i = N; i-- > 0;)
+		total += single_test();
+
+	return hybrid_sleep_threshold = (ksn::time::from_usec(total * 1000 / N));
+}
+ksn::time get_hybrid_sleep_threshold() noexcept
+{
+	return hybrid_sleep_threshold;
+}
 
 
 _KSN_END

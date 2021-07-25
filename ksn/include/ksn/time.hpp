@@ -73,6 +73,16 @@ public:
 void sleep_for(time dt);
 void sleep_until(time point);
 
+void busy_sleep_for(time dt);
+void busy_sleep_until(time point);
+
+void hybrid_sleep_for(time dt);
+void hybrid_sleep_until(time point);
+
+
+ksn::time init_hybrid_sleep_threshold(float max_relative_error = 0.1f) noexcept;
+ksn::time get_hybrid_sleep_threshold() noexcept;
+
 
 _KSN_END
 
