@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <stdio.h>
+
 
 
 _KSN_BEGIN
@@ -23,7 +25,7 @@ consteval size_t countof(const T(&)[N]) noexcept;
 
 
 template<class ...args_t>
-constexpr void nop(args_t&&...) noexcept {};
+constexpr void nop(args_t&&...) noexcept;
 
 
 
@@ -157,6 +159,13 @@ inline volatile int raise_DE();
 
 
 
+template<class char1_t, class char2_t>
+FILE* fopen(const char1_t* name, const char2_t* mode) noexcept;
+
+
+
+
+
 _KSN_END
 
 
@@ -190,9 +199,9 @@ consteval size_t countof(const T(&)[N]) noexcept
 
 
 
-//
-//template<class ...args_t>
-//consteval void nop(args_t&&...) noexcept {}
+
+template<class ...args_t>
+constexpr void nop(args_t&&...) noexcept {}
 
 
 
@@ -397,8 +406,6 @@ constexpr void bswap(trivial_t& data) noexcept
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(pop)
 #endif
-
-
 
 _KSN_END
 
