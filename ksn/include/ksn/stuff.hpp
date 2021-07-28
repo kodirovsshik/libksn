@@ -159,13 +159,6 @@ inline volatile int raise_DE();
 
 
 
-template<class char1_t, class char2_t>
-FILE* fopen(const char1_t* name, const char2_t* mode) noexcept;
-
-
-
-
-
 _KSN_END
 
 
