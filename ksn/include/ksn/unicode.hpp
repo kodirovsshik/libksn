@@ -4,14 +4,15 @@
 
 
 #include <ksn/ksn.hpp>
-#include <type_traits>
 #include <ksn/stuff.hpp>
 
 #include <wchar.h>
 
+#include <type_traits>
 #include <string>
 
 #ifdef _WIN32
+#define NOMINMAX
 #include <Windows.h>
 #endif
 
@@ -353,6 +354,33 @@ out_str_t unicode_string_convert(const in_str_t& str)
 	}
 
 	return result;
+}
+
+
+
+
+
+template<class char1_t, class char2_t>
+FILE* fopen(const char1_t* name, const char2_t* mode) noexcept
+{
+	try
+	{
+#ifdef _WIN32
+		return _wfopen(
+			ksn::unicode_string_convert<std::wstring>(name).c_str(),
+			ksn::unicode_string_convert<std::wstring>(mode).c_str()
+		);
+#else
+		return ::fopen(
+			(const char*)ksn::unicode_string_convert<std::u8string>(name).c_str(),
+			(const char*)ksn::unicode_string_convert<std::u8string>(mode).c_str()
+		)
+#endif
+	}
+	catch (...)
+	{
+		return nullptr;
+	}
 }
 
 
