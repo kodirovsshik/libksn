@@ -268,6 +268,9 @@
 		static_assert(sizeof(double) == 8, _KSN_TRIVIAL_FLOAT_SIZE_FAIL(double, 8));
 	#endif
 
+	#undef _KSN_TRIVIAL_INT_SIZE_FAIL
+	#undef _KSN_TRIVIAL_FLOAT_SIZE_FAIL
+
 #endif
 
 
@@ -291,6 +294,8 @@
 		static_assert(sizeof(void*) == 4, _KSN_IS_64_FAILURE_MESSAGE);
 		static_assert(SIZE_MAX == UINT32_MAX, _KSN_IS_64_FAILURE_MESSAGE);
 	#endif
+
+	#undef _KSN_IS_64_FAILURE_MESSAGE
 
 #endif
 
