@@ -5,11 +5,11 @@
 
 
 #include <ksn/ksn.hpp>
-#include <ksn/stuff.hpp>
+#include <ksn/unicode.hpp>
 
 #include <vector>
-#include <variant>
 #include <iostream>
+#include <string>
 
 #include <stdarg.h>
 
@@ -40,8 +40,8 @@ public:
 
 
 	inline int add_file(FILE* f, bool take_ownership = false) noexcept;
-	template<class char1_t, class char2_t>
-	inline int add_file(const char1_t* file_name, const char2_t* open_mode = "w") noexcept;
+	template<class char1_t, class char2_t> requires(!std::is_same_v<FILE, char1_t>)
+	inline int add_file(const char1_t* file_name, const char2_t* open_mode) noexcept;
 
 
 	inline void log(const char* fmt, ...) noexcept;
@@ -101,7 +101,7 @@ int file_logger::add_file(FILE* fd, bool take_ownership) noexcept
 	return file_logger::add_ok;
 }
 
-template<class char1_t, class char2_t>
+template<class char1_t, class char2_t> requires(!std::is_same_v<FILE, char1_t>)
 int file_logger::add_file(const char1_t* file_name, const char2_t* open_mode) noexcept
 {
 	return this->add_file(ksn::fopen(file_name, open_mode), true);
