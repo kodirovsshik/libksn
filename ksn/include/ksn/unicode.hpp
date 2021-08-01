@@ -367,13 +367,13 @@ FILE* fopen(const char1_t* name, const char2_t* mode) noexcept
 	{
 #ifdef _WIN32
 		return _wfopen(
-			ksn::unicode_string_convert<std::wstring>(name).c_str(),
-			ksn::unicode_string_convert<std::wstring>(mode).c_str()
+			ksn::unicode_string_convert<std::wstring>(std::basic_string<char1_t>(name)).c_str(),
+			ksn::unicode_string_convert<std::wstring>(std::basic_string<char2_t>(mode)).c_str()
 		);
 #else
 		return ::fopen(
-			(const char*)ksn::unicode_string_convert<std::u8string>(name).c_str(),
-			(const char*)ksn::unicode_string_convert<std::u8string>(mode).c_str()
+			(const char*)ksn::unicode_string_convert<std::u8string>(std::basic_string<char1_t>(name)).c_str(),
+			(const char*)ksn::unicode_string_convert<std::u8string>(std::basic_string<char2_t>(mode)).c_str()
 		)
 #endif
 	}
