@@ -71,7 +71,7 @@ image_bgra_t::load_result_t image_bgra_t::load_from_file(const char* fname) noex
 
 	try
 	{
-		FILE* f = fopen(fname, "rb");
+		FILE* f = ::fopen(fname, "rb");
 		if (!f) return load_result::file_unavailable;
 
 		struct __on_return_t
