@@ -77,11 +77,11 @@ uint16_t window_t::get_client_height() const noexcept
 {
 	return this->get_client_size().second;
 }
-void window_t::set_client_width(uint16_t w) const noexcept
+void window_t::set_client_width(uint16_t w) noexcept
 {
 	this->set_client_size(w, this->get_client_height());
 }
-void window_t::set_client_height(uint16_t h) const noexcept
+void window_t::set_client_height(uint16_t h) noexcept
 {
 	this->set_client_size(this->get_client_width(), h);
 }
@@ -93,21 +93,21 @@ int16_t window_t::get_client_y() const noexcept
 {
 	return this->get_client_position().second;
 }
-void window_t::set_client_x(int16_t x) const noexcept
+void window_t::set_client_x(int16_t x) noexcept
 {
 	this->set_client_position(x, this->get_client_y());
 }
-void window_t::set_client_y(int16_t y) const noexcept
+void window_t::set_client_y(int16_t y) noexcept
 {
 	this->set_client_position(this->get_client_x(), y);
 }
 
-void window_t::set_client_position(std::pair<int16_t, int16_t> pos) const noexcept
+void window_t::set_client_position(std::pair<int16_t, int16_t> pos) noexcept
 {
 	return this->set_client_position(pos.first, pos.second);
 }
 
-void window_t::set_client_size(std::pair<uint16_t, uint16_t> size) const noexcept
+void window_t::set_client_size(std::pair<uint16_t, uint16_t> size) noexcept
 {
 	return this->set_client_size(size.first, size.second);
 }

@@ -920,6 +920,7 @@ namespace
 			WNDCLASSW wcW{};
 			wcW.lpszClassName = L"_LIBKSN_window_";
 			wcW.lpfnWndProc = window_t::_window_impl::__ksn_wnd_proc;
+			wcW.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
 			RegisterClassW(&wcW);
 		}
 
@@ -1052,12 +1053,26 @@ std::pair<uint16_t, uint16_t> window_t::get_client_size() const noexcept
 	return { uint16_t(wi.rcClient.right - wi.rcClient.left), uint16_t(wi.rcClient.bottom - wi.rcClient.top) };
 }
 
-void window_t::set_client_size(uint16_t width, uint16_t height) const noexcept
+void window_t::set_client_size(uint16_t width, uint16_t height) noexcept
 {
 	RECT size = { 0, 0, (long)width, (long)height };
 	auto window = this->m_impl->m_window;
+	auto prev_size = this->get_client_size();
+
 	AdjustWindowRectEx(&size, GetWindowLongA(window, GWL_STYLE), false, 0);
 	SetWindowPos(window, NULL, 0, 0, (uint16_t)(size.right - size.left), (uint16_t)(size.bottom - size.top), SWP_NOMOVE | SWP_NOZORDER);
+
+	ksn::event_t ev;
+	ev.type = ksn::event_type_t::resize;
+	ev.window_resize_data.width_new = width;
+	ev.window_resize_data.height_new = height;
+	ev.window_resize_data.width_old = prev_size.first;
+	ev.window_resize_data.height_old = prev_size.second;
+	try
+	{
+		this->m_impl->m_queue.push_back(ev);
+	}
+	catch (...) {}
 }
 
 std::pair<int16_t, int16_t> window_t::get_client_position() const noexcept
@@ -1068,7 +1083,7 @@ std::pair<int16_t, int16_t> window_t::get_client_position() const noexcept
 	return { int16_t(wi.rcClient.left), int16_t(wi.rcClient.top) };
 }
 
-void window_t::set_client_position(int16_t x, int16_t y) const noexcept
+void window_t::set_client_position(int16_t x, int16_t y) noexcept
 {
 	RECT pos;
 	auto window = this->m_impl->m_window;
@@ -1081,6 +1096,20 @@ void window_t::set_client_position(int16_t x, int16_t y) const noexcept
 
 	AdjustWindowRectEx(&pos, GetWindowLongA(window, GWL_STYLE), false, 0);
 	SetWindowPos(window, NULL, pos.left, pos.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+
+	auto prev_pos = this->get_client_position();
+
+	event_t ev;
+	ev.type = event_type_t::move;
+	ev.window_move_data.x_new = x;
+	ev.window_move_data.y_new = y;
+	ev.window_move_data.x_old = prev_pos.first;
+	ev.window_move_data.y_old = prev_pos.second;
+	try
+	{
+		this->m_impl->m_queue.push_back(ev);
+	}
+	catch (...) {}
 }
 
 uint32_t window_t::get_monitor_framerate() const noexcept
@@ -1119,18 +1148,48 @@ void window_t::draw_pixels_bgra_front(const void* data, uint16_t x, uint16_t y, 
 
 
 
-void window_t::set_fullscreen_windowed() const noexcept
+void window_t::set_fullscreen_windowed() noexcept
 {
 	HMONITOR monitor = MonitorFromWindow(this->m_impl->m_window, MONITOR_DEFAULTTONEAREST);
 	if (monitor == nullptr) return;
 
 	auto window = this->m_impl->m_window;
 
+	auto prev_size = this->get_client_size();
+	auto prev_pos = this->get_client_position();
+
 	MONITORINFO info;
 	info.cbSize = sizeof(info);
 	GetMonitorInfoA(monitor, &info);
 	AdjustWindowRectEx(&info.rcMonitor, GetWindowLongA(window, GWL_STYLE), false, 0);
 	SetWindowPos(window, HWND_TOP, info.rcMonitor.left, info.rcMonitor.top, info.rcMonitor.right - info.rcMonitor.left, info.rcMonitor.bottom - info.rcMonitor.top, 0);
+
+	auto new_size = this->get_client_size();
+	auto new_pos = this->get_client_position();
+
+	event_t ev;
+
+	ev.type = event_type_t::resize;
+	ev.window_resize_data.width_new = new_size.first;
+	ev.window_resize_data.height_new = new_size.second;
+	ev.window_resize_data.width_old = prev_size.first;
+	ev.window_resize_data.height_old = prev_size.second;
+	try
+	{
+		this->m_impl->m_queue.push_back(ev);
+	}
+	catch (...) {}
+
+	ev.type = event_type_t::move;
+	ev.window_move_data.x_new = new_pos.first;
+	ev.window_move_data.y_new = new_pos.second;
+	ev.window_move_data.x_old = prev_pos.first;
+	ev.window_move_data.y_old = prev_pos.second;
+	try
+	{
+		this->m_impl->m_queue.push_back(ev);
+	}
+	catch (...) {}
 }
 
 void window_t::set_cursor_capture(bool capture) noexcept
