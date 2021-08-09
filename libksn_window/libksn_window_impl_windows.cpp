@@ -118,12 +118,11 @@ public:
 				WINDOWINFO info;
 				info.cbSize = sizeof(info);
 				GetWindowInfo(win_impl.m_window, &info);
-				ClipCursor(&info.rcClient);
+				
+				if (win_impl.m_is_clipping)
+					ClipCursor(&info.rcClient);
 
 				RECT client_area = info.rcClient;
-
-				if (win_impl.m_is_clipping)
-					ClipCursor(&client_area);
 
 				if (win_impl.m_is_repetitive_resize_enabled)
 				{
@@ -464,9 +463,6 @@ public:
 
 
 public:
-
-	static HDC s_screen_hdc;
-
 
 	std::deque<event_t> m_queue;
 	HWND m_window;
@@ -885,7 +881,7 @@ public:
 		bitmapinfo.bmiHeader.biBitCount = bits;
 		bitmapinfo.bmiHeader.biCompression = BI_RGB;
 
-		//Quick time measure shows that this is slower than me waking up on weekend
+		//Quick time measure shows that this is slower than me waking up on a weekend
 		//Jokes aside, 4-5x slower
 		//StretchDIBits(this->m_hdc, x, y, width, height, x, y, width, height, data, &bitmapinfo, DIB_RGB_COLORS, SRCCOPY);
 
@@ -906,9 +902,6 @@ public:
 
 
 
-HDC window_t::_window_impl::s_screen_hdc = GetDC(nullptr);
-
-
 
 
 namespace
@@ -926,7 +919,6 @@ namespace
 
 		~__library_constructor_t() noexcept
 		{
-			ReleaseDC(nullptr, window_t::_window_impl::s_screen_hdc);
 			UnregisterClassA("_LIBKSN_window_", NULL);
 		}
 

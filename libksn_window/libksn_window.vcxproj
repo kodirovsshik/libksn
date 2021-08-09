@@ -176,7 +176,7 @@
     <ClInclude Include="..\ksn\include\ksn\window.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libksn_window_impl.cpp" />
+    <ClCompile Include="libksn_window_impl_windows.cpp" />
     <None Include="libksn_window_impl_independend.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
