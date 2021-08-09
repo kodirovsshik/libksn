@@ -26,12 +26,16 @@ public:
 	int64_t as_usec() const noexcept; //Return current time as microseconds since epoch
 	int64_t as_msec() const noexcept; //Return current time as milliseconds since epoch
 	int64_t as_sec() const noexcept; //Return current time as seconds since epoch
+	float as_float_sec() const noexcept; //Current time as seconds since epoch
+	double as_double_sec() const noexcept; //Current time as seconds since epoch
 
 
 	static time from_nsec(int64_t nanoseconds_since_epoch) noexcept;
 	static time from_usec(int64_t microseconds_since_epoch) noexcept;
 	static time from_msec(int64_t milliseconds_since_epoch) noexcept;
 	static time from_sec(int64_t seconds_since_epoch) noexcept;
+	static time from_float_sec(float seconds_since_epoch) noexcept;
+	static time from_double_sec(double seconds_since_epoch) noexcept;
 
 
 	static time now() noexcept; //Current time

@@ -39,6 +39,14 @@ int64_t time::as_sec() const noexcept
 {
 	return this->m_nsec / 1000000000;
 }
+float time::as_float_sec() const noexcept
+{
+	return this->m_nsec / 1e9f;
+}
+double time::as_double_sec() const noexcept
+{
+	return this->m_nsec / 1e9;
+}
 
 
 
@@ -57,6 +65,14 @@ time time::from_msec(int64_t ms) noexcept
 time time::from_sec(int64_t s) noexcept
 {
 	return time(s * 1000000000);
+}
+time time::from_float_sec(float seconds_since_epoch) noexcept
+{
+	return time::from_nsec(int64_t(seconds_since_epoch * 1e9f));
+}
+time time::from_double_sec(double seconds_since_epoch) noexcept
+{
+	return time::from_nsec(int64_t(seconds_since_epoch * 1e9));
 }
 
 
