@@ -39,7 +39,7 @@
 
 //Well, this is not an "external linkage" function in fact, but it behaves
 //as an external linkage variable and can be defined the same way
-//in many files without violating ODR and causing linker errors
+//in many files without causing linker errors
 #define KSN_EXTERNAL_LINKAGE_FUNCTION inline
 
 
@@ -95,8 +95,10 @@
 		#define LDBL_DECIMAL_DIG DBL_DECIMAL_DIG
 	#endif
 
+	#define _KSN_RESTRICT __restrict
 
-#elif defined _KSN_COMPILER_GCC
+
+#elif defined _KSN_COMPILER_GNU
 
 
 	#ifndef _KSN_IS_64
@@ -106,6 +108,8 @@
 			#define _KSN_IS_64 0
 		#endif
 	#endif
+
+	#define _KSN_RESTRICT __restrict
 
 
 #else
@@ -132,10 +136,6 @@
 #ifndef _KSN_COMPILER_MSVC
 
 	#define _KSN_CPP_VER __cplusplus
-
-	#ifndef _STD
-		#define _STD ::std::
-	#endif
 
 #endif
 
@@ -165,7 +165,9 @@
 #elif !defined __KSN_DEBUG && !defined __KSN_RELEASE
 
 	#ifndef _KSN_NO_IS_DEBUG_WARNING
-		#error Failed to define _KSN_IS_DEBUG_BUILD. You can #define _KSN_NO_IS_DEBUG_WARNING to acknowledge the compiler that you've recived this warning (undefined macro will be defined as 0)
+		#error Failed to define _KSN_IS_DEBUG_BUILD because neither debug nor release macro is defined. \
+Define _KSN_IS_DEBUG_BUILD yourself to be 0 or 1 before any ksn header or reconfigure your project settings. \
+You can #define _KSN_NO_IS_DEBUG_WARNING to acknowledge the compiler that you've recived this warning (release build will be assumed)
 	#endif
 
 	#define _KSN_IS_DEBUG_BUILD 0
@@ -173,7 +175,8 @@
 #else //defined __KSN_DEBUG && defined __KSN_RELEASE
 
 	#ifndef _KSN_IS_DEBUG_BUILD
-		#error Failed to define _KSN_IS_DEBUG_BUILD because both debug and release macros are defined. Define _KSN_IS_DEBUG_BUILD yourself before any ksn header or reconfigure your project settings
+		#error Failed to define _KSN_IS_DEBUG_BUILD because both debug and release macros are defined. \
+Define _KSN_IS_DEBUG_BUILD yourself to be 0 or 1 before any ksn header or reconfigure your project settings
 	#endif
 
 #endif
@@ -214,7 +217,7 @@
 
 
 //Expression that will only be executed on debug builds
-#define _KSN_DEBUG_EXPR(expression) if constexpr (_KSN_IS_DEBUG_BUILD) { expression; }
+#define _KSN_DEBUG_EXPR(expression) if constexpr (_KSN_IS_DEBUG_BUILD) { expression; } else []{}()
 
 
 
@@ -324,6 +327,10 @@
 	#define _KSN_UNLIKELY
 #endif
 
+#ifndef _KSN_RESTRICT
+	#define _KSN_RESTRICT
+#endif
+
 
 
 
@@ -334,13 +341,6 @@ _KSN_BEGIN
 
 _KSN_DETAIL_BEGIN
 _KSN_DETAIL_END
-
-
-
-//A type instance of which when passed specifies that the created object shouldn't be initialized (if the class supports it)
-struct uninitialized_t {} static constexpr uninitialized;
-
-
 
 _KSN_END
 
