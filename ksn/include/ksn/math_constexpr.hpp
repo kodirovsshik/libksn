@@ -131,9 +131,8 @@ template<std::unsigned_integral T>
 constexpr T isqrt(T n)
 {
 	if (n == T(-1))
-	{
-		return (1 << (sizeof(T) * 8 / 2)) - 1;
-	}
+		return (1 << (sizeof(T) / 2)) - 1;
+
 	T x = n, y = 1;
 	while (x > y)
 	{
