@@ -317,7 +317,7 @@ ksn::time init_hybrid_sleep_threshold(float tolerance) noexcept
 
 		size_t low = 1;
 		size_t high = 16;
-		size_t dt;
+		uint64_t dt;
 
 		while (low != high)
 		{
