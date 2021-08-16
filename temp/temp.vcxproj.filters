@@ -18,10 +18,13 @@
     <ClCompile Include="libksn_temp1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="temp0.cpp">
+    <ClCompile Include="image_stuff.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="temp1.cpp">
+    <ClCompile Include="renderloop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="temp2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
