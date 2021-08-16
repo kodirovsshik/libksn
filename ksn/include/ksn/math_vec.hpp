@@ -141,8 +141,8 @@ public:
 	}
 
 
-	template<class ofp_t, size_t N>
-	constexpr std::common_type_t<fp_t, ofp_t> friend operator*(const vec<N, ofp_t>& b) noexcept
+	template<class ofp_t>
+	constexpr std::common_type_t<fp_t, ofp_t> operator*(const vec<N, ofp_t>& b) noexcept
 	{
 		std::common_type_t<fp_t, ofp_t> result = 0;
 		for (size_t i = 0; i < N; ++i) result += (*this)[i] * b[i];
