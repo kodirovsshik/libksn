@@ -18,7 +18,7 @@ _KSN_BEGIN
 
 
 template<class T, size_t N>
-consteval size_t countof(const T(&)[N]) noexcept;
+constexpr size_t countof(const T(&)[N]) noexcept;
 
 
 
@@ -183,10 +183,23 @@ _KSN_BEGIN
 
 
 
+_KSN_DETAIL_BEGIN
+
+template<class sizeable_t>
+concept sizeable = requires(sizeable_t sizeable) { sizeable.size(); };
+
+_KSN_DETAIL_END
+
 template<class T, size_t N>
-consteval size_t countof(const T(&)[N]) noexcept
+constexpr size_t countof(const T(&)[N]) noexcept
 {
 	return N;
+}
+
+template<detail::sizeable container_t>
+constexpr auto countof(container_t&& container) noexcept
+{
+	return container.size();
 }
 
 
