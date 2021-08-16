@@ -7,11 +7,14 @@
 #include <ksn/ksn.hpp>
 #include <ksn/fast_pimpl.hpp>
 
+#include <ksn/stuff.hpp>
+
 
 
 #ifdef _WIN32
 
 struct HWND__;
+struct HBITMAP__;
 struct HDC__;
 struct tagMSG;
 
@@ -389,6 +392,32 @@ struct window_style
 
 
 
+class window_t;
+
+struct resizemove_data_t
+{
+	struct
+	{
+		int32_t x_new, y_new;
+		int32_t x_old, y_old;
+	} window_move_data{};
+
+	struct
+	{
+		uint16_t width_new, height_new;
+		uint16_t width_old, height_old;
+	} window_resize_data{};
+
+	window_t* window = nullptr;
+
+	bool resize = false;
+	bool move = false;
+};
+
+using window_resizemove_handle_t = void(*)(const resizemove_data_t*);
+
+
+
 class window_t
 {
 public:
@@ -396,23 +425,24 @@ public:
 	class _window_impl;
 	class _window_independend_impl; //OS-independend stuff
 
-#if defined _KSN_COMPILER_MSVC && defined _WIN32
+#if defined _WIN32
 
 	using native_window_t = HWND__*;
 	using native_event_t = tagMSG;
 
 #ifdef _WIN64
-	ksn::fast_pimpl<_window_impl, 88, 8> m_impl;
+	ksn::fast_pimpl<_window_impl, 208, 8> m_impl;
 #else
-	ksn::fast_pimpl<_window_impl, 52, 4> m_impl;
+	ksn::fast_pimpl<_window_impl, 128, 4> m_impl;
 #endif
+
 #else
 
 #error This platform is not (possibly yet) supported by <ksn/window.hpp>
 
 #endif
 
-	ksn::fast_pimpl<_window_independend_impl, sizeof(uint64_t) + sizeof(uint64_t), alignof(uint64_t)> m_impl_indep;
+	ksn::fast_pimpl<_window_independend_impl, ksn::align_up(13 + sizeof(void*)*2, alignof(uint64_t)), alignof(uint64_t)> m_impl_indep;
 
 
 
@@ -427,7 +457,10 @@ public:
 	window_t() noexcept;
 	window_t(const window_t&) = delete;
 	window_t(window_t&&) noexcept;
-	~window_t() noexcept;
+	virtual ~window_t() noexcept;
+
+
+	void swap(window_t& other) noexcept;
 
 
 	virtual window_open_result_t open(uint16_t width, uint16_t height, const char* title, window_style_t style = window_style::default_style) noexcept;
@@ -446,11 +479,12 @@ public:
 	void discard_stored_events() noexcept;
 
 	bool is_open() const noexcept;
+	operator bool() const noexcept;
 
 	bool has_focus() const noexcept;
 	void request_focus() const noexcept;
 
-	//Limits the frame rate (use window_t::tick() to wait for a frame end)
+	//Limits the frame rate (use window_t::tick() to wait for a frame time to end)
 	//0 = unlimited framerate
 	//Unlimited by default
 	void set_framerate(uint32_t fps) noexcept;
@@ -492,7 +526,9 @@ public:
 
 
 #ifdef _WIN32
-	HDC__* winapi_get_hdc() const noexcept;
+	HDC__* winapi_get_device_context() const noexcept;
+	HDC__* winapi_get_memory_device_context() const noexcept;
+	HBITMAP__* winapi_get_bitmap() const noexcept;
 #endif
 
 	//Draw a rectangle of pixels in BGR format (3 bytes per pixel) right into the screen front buffer at position (x; y) ((0; 0) is top left)
@@ -516,8 +552,34 @@ public:
 	bool set_title(const char16_t* name) const noexcept;
 	bool set_title(const char32_t* name) const noexcept;
 
+	void set_repeat_keyboard(bool enabled = true) noexcept;
+
+	bool set_size_constraint(uint16_t min_width, uint16_t min_height, uint16_t max_width, uint16_t max_height) noexcept;
+	bool set_size_constraint(std::pair<uint16_t, uint16_t> min_size, std::pair<uint16_t, uint16_t> max_size) noexcept;
+
+	bool set_size_min_width(uint16_t) noexcept;
+	bool set_size_max_width(uint16_t) noexcept;
+	bool set_size_min_height(uint16_t) noexcept;
+	bool set_size_max_height(uint16_t) noexcept;
+
+	void set_special_keys_check_on_event(bool check_enabled = true) noexcept;
+
+	void arbitrary_data_set_pointer(void* data, size_t buffer_size) noexcept;
+	bool arbitrary_data_allocate(size_t alloc_size) noexcept;
+	void arbitrary_data_deallocate() noexcept;
+	
+	void* arbitrary_data_get_pointer() noexcept;
+	size_t arbitrary_data_get_size() noexcept;
+
+	void set_resizemode_handle(window_resizemove_handle_t) noexcept;
+	window_resizemove_handle_t get_resizemove_handle() const noexcept;
+
+	void set_thread_safe_events(bool enabled = true) noexcept;
 };
 
+
+
+void swap(window_t& a, window_t& b) noexcept;
 
 
 _KSN_END
