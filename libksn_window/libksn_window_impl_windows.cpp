@@ -872,8 +872,9 @@ public:
 
 		if (result == window_open_result::ok || result == window_open_result::ok_but_direct_drawing_unsupported)
 		{
-			//Window is created hidden initially
-			if (!(window_style & window_style::hidden)) ShowWindow(this->m_window, SW_SHOW);
+			WINDOWINFO window_info;
+			window_info.cbSize = sizeof(window_info);
+			GetWindowInfo(this->m_window, &window_info);
 
 			//Check whether mouse is initially inside the window
 			if constexpr (true)
@@ -882,23 +883,19 @@ public:
 				GetCursorPos(&cursor_pos);
 				ScreenToClient(this->m_window, &cursor_pos);
 
-				WINDOWINFO info;
-				info.cbSize = sizeof(info);
-				GetWindowInfo(this->m_window, &info);
-
 				this->m_size_min = adjust_size_to_client(GetSystemMetrics(SM_CXMINTRACK), GetSystemMetrics(SM_CYMINTRACK), this->m_window);
 
 				this->m_mouse_inside =
-					cursor_pos.x >= info.rcClient.left &&
-					cursor_pos.x < info.rcClient.right&&
-					cursor_pos.y >= info.rcClient.top &&
-					cursor_pos.y < info.rcClient.bottom;
+					cursor_pos.x >= window_info.rcClient.left &&
+					cursor_pos.x < window_info.rcClient.right&&
+					cursor_pos.y >= window_info.rcClient.top &&
+					cursor_pos.y < window_info.rcClient.bottom;
 
-				this->m_last_size.first = uint16_t(info.rcClient.right - info.rcClient.left);
-				this->m_last_size.second = uint16_t(info.rcClient.bottom - info.rcClient.top);
+				this->m_last_size.first = uint16_t(window_info.rcClient.right - window_info.rcClient.left);
+				this->m_last_size.second = uint16_t(window_info.rcClient.bottom - window_info.rcClient.top);
 
-				this->m_last_pos.first = info.rcClient.left;
-				this->m_last_pos.second = info.rcClient.top;
+				this->m_last_pos.first = window_info.rcClient.left;
+				this->m_last_pos.second = window_info.rcClient.top;
 
 				this->m_resizemove_last_pos = this->m_last_pos;
 				this->m_resizemove_last_size = this->m_last_size;
@@ -917,6 +914,9 @@ public:
 			//Set cursor to be an arrow and not the whatever-comes-to-os's-mind
 			SetCursor(LoadCursorW(nullptr, IDC_ARROW));
 
+			//Window is created hidden initially
+			if (!(window_style & window_style::hidden)) ShowWindow(this->m_window, SW_SHOW);
+
 			//Get rid of all "default" messages
 			if constexpr (true)
 			{
@@ -928,10 +928,23 @@ public:
 					{
 						break;
 					}
+					if (msg.message == WM_PAINT)
+					{ //we don't wanna burn user's eyes, right?
+						PAINTSTRUCT pm;
+						BeginPaint(this->m_window, &pm);
+						GetClientRect(this->m_window, &pm.rcPaint);
+
+						HBRUSH black_brush = CreateSolidBrush(RGB(0, 0, 0));
+						FillRect(this->m_hdc, &pm.rcPaint, black_brush);
+						DeleteObject(black_brush);
+
+						EndPaint(this->m_window, &pm);
+					}
 					TranslateMessage(&msg);
 					DispatchMessageW(&msg);
 				}
-				_KSN_DEBUG_EXPR(if (threshold < 0) printf("THRESHOLD REACHED\n\a"));
+				_KSN_DEBUG_EXPR(if (threshold < 0) printf("WINDOW DEFAULT MESSAGES THRESHOLD REACHED\n\a"));
+				//^^^ Just in case ^^^
 			}
 		}
 		else
