@@ -366,10 +366,13 @@ FILE* fopen(const char1_t* name, const char2_t* mode) noexcept
 	try
 	{
 #ifdef _WIN32
+#pragma warning(push) //fuck you whoever decided to make C4996 an error
+#pragma warning(disable : 4996)
 		return _wfopen(
 			ksn::unicode_string_convert<std::wstring>(std::basic_string<char1_t>(name)).c_str(),
 			ksn::unicode_string_convert<std::wstring>(std::basic_string<char2_t>(mode)).c_str()
 		);
+#pragma warning(pop)
 #else
 		return ::fopen(
 			(const char*)ksn::unicode_string_convert<std::u8string>(std::basic_string<char1_t>(name)).c_str(),
