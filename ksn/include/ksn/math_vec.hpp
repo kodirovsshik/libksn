@@ -60,7 +60,10 @@ public:
 	}
 
 
-
+#ifdef _KSN_COMPILER_MSVC
+#pragma warning(push)
+#pragma warning(disable : 26495)
+#endif
 	constexpr vec() noexcept
 	{
 		for (auto& x : this->data) x = 0;
@@ -87,6 +90,9 @@ public:
 			this->data[i] = (fp_t)0;
 		}
 	}
+#ifdef _KSN_COMPILER_MSVC
+#pragma warning(pop)
+#endif
 
 
 
