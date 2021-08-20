@@ -202,7 +202,7 @@ namespace
 
 namespace
 {
-	static HANDLE ksn_sleep_timer;
+	static thread_local HANDLE ksn_sleep_timer;
 
 	void nanosleep(int64_t dt, bool absolute)
 	{
@@ -249,7 +249,7 @@ namespace
 		{
 			if (ksn_sleep_timer) CloseHandle(ksn_sleep_timer);
 		}
-	} _sentry;
+	} thread_local _sentry;
 }
 
 
