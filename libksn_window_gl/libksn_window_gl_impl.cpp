@@ -60,7 +60,7 @@ public:
 	{
 		if (settings.ogl_version_major == 0) return window_open_result::ok;
 
-		HDC hdc = win->winapi_get_hdc();
+		HDC hdc = win->winapi_get_device_context();
 		if (!_process_pfd(hdc, settings.bits_per_color)) return window_open_result::system_error;
 
 		//For OpenGL version > 1.1 use ARB extension to create a context
@@ -258,7 +258,7 @@ window_open_result_t window_gl_t::open(uint16_t width, uint16_t height, const wc
 void window_gl_t::swap_buffers() const noexcept
 {
 	//SwapBuffers(this->m_impl->m_hdc);
-	wglSwapLayerBuffers(this->winapi_get_hdc(), WGL_SWAP_MAIN_PLANE);
+	wglSwapLayerBuffers(this->winapi_get_device_context(), WGL_SWAP_MAIN_PLANE);
 }
 
 
@@ -269,7 +269,7 @@ HGLRC window_gl_t::context_native_handle() const noexcept
 }
 void window_gl_t::context_make_current() const noexcept
 {
-	if (this->m_gl_impl->m_context) wglMakeCurrent(this->winapi_get_hdc(), this->m_gl_impl->m_context);
+	if (this->m_gl_impl->m_context) wglMakeCurrent(this->winapi_get_device_context(), this->m_gl_impl->m_context);
 }
 bool window_gl_t::context_is_current() const noexcept
 {
