@@ -39,12 +39,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_time", "libksn_time\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_crc", "libksn_crc\libksn_crc.vcxproj", "{BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_resource_manager", "libksn_resource_manager\libksn_resource_manager.vcxproj", "{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}"
-	ProjectSection(ProjectDependencies) = postProject
-		{0371B446-4D34-4E8E-B272-65A3B784D6EA} = {0371B446-4D34-4E8E-B272-65A3B784D6EA}
-		{BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9} = {BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libksn_image", "libksn_image\libksn_image.vcxproj", "{82EB5CB3-8EA4-4D02-84C7-0A9864E68B14}"
 	ProjectSection(ProjectDependencies) = postProject
 		{BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9} = {BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9}
@@ -158,14 +152,6 @@ Global
 		{BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9}.Release|x64.Build.0 = Release|x64
 		{BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9}.Release|x86.ActiveCfg = Release|Win32
 		{BB79F2DA-3EF9-4F61-A7BE-CB869C9829D9}.Release|x86.Build.0 = Release|Win32
-		{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}.Debug|x64.ActiveCfg = Debug|x64
-		{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}.Debug|x64.Build.0 = Debug|x64
-		{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}.Debug|x86.ActiveCfg = Debug|Win32
-		{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}.Debug|x86.Build.0 = Debug|Win32
-		{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}.Release|x64.ActiveCfg = Release|x64
-		{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}.Release|x64.Build.0 = Release|x64
-		{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}.Release|x86.ActiveCfg = Release|Win32
-		{E8E26CB1-173F-4BE5-AADA-806E33E2ED2A}.Release|x86.Build.0 = Release|Win32
 		{82EB5CB3-8EA4-4D02-84C7-0A9864E68B14}.Debug|x64.ActiveCfg = Debug|x64
 		{82EB5CB3-8EA4-4D02-84C7-0A9864E68B14}.Debug|x64.Build.0 = Debug|x64
 		{82EB5CB3-8EA4-4D02-84C7-0A9864E68B14}.Debug|x86.ActiveCfg = Debug|Win32
