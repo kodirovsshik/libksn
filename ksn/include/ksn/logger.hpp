@@ -75,8 +75,7 @@ _KSN_BEGIN
 
 int file_logger::add_file(FILE* fd, bool take_ownership) noexcept
 {
-	fpos_t unused;
-	if (!fd || fgetpos(fd, &unused) != 0)
+	if (!fd)
 		return file_logger::add_invalid_file;
 
 	try
