@@ -571,7 +571,7 @@ public:
 	void* arbitrary_data_get_pointer() noexcept;
 	size_t arbitrary_data_get_size() noexcept;
 
-	void set_resizemode_handle(window_resizemove_handle_t) noexcept;
+	void set_resizemove_handle(window_resizemove_handle_t) noexcept;
 	window_resizemove_handle_t get_resizemove_handle() const noexcept;
 
 	void set_thread_safe_events(bool enabled = true) noexcept;

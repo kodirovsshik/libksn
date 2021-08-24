@@ -1501,7 +1501,7 @@ void window_t::set_special_keys_check_on_event(bool check_enabled) noexcept
 	this->m_impl->m_check_special_keys_on_keyboard_event = check_enabled;
 }
 
-void window_t::set_resizemode_handle(window_resizemove_handle_t handle) noexcept
+void window_t::set_resizemove_handle(window_resizemove_handle_t handle) noexcept
 {
 	this->m_impl->m_resizemove_handle = handle;
 }
