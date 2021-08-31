@@ -37,6 +37,7 @@ private:
 	static constexpr bool is_vec_v = is_vec<args...>::value;
 
 
+
 public:
 
 	fp_t data[N];
@@ -60,10 +61,12 @@ public:
 	}
 
 
+
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(push)
 #pragma warning(disable : 26495)
 #endif
+
 	constexpr vec() noexcept
 	{
 		for (auto& x : this->data) x = 0;
@@ -71,25 +74,25 @@ public:
 	template<class ofp_t>
 	constexpr vec(const vec<N, ofp_t>& other) noexcept
 	{
-		for (size_t i = 0; i < N; ++i) (*this)[i] = fp_t(other[i]);
+		for (size_t i = 0; i < N; ++i)
+			(*this)[i] = fp_t(other[i]);
 	}
 	template<class ofp_t>
 	constexpr vec(vec<N, ofp_t>&& other) noexcept
 	{
-		for (size_t i = 0; i < N; ++i) (*this)[i] = (fp_t)std::move(other[i]);
+		for (size_t i = 0; i < N; ++i)
+			(*this)[i] = fp_t(std::move(other[i]));
 	}
 	template<class ofp_t>
 	constexpr vec(std::initializer_list<ofp_t> list) noexcept
 	{
 		for (size_t i = 0; i < std::min(list.size(), N); ++i)
-		{
 			this->data[i] = (fp_t)list.begin()[i];
-		}
+
 		for (size_t i = std::min(list.size(), N); i < N; ++i)
-		{
 			this->data[i] = (fp_t)0;
-		}
 	}
+
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(pop)
 #endif
@@ -100,20 +103,20 @@ public:
 	constexpr common_vec(fp_t, ofp_t, N) operator+(const vec<N, ofp_t>& rhs) noexcept
 	{
 		common_vec(fp_t, ofp_t, N) result;
+
 		for (size_t i = 0; i < N; ++i)
-		{
 			result[i] = (*this)[i] + rhs[i];
-		}
+
 		return result;
 	}
 	template<class ofp_t>
 	constexpr common_vec(fp_t, ofp_t, N) operator-(const vec<N, ofp_t>& rhs) noexcept
 	{
 		common_vec(fp_t, ofp_t, N) result;
+		
 		for (size_t i = 0; i < N; ++i)
-		{
 			result[i] = (*this)[i] - rhs[i];
-		}
+
 		return result;
 	}
 	
@@ -151,7 +154,10 @@ public:
 	constexpr std::common_type_t<fp_t, ofp_t> operator*(const vec<N, ofp_t>& b) noexcept
 	{
 		std::common_type_t<fp_t, ofp_t> result = 0;
-		for (size_t i = 0; i < N; ++i) result += (*this)[i] * b[i];
+
+		for (size_t i = 0; i < N; ++i)
+			result += (*this)[i] * b[i];
+
 		return result;
 	}
 
@@ -160,7 +166,8 @@ public:
 	constexpr fp_t abs2() const noexcept
 	{
 		fp_t result = 0;
-		for (const auto& x : this->data) result += x * x;
+		for (const auto& x : this->data)
+			result += x * x;
 		return result;
 	}
 
@@ -190,7 +197,10 @@ public:
 	constexpr my_t& normalize() noexcept
 	{
 		fp_t multiplier = 1 / this->abs();
-		for (auto& x : this->data) x *= multiplier;
+
+		for (auto& x : this->data)
+			x *= multiplier;
+
 		return *this;
 	}
 
@@ -221,9 +231,10 @@ public:
 	}
 
 
-	void remove_zeros_signs() noexcept
+	constexpr void remove_zeros_signs() noexcept
 	{
-		//lol
+		//Maths: nooo zero can not have a sign!
+		//IEEE 754: haha floats go +0 -0
 		for (auto& zero : this->data)
 		{
 			if (zero == 0) zero = 0;
@@ -263,6 +274,42 @@ using vec4f = vec<4, float>;
 using vec4d = vec<4, double>;
 using vec4l = vec<4, long double>;
 
+
+
+template<size_t N, class fp_t>
+constexpr void swap(ksn::vec<N, fp_t>& a, ksn::vec<N, fp_t>& b)
+{
+	using std::swap;
+	for (size_t i = 0; i < N; ++i)
+		std::swap(a[i], b[i]);
+}
+
+#define _ksn_define_vec_minmax(min_or_max)\
+template<size_t N, class fp_t>\
+constexpr auto min_or_max(const ksn::vec<N, fp_t>& a, const ksn::vec<N, fp_t>& b)\
+{\
+	using std::min_or_max;\
+\
+	ksn::vec<N, fp_t> result;\
+	for (size_t i = 0; i < N; ++i)\
+	{\
+		result = min_or_max(a[i], b[i]);\
+	}\
+\
+	return result;\
+}
+
+_ksn_define_vec_minmax(min);
+_ksn_define_vec_minmax(max);
+
+#undef _ksn_define_vec_minmax
+
+
+template<size_t N, class fp_t>
+constexpr auto clamp(const vec<N, fp_t>& value, const vec<N, fp_t>& lower_bound, const vec<N, fp_t> upper_bound)
+{
+	return max(min(value, upper_bound), lower_bound);
+}
 
 
 _KSN_END
