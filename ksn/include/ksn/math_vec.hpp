@@ -16,6 +16,10 @@
 _KSN_BEGIN
 
 
+template<class test_t, class template_t>
+concept possibly_const = std::is_same_v<test_t, template_t> || std::is_same_v<test_t, const template_t>;
+
+
 template<size_t N, class fp_t = float>
 struct vec
 {
@@ -92,6 +96,11 @@ public:
 		for (size_t i = std::min(list.size(), N); i < N; ++i)
 			this->data[i] = (fp_t)0;
 	}
+	template<possibly_const<fp_t> fp1_t, possibly_const<fp_t> fp2_t> requires(N == 2)
+	constexpr vec(const std::pair<fp1_t, fp2_t>& pair)
+		: data{ pair.first, pair.second }
+	{
+	}
 
 #ifdef _KSN_COMPILER_MSVC
 #pragma warning(pop)
@@ -100,7 +109,7 @@ public:
 
 
 	template<class ofp_t>
-	constexpr common_vec(fp_t, ofp_t, N) operator+(const vec<N, ofp_t>& rhs) noexcept
+	constexpr common_vec(fp_t, ofp_t, N) operator+(const vec<N, ofp_t>& rhs) const noexcept
 	{
 		common_vec(fp_t, ofp_t, N) result;
 
@@ -110,7 +119,7 @@ public:
 		return result;
 	}
 	template<class ofp_t>
-	constexpr common_vec(fp_t, ofp_t, N) operator-(const vec<N, ofp_t>& rhs) noexcept
+	constexpr common_vec(fp_t, ofp_t, N) operator-(const vec<N, ofp_t>& rhs) const noexcept
 	{
 		common_vec(fp_t, ofp_t, N) result;
 		
@@ -122,28 +131,30 @@ public:
 	
 
 
-	template<class ofp_t> requires(std::is_convertible_v<ofp_t, fp_t>)
+	template<class ofp_t>
 	constexpr my_t friend operator*(const my_t& x, ofp_t y) noexcept
 	{
 		common_vec(fp_t, ofp_t, N) result;
+		using common_fp_t = std::common_type_t<fp_t, ofp_t>;
+
 		for (size_t i = 0; i < N; ++i)
 		{
-			result[i] = x[i] * (fp_t)y;
+			result[i] = (common_fp_t)x[i] * (common_fp_t)y;
 		}
 		return result;
 	}
-	template<class ofp_t> requires(std::is_convertible_v<ofp_t, fp_t>)
+	template<class ofp_t>
 	constexpr my_t friend operator/(const my_t& x, ofp_t y) noexcept
 	{
 		return x * (1 / y);
 	}
 
-	template<class ofp_t> requires(std::is_convertible_v<ofp_t, fp_t>)
+	template<class ofp_t>
 	constexpr my_t friend operator*(ofp_t x, const my_t& y) noexcept
 	{
 		return y * x;
 	}
-	template<class ofp_t> requires(std::is_convertible_v<ofp_t, fp_t>)
+	template<class ofp_t>
 	constexpr my_t friend operator/(ofp_t x, const my_t& y) noexcept
 	{
 		return y * (1 / x);
@@ -293,12 +304,11 @@ constexpr auto min_or_max(const ksn::vec<N, fp_t>& a, const ksn::vec<N, fp_t>& b
 	ksn::vec<N, fp_t> result;\
 	for (size_t i = 0; i < N; ++i)\
 	{\
-		result = min_or_max(a[i], b[i]);\
+		result[i] = min_or_max(a[i], b[i]);\
 	}\
 \
 	return result;\
 }
-
 _ksn_define_vec_minmax(min);
 _ksn_define_vec_minmax(max);
 
