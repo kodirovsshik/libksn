@@ -15,23 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libksn_temp1.cpp">
+    <ClCompile Include="limit_formula.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="image_stuff.cpp">
+    <ClCompile Include="temp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="renderloop.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="temp2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="libksn_temp_sum_convergence.cpp">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="temp.h">
