@@ -33,13 +33,13 @@
     <ClInclude Include="..\ksn\include\ksn\math_constexpr.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="..\ksn\include\ksn\math_formula.hpp">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="..\ksn\include\ksn\math_vec.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="..\ksn\include\ksn\math_matrix.hpp">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ksn\include\ksn\math_long_integer.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
