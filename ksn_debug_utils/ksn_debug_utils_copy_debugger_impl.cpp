@@ -52,7 +52,7 @@ copy_debugger::~copy_debugger()
 
 copy_debugger& copy_debugger::operator=(const copy_debugger& other)
 {
-	fprintf(this->log_file, "[COPY DEBUGGER] operator=(const& to %p) at %p\n", &other, this);
+	fprintf(copy_debugger::log_file, "[COPY DEBUGGER] operator=(const& to %p) at %p\n", &other, this);
 	other.check();
 
 	if (copy_debugger::force_debug_breaks)
@@ -63,7 +63,7 @@ copy_debugger& copy_debugger::operator=(const copy_debugger& other)
 
 copy_debugger& copy_debugger::operator=(copy_debugger&& other)
 {
-	fprintf(this->log_file, "[COPY DEBUGGER] operator=(&& to %p) at %p\n", &other, this);
+	fprintf(copy_debugger::log_file, "[COPY DEBUGGER] operator=(&& to %p) at %p\n", &other, this);
 	other.check();
 	//other.signature = 0;
 
@@ -75,7 +75,7 @@ copy_debugger& copy_debugger::operator=(copy_debugger&& other)
 
 void copy_debugger::log() const
 {
-	fprintf(this->log_file, "[COPY DEBUGGER] Log() at %p\n", this);
+	fprintf(copy_debugger::log_file, "[COPY DEBUGGER] Log() at %p\n", this);
 	this->check();
 
 	if (copy_debugger::force_debug_breaks)
@@ -86,10 +86,42 @@ void copy_debugger::check() const
 {
 	if (this->signature != 0xDEADC0DE)
 	{
-		fprintf(this->log_file, "[COPY DEBUGGER] CHECK ERROR AT %p\n\a", this);
+		fprintf(copy_debugger::log_file, "[COPY DEBUGGER] CHECK ERROR AT %p\n\a", this);
 		if (copy_debugger::break_at_check_error)
 			copy_debugger::_break();
 	}
+}
+
+copy_debugger operator+(const copy_debugger& x, const copy_debugger& y)
+{
+	fprintf(copy_debugger::log_file, "[COPY DEBUGGER] operator+() at %p and %p (RVO)\n", &x, &y);
+
+	x.check();
+	y.check();
+
+	return copy_debugger();
+}
+
+copy_debugger operator-(const copy_debugger& x, const copy_debugger& y)
+{
+	fprintf(copy_debugger::log_file, "[COPY DEBUGGER] operator-() at %p and %p (no RVO)\n", &x, &y);
+
+	x.check();
+	y.check();
+
+	copy_debugger result;
+
+	return std::move(*std::launder(&result));
+}
+
+copy_debugger& copy_debugger::operator+=(const copy_debugger& x)
+{
+	fprintf(copy_debugger::log_file, "[COPY DEBUGGER] operator+=() at %p for %p\n", this, &x);
+
+	x.check();
+	this->check();
+
+	return *this;
 }
 
 _KSN_END

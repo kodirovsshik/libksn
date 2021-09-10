@@ -22,6 +22,7 @@ _KSN_BEGIN
 
 struct copy_debugger
 {
+
 public:
 	volatile uint32_t signature;
 
@@ -33,6 +34,13 @@ public:
 	copy_debugger(const copy_debugger&);
 	copy_debugger(copy_debugger&&);
 	~copy_debugger();
+
+	//RVO
+	friend copy_debugger operator+(const copy_debugger&, const copy_debugger&);
+	//no RVO
+	friend copy_debugger operator-(const copy_debugger&, const copy_debugger&);
+
+	copy_debugger& operator+=(const copy_debugger&);
 
 	copy_debugger& operator=(const copy_debugger&);
 	copy_debugger& operator=(copy_debugger&&);
