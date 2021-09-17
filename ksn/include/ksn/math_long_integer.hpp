@@ -20,7 +20,6 @@
 #include <concepts>
 #include <utility>
 #include <numeric>
-//#include <algorithm>
 
 
 
@@ -173,6 +172,8 @@ struct long_integer_arithmetic_helper
 			return floor(x);
 		}
 	}
+
+
 };
 
 
@@ -208,6 +209,9 @@ private:
 	{
 		if (N <= this->m_capacity)
 			return;
+
+		if (this->m_capacity == 0)
+			return this->allocate(N);
 
 		limb* new_limbs = new limb[N];
 		long_integer_copy(new_limbs, this->m_limbs, this->m_capacity);
@@ -401,26 +405,51 @@ private:
 	template<class T1, class T2, class To>
 	static constexpr void add(To* out, const T1* in1, const T2* in2) noexcept
 	{
-		size_t s1 = in1->count_occupied_limbs(); //upto 8x slower for smalls. TODO: find a threshold
-		size_t s2 = in2->count_occupied_limbs();
+		auto get_size_estimation = []
+		(const auto* obj)
+		{
+			if (obj->capacity() && obj->get_top_limb() == obj->get_sign())
+				return obj->capacity() - 1;
+			else
+				return obj->capacity();
+		};
+
+		size_t s1, s2;
+
+		limb sign1 = in1->get_sign(), sign2 = in2->get_sign();
+
+		if constexpr (std::is_same_v<typename To::adapter_type, detail::_long_integer_storage_adapter_heap>)
+		{
+			s1 = get_size_estimation(in1);
+			s2 = get_size_estimation(in2);
+		}
+		else
+		{
+			s1 = in1->capacity();
+			s2 = in2->capacity();
+		}
+
+		//size_t s1 = in1->count_occupied_limbs(); //upto 8x slower for smalls. TODO: find a threshold
+		//size_t s2 = in2->count_occupied_limbs();
 		//size_t s1 = in1->capacity();
 		//size_t s2 = in2->capacity();
 		if (s2 > s1)
 		{
 			std::swap(s1, s2);
 			std::swap(in1, in2);
+			std::swap(sign1, sign2);
 		}
 
 		size_t so;
 
-		limb sign1 = in1->get_sign(), sign2 = in2->get_sign();
-
 		if constexpr (std::is_same_v<typename To::adapter_type, detail::_long_integer_storage_adapter_heap>)
 		{
-			so = (s1 > s2 ? s1 : s2);
-			if (sign1 == sign2) so += 2;
-			if (out->capacity() < so - 1)
-				out->reserve(so);
+			so = s1;
+			//if (sign1 == sign2) so += 2;
+			//if (out->capacity() < so - 1)
+				//out->reserve(so);
+			if (sign1 == sign2) ++so;
+			out->reserve(so);
 		}
 		else
 		{
@@ -439,7 +468,7 @@ private:
 		//The loop unroller, i count on you...
 		for (; i < s2; ++i)
 		{
-			_ksnLI_add64p(carry, &p1[i], &p2[i], &po[i]);
+			_ksnLI_add64v(carry, p1[i], p2[i], &po[i]);
 		}
 		for (; i < s1; ++i)
 		{
@@ -451,9 +480,12 @@ private:
 
 		_ksnLI_add64v(carry, sign1, sign2, &po[i++]);
 
-		limb filler;
-		_ksnLI_add64v(carry, sign1, sign2, &filler);
-		detail::long_integer_fill(po + i, (uint8_t)filler, so - i);
+		if ((so -= i) != 0)
+		{
+			limb filler;
+			_ksnLI_add64v(carry, sign1, sign2, &filler);
+			detail::long_integer_fill(po + i, (uint8_t)filler, so);
+		}
 	}
 	
 	template<class T1, class T2, class To>
@@ -462,6 +494,41 @@ private:
 		T2 negated = *in2;
 		negated.negate();
 		add(out, in1, &negated);
+	}
+
+	template<class T1, class T2, class To, bool inverse = false>
+	static constexpr void _multiply_fft(To* out, const T1* in1, const T2* in2)
+	{
+		 
+	}
+
+
+	template<class T1, class T2, class To>
+	static constexpr void _multiply_default(To* out, const T1* in1, const T2* in2)
+	{
+		uint64_t carry = 0, temp;
+		size_t so;
+
+		if constexpr (std::is_same_v<typename To::adapter_type, detail::_long_integer_storage_adapter_heap>)
+		{
+			so = in1->count_occupied_limbs() + in2->count_occupied_limbs() + 1;
+			out->reserve(so);
+		}
+		else
+			so = out->capacity();
+
+		for (size_t i = 0; i < so; ++i)
+		{
+			for (size_t k = 0; k <= i; ++i)
+			{
+
+			}
+		}
+	}
+	template<class T1, class T2, class To, bool inverse = false>
+	static constexpr void multiply(To* out, const T1* in1, const T2* in2)
+	{
+
 	}
 
 
@@ -530,25 +597,25 @@ public:
 
 
 
-	constexpr long_integer() {}
+	_KSN_NODISCARD constexpr long_integer() {}
 
 
 	template<std::integral init_t> requires(std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
-	constexpr long_integer(init_t init_value, size_t init_capacity = 1)
+	_KSN_NODISCARD constexpr long_integer(init_t init_value, size_t init_capacity = 1)
 		: m_storage(init_capacity)
 	{
 		this->init_from_int(init_value);
 	}
 
 	template<std::integral init_t> requires(detail::is_long_integer_storage_adapter_stack_v<adapter_t>)
-	constexpr long_integer(init_t init_value) noexcept
+	_KSN_NODISCARD constexpr long_integer(init_t init_value) noexcept
 	{
 		this->init_from_int(init_value);
 	}
 
 
 	template<std::floating_point init_t> requires(std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
-	constexpr long_integer(init_t init_value, size_t init_capacity = 0) noexcept
+	_KSN_NODISCARD constexpr long_integer(init_t init_value, size_t init_capacity = 0) noexcept
 		: m_storage(0)
 	{
 		if (init_capacity == 0) //determine automatically
@@ -571,7 +638,7 @@ public:
 	}
 
 	template<std::floating_point init_t> requires(detail::is_long_integer_storage_adapter_stack_v<adapter_t>)
-	constexpr long_integer(init_t init_value) noexcept
+	_KSN_NODISCARD constexpr long_integer(init_t init_value) noexcept
 	{
 		this->init_from_fp(init_value);
 	}
@@ -604,7 +671,7 @@ public:
 
 
 	template<std::integral int_t>
-	constexpr operator int_t() const noexcept
+	_KSN_NODISCARD constexpr operator int_t() const noexcept
 	{
 		if (this->m_storage.get_capacity() == 0)
 			return 0;
@@ -612,7 +679,7 @@ public:
 	}
 
 	template<std::floating_point fp_t>
-	constexpr operator fp_t() const noexcept
+	_KSN_NODISCARD constexpr operator fp_t() const noexcept
 	{
 		if (this->m_storage.get_capacity() == 0)
 			return 0;
@@ -643,7 +710,6 @@ public:
 			if constexpr (std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
 				this->m_storage.reserve_new(1);
 		}
-		//else we wouldn't have gotten here as stack vars are never size 0
 
 		limb sign_prev = this->get_sign();
 
@@ -699,19 +765,23 @@ public:
 	}
 
 
-	constexpr limb get_sign() const noexcept
+	_KSN_NODISCARD constexpr limb get_top_limb() const noexcept
+	{
+		if (this->m_storage.get_capacity() == 0)
+			return 0;
+		return this->m_storage.get_storage()[this->m_storage.get_capacity() - 1];
+	}
+	_KSN_NODISCARD constexpr limb get_sign() const noexcept
 	{
 		if constexpr (!is_signed)
 			return 0;
 		else
 		{
-			if (this->m_storage.get_capacity() == 0)
-				return 0;
-			return (limb)((slimb)this->m_storage.get_storage()[this->m_storage.get_capacity() - 1] >> (sizeof(limb) * CHAR_BIT - 1));
+			return (limb)((slimb)this->get_top_limb() >> (sizeof(limb) * CHAR_BIT - 1));
 		}
 	}
 
-	constexpr size_t capacity() const noexcept
+	_KSN_NODISCARD constexpr size_t capacity() const noexcept
 	{
 		return this->m_storage.get_capacity();
 	}
@@ -722,7 +792,7 @@ public:
 	}
 
 
-	constexpr size_t count_occupied_limbs() const noexcept
+	_KSN_NODISCARD constexpr size_t count_occupied_limbs() const noexcept
 	{
 		limb sign = this->get_sign();
 
@@ -763,7 +833,7 @@ public:
 		}
 	}
 
-	constexpr size_t count_leading_sign_limbs() const noexcept
+	_KSN_NODISCARD constexpr size_t count_leading_sign_limbs() const noexcept
 	{
 		return this->m_storage.get_capacity() - this->count_leading_sign_limbs();
 	}
