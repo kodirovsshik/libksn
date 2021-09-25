@@ -24,8 +24,10 @@ fp_t limit(callable_t&& f, fp_t&& a, size_t approximation_order, fp_t dx = 0.000
 	fp_t x2 = a;
 
 	if (a)
+	{
 		dx *= a;
-	dx = (a + dx) - a;
+		dx = (a + dx) - a;
+	}
 
 	fp_t result = 0;
 
@@ -44,11 +46,15 @@ fp_t limit(callable_t&& f, fp_t&& a, size_t approximation_order, fp_t dx = 0.000
 
 double f(double x)
 {
-	return sqrt(fabs(x));
+	double s = sin(x);
+	return 1 / (x * x) - 1 / (s * s);
 }
 
 int main()
 {
+
+
+
 	FILE* fd = fopen("report2.txt", "ab");
 	const int width = 22;
 	fprintf(fd, "\nf(x) = sqrt(|x|) as x -> 0\n\n| %12s | %*s | %*s | %*s | %*s | %*s |\n\n", 
