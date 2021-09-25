@@ -30,6 +30,24 @@ struct ct_log2<0, c>
 };
 
 
+
+template<size_t Arg0, size_t Arg1, size_t... ArgN>
+struct max_v_helper
+{
+	static constexpr size_t value = max_v_helper<max_v_helper<Arg0, Arg1>::value, ArgN...>::value;
+};
+template<size_t Arg0, size_t Arg1>
+struct max_v_helper
+{
+	static constexpr size_t value = Arg0 > Arg1 ? Arg0 : Arg1;
+};
+template<size_t Arg0>
+struct max_v_helper
+{
+	static constexpr size_t value = Arg0;
+};
+
+
 _KSN_DETAIL_END
 
 
@@ -137,6 +155,10 @@ static constexpr bool is_specialization_v = is_specialization<Test, Ref>::value;
 
 template<typename char_t>
 concept character = is_any_of_v<char_t, char, signed char, unsigned char, wchar_t, char8_t, char16_t, char32_t>;
+
+
+template<size_t Arg0, size_t... ArgN>
+static constexpr size_t max_v = detail::max_v_helper<Arg0, ArgN...>::value;
 
 
 
