@@ -5,6 +5,7 @@
 
 
 #include <ksn/ksn.hpp>
+#include <ksn/metapr.hpp>
 
 #include <string.h>
 #include <math.h>
@@ -20,6 +21,7 @@
 #include <concepts>
 #include <utility>
 #include <numeric>
+#include <algorithm>
 
 
 
@@ -119,6 +121,29 @@ struct long_integer_arithmetic_helper
 		return (uint8_t)(temp2 >> 32);
 	}
 
+	static constexpr limb ct_multiply64(limb in1, limb in2, limb* p_high)
+	{
+		uint64_t l1 = in1 & 0xFFFFFFFF;
+		uint64_t l2 = in2 & 0xFFFFFFFF;
+
+		uint64_t h1 = in1 >> 32;
+		uint64_t h2 = in2 >> 32;
+
+		uint64_t a, b, c;
+		uint8_t carry;
+
+		a = l1 * l2;
+		carry = ct_addcarry64(0, l1 * h2, l2 * h1, &b);
+		c = h1 * h2 + ((uint64_t)carry << 32);
+
+		uint64_t low, high;
+		carry = ct_addcarry64(0, a, b << 32, &low);
+		high = c + (b >> 32) + carry;
+
+		*p_high = high;
+		return low;
+	}
+
 
 	template<class fp_t, std::integral int_t>
 	static constexpr long double exp2ict(int_t x) noexcept
@@ -185,6 +210,8 @@ struct _long_integer_storage_adapter_heap
 
 private:
 
+	using my_t = _long_integer_storage_adapter_heap;
+
 	limb* m_limbs;
 	size_t m_capacity;
 
@@ -205,7 +232,7 @@ private:
 	}
 
 	template<bool is_signed, bool do_sign_extend>
-	constexpr void reverse_base(size_t N)
+	constexpr void reserve_base(size_t N)
 	{
 		if (N <= this->m_capacity)
 			return;
@@ -219,7 +246,7 @@ private:
 		if constexpr (do_sign_extend)
 			detail::long_integer_sign_extend<is_signed>(new_limbs, this->m_capacity, N);
 
-		//std::swap(this->m_limbs, new_limbs); //wtf why doesn't it link
+		//std::swap(this->m_limbs, new_limbs); //it doesn't link
 		{
 			limb* temp = this->m_limbs;
 			this->m_limbs = new_limbs;
@@ -249,11 +276,28 @@ public:
 			long_integer_fill(this->m_limbs, 0, N);
 	}
 
+	constexpr _long_integer_storage_adapter_heap(_long_integer_storage_adapter_heap&& other) noexcept
+	{
+		this->m_capacity = other.m_capacity;
+		this->m_limbs = other.m_limbs;
+
+		other.m_capacity = 0;
+		other.m_limbs = nullptr;
+	}
+
 	constexpr ~_long_integer_storage_adapter_heap() noexcept
 	{
 		delete[] this->m_limbs;
 		this->m_limbs = nullptr;
 	}
+
+	constexpr my_t& operator=(my_t&& other) noexcept
+	{
+		std::swap(this->m_limbs, other.m_limbs);
+		std::swap(this->m_capacity, other.m_capacity);
+		return *this;
+	}
+
 
 
 	constexpr size_t get_capacity() const noexcept
@@ -279,12 +323,12 @@ public:
 	template<bool is_signed>
 	constexpr void reserve(size_t N)
 	{
-		return this->reverse_base<is_signed, true>(N);
+		return this->reserve_base<is_signed, true>(N);
 	}
 
 	constexpr void reserve_no_extend(size_t N)
 	{
-		return this->reverse_base<false, false>(N);
+		return this->reserve_base<false, false>(N);
 	}
 };
 
@@ -292,6 +336,7 @@ template<size_t N>
 struct _long_integer_storage_adapter_stack
 {
 	using limb = long_integer_limb_t;
+	constexpr static size_t static_capacity = N;
 
 	limb m_data[N];
 
@@ -381,23 +426,42 @@ public:
 	using limb = detail::long_integer_limb_t;
 	using slimb = detail::long_integer_signed_limb_t;
 
+	template<class adapret1_t, class adapter2_t, bool is_signed1, bool is_signed2, bool multiply>
+	struct long_integer_addsub_result
+	{
+		constexpr bool heap_object_present = ksn::is_any_of_v<detail::_long_integer_storage_adapter_heap, adapret1_t, adapter2_t>;
+
+		using result_is_signed = ksn::or_v<is_signed1, is_signed2>;
+
+		//using result_adapter_t = std::conditional_t<heap_object_present,
+			//detail::_long_integer_storage_adapter_heap,
+			//detail::_long_integer_storage_adapter_stack<multiply ? 
+				//adapter1_t::static_capacity + adapter2_t::static_capacity : 
+				//(ksn::max_v<adapter1_t::static_capacity, adapter2_t::static_capacity >)>
+		>;
+
+		using type = ...;
+	};
+
 
 
 private:
 
 #ifdef _KSN_IS_64
 
-#define _ksnLI_add64v(carry, in1, in2, dst) \
+#define _ksnLI_add64_2c(carry_out, carry_in, in1, in2, dst) \
 	if (std::is_constant_evaluated())\
-		(carry) = _addcarry_u64((carry), in1, in2, dst);\
+		(carry_out) = detail::long_integer_arithmetic_helper::ct_addcarry64((carry_in), (in1), (in2), (dst));\
 	else \
-		(carry) = detail::long_integer_arithmetic_helper::ct_addcarry64(carry, in1, in2, dst);
+		(carry_out) = _addcarry_u64((carry_in), (in1), (in2), (dst));
 
-#define _ksnLI_add64p(carry, pin1, pin2, dst) \
+#define _ksnLI_add64(carry, in1, in2, dst) _ksnLI_add64_2c(carry, carry, in1, in2, dst)
+
+#define _ksnLI_mul64(in1, in2, plow, phigh) \
 	if (std::is_constant_evaluated()) \
-		(carry) = _addcarry_u64((carry), *(pin1), *(pin2), dst);\
-	else\
-		(carry) = detail::long_integer_arithmetic_helper::ct_addcarry64((carry), *(pin1), *(pin2), dst);
+		*(plow) = detail::long_integer_arithmetic_helper::ct_multiply64((in1), (in2), (phigh));\
+	else \
+		*(plow) = _umul128((in1), (in2), (phigh));
 
 #else
 #endif
@@ -468,22 +532,22 @@ private:
 		//The loop unroller, i count on you...
 		for (; i < s2; ++i)
 		{
-			_ksnLI_add64v(carry, p1[i], p2[i], &po[i]);
+			_ksnLI_add64(carry, p1[i], p2[i], &po[i]);
 		}
 		for (; i < s1; ++i)
 		{
-			_ksnLI_add64v(carry, p1[i], sign2, &po[i]);
+			_ksnLI_add64(carry, p1[i], sign2, &po[i]);
 		}
 
 		if (i >= so)
 			return;
 
-		_ksnLI_add64v(carry, sign1, sign2, &po[i++]);
+		_ksnLI_add64(carry, sign1, sign2, &po[i++]);
 
 		if ((so -= i) != 0)
 		{
 			limb filler;
-			_ksnLI_add64v(carry, sign1, sign2, &filler);
+			_ksnLI_add64(carry, sign1, sign2, &filler);
 			detail::long_integer_fill(po + i, (uint8_t)filler, so);
 		}
 	}
@@ -496,39 +560,131 @@ private:
 		add(out, in1, &negated);
 	}
 
-	template<class T1, class T2, class To, bool inverse = false>
-	static constexpr void _multiply_fft(To* out, const T1* in1, const T2* in2)
+
+	template<bool divide, class T1, class T2, class To>
+	static constexpr void _multiply_divide_fft(To* out, const T1* in1, const T2* in2)
 	{
 		 
 	}
 
-
 	template<class T1, class T2, class To>
-	static constexpr void _multiply_default(To* out, const T1* in1, const T2* in2)
+	static constexpr void _multiply_default(To* _KSN_RESTRICT out, const T1* in1, const T2* in2)
 	{
-		uint64_t carry = 0, temp;
-		size_t so;
+		constexpr bool is_heap = std::is_same_v<typename To::adapter_type, detail::_long_integer_storage_adapter_heap>;
 
-		if constexpr (std::is_same_v<typename To::adapter_type, detail::_long_integer_storage_adapter_heap>)
+		size_t so, s1, s2;
+		if constexpr (is_heap)
 		{
-			so = in1->count_occupied_limbs() + in2->count_occupied_limbs() + 1;
+			s1 = in1->count_occupied_limbs();
+			s2 = in2->count_occupied_limbs();
+			so = s1 + s2;
+			if constexpr (is_signed)
+				++so;
 			out->reserve(so);
+
+			if (s1 > s2)
+				std::swap(in1, in2);
 		}
 		else
+		{
+			s1 = in1->capacity();
+			s2 = in2->capacity();
+
+			if (s1 > s2)
+				return _multiply_default(out, in2, in1);
+
 			so = out->capacity();
+
+			if (s1 > so) s1 = so;
+			if (s2 > so) s2 = so;
+		}
+
+		const limb* const p1 = in1->m_storage.get_storage();
+		const limb* const p2 = in2->m_storage.get_storage();
+		limb* const po = out->m_storage.get_storage();
+		detail::long_integer_fill(po, 0, so);
 
 		for (size_t i = 0; i < so; ++i)
 		{
-			for (size_t k = 0; k <= i; ++i)
-			{
+			const size_t top = is_heap ? s2 : (so - i);
+			
+			limb carry0 = 0;
+			uint8_t carry1 = 0;
 
+			size_t j = 0;
+			for (; j < top; ++j)
+			{
+				limb l = i < s1 ? p1[i] : in1->get_sign();
+				limb h = j < s2 ? p2[j] : in2->get_sign();
+				_ksnLI_mul64(l, h, &l, &h);
+				_ksnLI_add64_2c(carry1, 0, l, carry0, &l);
+				h += carry1;
+
+				_ksnLI_add64_2c(carry1, 0, l, po[i + j], &po[i + j]);
+				_KSN_DEBUG_EXPR(if (h > 0xFFFFFFFFFFFFFFFF - carry1) __debugbreak());
+				
+				h += carry1;
+
+				carry0 = h;
+			}
+			
+			while (carry0 && j < so - i)
+			{
+				_ksnLI_add64_2c(carry0, 0, po[i + j], carry0, &po[i + j]);
+				++j;
 			}
 		}
-	}
-	template<class T1, class T2, class To, bool inverse = false>
-	static constexpr void multiply(To* out, const T1* in1, const T2* in2)
-	{
 
+
+	}
+
+
+	template<bool first_two_same, bool divide, class T1, class T2, class To>
+	static constexpr void multiply_or_divide(To* out, const T1* in1, const T2* in2)
+	{
+		if (std::is_constant_evaluated())
+		{
+			if constexpr (divide)
+			{
+				//TODO: constexpr division
+			}
+			else
+			{
+				if constexpr (first_two_same)
+				{
+					To aux;
+					_multiply_default(&aux, in1, in2);
+					*out = std::move(aux);
+				}
+				else
+					_multiply_default(out, in1, in2);
+			}
+		}
+		else
+		{
+			if ( /*FFT*/ false)
+			{
+				//TODO: FFT-based multiplication/division
+			}
+			else
+			{
+				if constexpr (divide)
+				{
+					//TODO: default division
+				}
+				else
+				{
+					if constexpr (first_two_same)
+					{
+						To aux;
+						_multiply_default(&aux, in1, in2);
+						*out = std::move(aux);
+					}
+					else
+						_multiply_default(out, in1, in2);
+				}
+			}
+		}
 	}
 
 
@@ -594,10 +750,93 @@ public:
 			this->negate();
 	}
 
+	template<std::integral int_t>
+	constexpr void init_from_init_list(const std::initializer_list<int_t>& values)
+	{
+		auto* my_storage = this->m_storage.get_storage();
+
+		if (!std::is_constant_evaluated() && ksn::is_any_of_v<int_t, limb, slimb>)
+		{
+			size_t to_be_copied = std::min(this->capacity(), values.size());
+			memcpy(my_storage, values.begin(), to_be_copied * sizeof(int_t));
+		}
+		else
+			std::copy(values.begin(), values.end(), my_storage);
+
+		detail::long_integer_sign_extend<is_signed>(my_storage, values.size(), this->capacity());
+	}
+
+	template<detail::storage_adapter some_adapter_t, bool some_is_signed> requires(std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
+	constexpr void init_from_other(const long_integer<some_adapter_t, some_is_signed>& other)
+	{
+		size_t reserve_additional = 0;
+		if constexpr (is_signed && !some_is_signed)
+			if (other.get_sign() == -1 && other.get_top_limb() != limb(-1))
+				reserve_additional = 1;
+
+		this->reserve(other.capacity() + reserve_additional);
+		detail::long_integer_copy(this->m_storage.get_storage(), other.m_storage.get_storage(), other.capacity());
+
+		if (reserve_additional)
+			this->m_storage.get_storage()[other.capacity()] = 0;
+	}
+
+	template<detail::storage_adapter some_adapter_t, bool some_is_signed> requires(std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
+	constexpr void init_from_other(long_integer<some_adapter_t, some_is_signed>&& other)
+	{
+		bool good = false;
+
+		if constexpr (std::is_same_v<some_adapter_t, detail::_long_integer_storage_adapter_heap>)
+		{
+			if constexpr (is_signed != some_is_signed)
+			{
+				if (other.get_sign() == 0)
+					good = true;
+			}
+			else
+				good = true;
+
+			if (good)
+			{
+				this->m_storage = std::move(other.m_storage);
+				return;
+			}
+		}
+
+		if (!good)
+			this->init_from_other((const long_integer<some_adapter_t, some_is_signed>&)other);
+	}
+
+	template<detail::storage_adapter some_adapter_t, bool some_is_signed> requires(detail::is_long_integer_storage_adapter_stack_v<adapter_t>)
+	constexpr void init_from_other(const long_integer<some_adapter_t, some_is_signed>& other)
+	{
+		size_t to_copy = std::min(this->capacity(), other.capacity());
+		detail::long_integer_copy(this->m_storage.get_storage(), other.m_storage.get_storage(), to_copy);
+		detail::long_integer_sign_extend(this->m_storage.get_storage(), to_copy, this->capacity());
+	}
 
 
 
 	_KSN_NODISCARD constexpr long_integer() {}
+
+
+	template<detail::storage_adapter some_adapter_t, bool some_is_signed>
+	_KSN_NODISCARD constexpr long_integer(const long_integer<some_adapter_t, some_is_signed>& other)
+	{
+		this->init_from_other(other);
+	}
+
+	template<detail::storage_adapter some_adapter_t, bool some_is_signed>
+	_KSN_NODISCARD constexpr long_integer(long_integer<some_adapter_t, some_is_signed>&& other)
+	{
+		this->init_from_other(other);
+	}
+
+	template<>
+	_KSN_NODISCARD constexpr long_integer(my_t&& other) noexcept
+	{
+		this->init_from_other(other);
+	}
 
 
 	template<std::integral init_t> requires(std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
@@ -615,7 +854,7 @@ public:
 
 
 	template<std::floating_point init_t> requires(std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
-	_KSN_NODISCARD constexpr long_integer(init_t init_value, size_t init_capacity = 0) noexcept
+	_KSN_NODISCARD constexpr long_integer(init_t init_value, size_t init_capacity = 0)
 		: m_storage(0)
 	{
 		if (init_capacity == 0) //determine automatically
@@ -644,17 +883,63 @@ public:
 	}
 
 
+	template<std::integral int_t> requires (std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
+	_KSN_NODISCARD constexpr long_integer(const std::initializer_list<int_t>& values)
+		: m_storage(values.size())
+	{
+		this->init_from_init_list(values);
+	}
+	
+	template<std::integral int_t> requires (std::is_same_v<adapter_t, detail::_long_integer_storage_adapter_heap>)
+	_KSN_NODISCARD constexpr long_integer(const std::initializer_list<int_t>& values, size_t init_size)
+		: m_storage(init_size)
+	{
+		this->init_from_init_list(values);
+	}
+	
+	template<std::integral int_t> requires (detail::is_long_integer_storage_adapter_stack_v<adapter_t>)
+	_KSN_NODISCARD constexpr long_integer(const std::initializer_list<int_t>& values) noexcept
+	{
+		this->init_from_init_list(values);
+	}
+
+
+
+	template<detail::storage_adapter some_adapter_t, bool some_is_signed>
+	my_t& operator=(const long_integer<some_adapter_t, some_is_signed>& other)
+	{
+		this->init_from_other(other);
+		return *this;
+	}
+
+	template<detail::storage_adapter some_adapter_t, bool some_is_signed>
+	my_t& operator=(long_integer<some_adapter_t, some_is_signed>&& other)
+	{
+		this->init_from_other(other);
+		return *this;
+	}
+
+	template<>
+	my_t& operator=(my_t&& other) noexcept
+	{
+		this->init_from_other(std::forward<my_t>(other));
+		return *this;
+	}
+
+
 
 	_KSN_NODISCARD constexpr my_t operator+() const
 	{
 		return *this;
 	}
+	
 	_KSN_NODISCARD constexpr my_t operator-() const
 	{
 		my_t result(*this);
 		result.negate();
 		return result;
 	}
+
 
 	_KSN_NODISCARD constexpr my_t operator++(int)
 	{
@@ -668,6 +953,16 @@ public:
 		return *this;
 	}
 
+	template<class adapret1_t, class adapter2_t, bool is_signed1, bool is_signed2>
+	_KSN_NODISCARD constexpr friend auto operator+
+	(const long_integer<adapret1_t, is_signed1>& lhs, const long_integer<adapter2_t, is_signed2>& rhs)
+	{
+
+		//long_integer<result_adapter_t, result_is_signed> result;
+		long_integer_addsub_result<adapter1_t, adapter2_t, is_signed1, is_signed2> result;
+		add(result, lhs, rhs);
+		return result;
+	}
 
 
 	template<std::integral int_t>
@@ -771,6 +1066,7 @@ public:
 			return 0;
 		return this->m_storage.get_storage()[this->m_storage.get_capacity() - 1];
 	}
+	
 	_KSN_NODISCARD constexpr limb get_sign() const noexcept
 	{
 		if constexpr (!is_signed)
@@ -780,6 +1076,7 @@ public:
 			return (limb)((slimb)this->get_top_limb() >> (sizeof(limb) * CHAR_BIT - 1));
 		}
 	}
+
 
 	_KSN_NODISCARD constexpr size_t capacity() const noexcept
 	{
@@ -839,16 +1136,25 @@ public:
 	}
 
 
+
 	template<detail::storage_adapter some_adapter_t, bool some_is_signed>
 	constexpr my_t& operator+=(const long_integer<some_adapter_t, some_is_signed>& other)
 	{
 		add(this, this, &other);
 		return *this;
 	}
+	
 	template<detail::storage_adapter some_adapter_t, bool some_is_signed>
 	constexpr my_t& operator-=(const long_integer<some_adapter_t, some_is_signed>& other)
 	{
 		subtract(this, this, &other);
+		return *this;
+	}
+
+	template<detail::storage_adapter some_adapter_t, bool some_is_signed>
+	constexpr my_t& operator*=(const long_integer<some_adapter_t, some_is_signed>& other)
+	{
+		multiply_or_divide<true, false>(this, this, &other);
 		return *this;
 	}
 };

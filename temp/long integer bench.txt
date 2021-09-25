@@ -13,9 +13,9 @@ N = 1e7, one occupied limb:
 	128     | 2.15360e+06 | 2.72758e+06
 	256     | 0.86983e+06 | 1.63241e+06
 	
-	+counting: time = 4.2719e-9 * limbs + 4.0867e-11
-	-counting: time = 2.20140-9 * limbs + 6.8483e-8
-	intersection: 
+	-counting: time = 4.2719e-9 * limbs + 4.0867e-11
+	+counting: time = 2.2014e-9 * limbs + 6.8483e-8
+	intersection: (33.0558, 1.4125194e-7)
 	
 N = 1e7, half occupied limbs:
 	
@@ -26,3 +26,7 @@ N = 1e7, half occupied limbs:
 	64      | 4.34836e+06 | 3.12861e+06
 	128     | 2.19823e+06 | 1.90121e+06
 	256     | 0.88595e+06 | 1.12386e+06
+	
+	-counting: time = 4.1961e-9 * limbs + 3.9549e-11
+	+counting: time = 3.3583e-9 * limbs + 5.92880e-8
+	intersection: 
