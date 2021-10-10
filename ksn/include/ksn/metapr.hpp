@@ -34,17 +34,13 @@ struct ct_log2<0, c>
 template<size_t Arg0, size_t Arg1, size_t... ArgN>
 struct max_v_helper
 {
-	static constexpr size_t value = max_v_helper<max_v_helper<Arg0, Arg1>::value, ArgN...>::value;
+	static constexpr size_t value = Arg0 > Arg1 ? max_v_helper2<Arg0, ArgN> : max_v_helper<Arg1, ArgN>;
 };
+
 template<size_t Arg0, size_t Arg1>
-struct max_v_helper
+struct max_v_helper<Arg0, Arg1>
 {
 	static constexpr size_t value = Arg0 > Arg1 ? Arg0 : Arg1;
-};
-template<size_t Arg0>
-struct max_v_helper
-{
-	static constexpr size_t value = Arg0;
 };
 
 
@@ -159,6 +155,9 @@ concept character = is_any_of_v<char_t, char, signed char, unsigned char, wchar_
 
 template<size_t Arg0, size_t... ArgN>
 static constexpr size_t max_v = detail::max_v_helper<Arg0, ArgN...>::value;
+
+template<size_t Arg0>
+static constexpr size_t max_v<Arg0> = Arg0;
 
 
 
