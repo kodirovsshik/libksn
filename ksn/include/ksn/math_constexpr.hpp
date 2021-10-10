@@ -107,7 +107,7 @@ constexpr int ilog2(T x)
 	}
 	else
 	{
-		static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "There was no 128 bit integers in my time");
+		static_assert(false, "In my time we had no 128-bit integers");
 	}
 }
 
@@ -184,31 +184,16 @@ constexpr T uabs(T x) noexcept
 
 
 template<class T>
-constexpr T fmod(T x, T period) noexcept
-{
-	int64_t int_part = int64_t(x / period);
-	return x - int_part * period;
-}
-template<class T>
-constexpr T fmod1(T x, T period) noexcept
-{
-	x = fmod(x, period);
-	if (x < 0) return x + ksn::abs(period);
-	return x;
-}
-
-
-
-
-
-template<class T>
 constexpr T sin(T x) noexcept
 {
-	x = ksn::fmod(x, T(2 * KSN_PId));
+	//TODO: fix
+	//x = ksn::fmod(x, T(2 * KSN_PId));
 	if (x > T(KSN_PId)) x -= T(2 * KSN_PId);
+
 	T result = x;
 	T sqr = -x * x;
 	T current = x;
+
 	size_t i = 1;
 	while (1)
 	{
@@ -222,11 +207,13 @@ constexpr T sin(T x) noexcept
 template<class T>
 constexpr T sin(T x, T dx) noexcept
 {
-	x = ksn::fmod(x, T(2 * KSN_PI));
+	//x = ksn::fmod(x, T(2 * KSN_PI));
 	if (x > T(KSN_PI)) x -= T(2 * KSN_PI);
+
 	T result = x;
 	T sqr = -x * x;
 	T current = x;
+
 	size_t i = 1;
 	while (1)
 	{
@@ -304,8 +291,9 @@ template<class T>
 constexpr T ln(T x)
 {
 	if (x >= 1.5) return -ln(1 / x);
-	if (x <= 0) return std::numeric_limits<long double>::quiet_NaN();
-	if (x <= 1e-2) return T(-10) + ln(x * exp<T>(10));
+	if (x < 0) return std::numeric_limits<T>::quiet_NaN();
+	if (x == 0) return -std::numeric_limits<T>::infinity();
+	if (x <= 1e-2) return T(-5) + ln(x * exp<T>(5));
 
 	long double x1 = 1 - x;
 	long double num = x1;
@@ -328,8 +316,9 @@ template<class T>
 constexpr T ln(T x, T dx)
 {
 	if (x >= 1.5) return -ln(1 / x);
-	if (x <= 0) return std::numeric_limits<long double>::quiet_NaN();
-	if (x <= 1e-6) return T(-10) + ln(x * exp<T>(10));
+	if (x < 0) return std::numeric_limits<T>::quiet_NaN();
+	if (x == 0) return -std::numeric_limits<T>::infinity();
+	if (x <= 1e-2) return T(-5) + ln(x * exp<T>(5, dx));
 
 	long double x1 = 1 - x;
 	long double num = x1;
@@ -364,24 +353,12 @@ constexpr auto pow(T1 x, T2 y, T3 d)
 	return ksn::exp<std::common_type_t<T1, T2>>(y * ksn::ln(x, d), d);
 }
 
-template<class T1, std::integral T2>
+template<std::integral T1, std::unsigned_integral T2>
 constexpr T1 pow(T1 x, T2 y)
 {
-	if constexpr (std::signed_integral<T2>)
-	{
-		if (y < 0)
-		{
-			if (y == std::numeric_limits<T2>::min())
-				return (x == T1(0)) ? NAN : 0;
-
-			using T2u = std::make_signed_t<T2>;
-			return pow<T1, T2u>(T1(1) / x, T2u(-y));
-		}
-	}
-
-	T1 result(1);
-	if (y == 0) return result;
-
+	T1 result = 1;
+	if (!y) return result;
+	
 	T2 walker = 1 << ilog2(y);
 
 	while (walker != 0)
@@ -395,21 +372,23 @@ constexpr T1 pow(T1 x, T2 y)
 	return result;
 }
 
-template<std::integral T1, std::unsigned_integral T2>
+template<class T1, std::integral T2>
 constexpr T1 pow(T1 x, T2 y)
 {
-	T1 result = 1;
-	T2 walker = 1 << ilog2(y);
+	using T2u = std::make_signed_t<T2>;
 
-	while (walker != 0)
+	if constexpr (std::signed_integral<T2>)
 	{
-		result *= result;
-		if (y & walker)
-			result *= x;
-		walker >>= 1;
+		if (y < 0)
+		{
+			if (y == std::numeric_limits<T2>::min())
+				return (x == T1(0)) ? NAN : 0;
+
+			return pow<T1, T2u>(T1(1) / x, T2u(-y));
+		}
 	}
 
-	return result;
+	return pow(x, (T2u)y);
 }
 
 template<std::integral T1, std::signed_integral T2>
