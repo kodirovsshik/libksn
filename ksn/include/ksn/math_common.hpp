@@ -25,6 +25,7 @@
 _KSN_BEGIN
 
 
+/*
 template<class fp1_t, class fp2_t>
 std::vector<std::common_type_t<fp1_t, fp2_t>> polynomial_multiplication(const std::vector<fp2_t>& v1, const std::vector<fp2_t>& v2);
 
@@ -165,6 +166,7 @@ std::vector<fp_t> polynomial_roots(std::vector<fp_t> coeffs)
 	throw 0;
 	//TODO: implement the ultimate algorithm for solving algebraic equations
 }
+*/
 
 
 
@@ -225,107 +227,6 @@ std::vector<fp_t> polynomial_roots(std::vector<fp_t> coeffs)
 //}
 
 
-
-
-
-
-_KSN_DETAIL_BEGIN
-
-template<typename int_type>
-constexpr const char* _fp_int_cast_printf_format_helper = nullptr;
-
-template<>
-constexpr const char* _fp_int_cast_printf_format_helper<uint8_t> = "%hhu %n";
-template<>
-constexpr const char* _fp_int_cast_printf_format_helper<int8_t> = "%hhi %n";
-template<>
-constexpr const char* _fp_int_cast_printf_format_helper<uint16_t> = "%hu %n";
-template<>
-constexpr const char* _fp_int_cast_printf_format_helper<int16_t> = "%hi %n";
-template<>
-constexpr const char* _fp_int_cast_printf_format_helper<uint32_t> = "%u %n";
-template<>
-constexpr const char* _fp_int_cast_printf_format_helper<int32_t> = "%i %n";
-template<>
-constexpr const char* _fp_int_cast_printf_format_helper<uint64_t> = "%llu %n";
-template<>
-constexpr const char* _fp_int_cast_printf_format_helper<int64_t> = "%lli %n";
-
-_KSN_DETAIL_END
-
-
-
-template<typename int_type>
-int_type fp_int_cast(long double x, unsigned precision = LDBL_DIG)
-{
-
-	if constexpr(!std::is_integral_v<int_type>)
-	{
-		return int_type(x);
-	}
-	else
-	{
-		if (x > std::numeric_limits<int_type>::max() || x < std::numeric_limits<int_type>::min())
-		{
-			return int_type(0);
-		}
-
-		if (x + 1 == x)
-		{
-			return int_type(x);
-		}
-
-		char buffer[1024];
-		snprintf(buffer, 1024, "%.*Lg", precision, x);
-
-		int read;
-
-		int_type result;
-		sscanf_s(buffer, detail::_fp_int_cast_printf_format_helper<int_type>, &result, &read);
-
-		if (buffer[read] != '\0')
-		{
-			return int_type(x);
-		}
-
-		return result;
-	}
-}
-
-
-
-
-
-
-template<class fp_t, class c_t> requires(!std::is_integral_v<fp_t>)
-constexpr int solve_quadratic(fp_t a, fp_t b, fp_t c, fp_t(*p_roots)[2])
-{
-	using std::sqrt;
-
-	b *= -0.5 * a;
-	c *= a;
-	
-	fp_t D = b * b - c;
-	if (D < 0) return 0;
-
-	(*p_roots)[0] = b + sqrt(D);
-	(*p_roots)[1] = b - sqrt(D);
-	return 2;
-}
-
-template<class T> requires(!std::is_integral_v<T>)
-constexpr int solve_quadratic(complex<T> a, complex<T> b, complex<T> c, complex<T>(*p_roots)[2])
-{
-	a = 1 / a;
-	b *= -0.5 * a;
-	c *= a;
-
-	complex<T> d = b * b - c;
-	(*p_roots)[0] = b + sqrt(d);
-	(*p_roots)[1] = b - sqrt(d);
-
-	return 2;
-}
 
 
 template<class fp_t>
@@ -401,72 +302,6 @@ int solve_qartic(T a, T b, T c, T d, T e, T(*p_roots)[4]);
 
 
 
-/*
- (m)
-S
-  n
-Stigling number of the first kind
-*/
-template<typename return_type = long long>
-return_type stirling_s1(size_t n, size_t m)
-{
-	if constexpr(!(std::is_integral_v<return_type> || std::is_floating_point_v<return_type>) || std::is_same_v<return_type, bool>)
-	{
-		_KSN_RAISE(_STD invalid_argument("Incorrect return type passed to stirling_s1"));
-	}
-	else
-	{
-		if (m > n)
-		{
-			_KSN_RAISE(_STD invalid_argument("stirling_s1: m must be <= n"));
-		}
-
-		if (m == 0)
-		{
-			return 0;
-		}
-
-		if (n == m)
-		{
-			return 1;
-		}
-
-		if (m == 1)
-		{
-			return_type result = 2;
-			for (size_t i = 3; i < size_t(n); ++i)
-			{
-				result *= i;
-			}
-			return result;
-		}
-
-		return_type* arr = new return_type[n + 1];
-
-		memset(arr + 1, 0, sizeof(return_type) * (n));
-		arr[0] = 1;
-
-		for (size_t _m = 1; _m <= m; ++_m)
-		{
-			return_type saved = arr[_m];
-			arr[_m] = 1;
-			for (size_t _n = _m + 1; _n <= n; ++_n)
-			{
-				return_type temp = arr[_n];
-				arr[_n] = saved - (_n - 1) * arr[_n - 1];
-				saved = temp;
-			}
-		}
-
-		return_type result = arr[n];
-
-		delete[] arr;
-
-		return result;
-	}
-}
-
-
 
 template<typename T>
 bool compare_equal_with_precision(T&& a, T&& b, long double precision)
@@ -501,9 +336,9 @@ long double lambert_W_n1(long double x);
 Flags:
 Bit 0: allow '.' to be used as decimal point
 Bit 1: allow ',' to be used as decimal point
-Bit 2: allow use 'e' as exponent part begin ( mantiss*10^exponent )
-Bit 3: allow use 'E' as exponent part begin ( mantiss*10^exponent )
-Bit [4:5]:
+Bit 2: allow use 'e' as exponent part begin
+Bit 3: allow use 'E' as exponent part begin
+Bits [4:5]:
 	0 0 = (nothing)
 	1 0 = determine decimal point using current locale and overwrite current flags
 	1 1 = determine decimal point using current locale and merge with current flags
@@ -659,9 +494,7 @@ constexpr bool is_inf_nan(const fp_t& x) noexcept
 template<class fp_t>
 constexpr bool is_inf_nan(const std::complex<fp_t>& x) noexcept
 {
-	using std::isinf;
-	using std::isnan;
-	return x.real() == INFINITY || x.real() == -INFINITY || x.real() != x.real() || x.imag() == INFINITY || x.imag() == -INFINITY || x.imag() != x.imag();
+	return is_inf_nan(x.real()) || is_inf_nan(x.imag());
 }
 
 
@@ -874,7 +707,7 @@ _KSN_DETAIL_END
 The function does it's best to find a function's limit at some point x
 But results are gonna be totaly nonsence if you plug here some chaotic function
 For example, lim x->0 of x*sin(e^(1/x)) will yield nonsence of 0.0004 whe the actual limit is 0
-Consider using some tricks for corcer-case function
+Consider using some tricks for corner-case function
 For example, use 1000*lim x->a (y(a)/1000) if the function oscilates a lot near the point x=a etc
 */
 template<class fp_t, uint8_t custom_dx_order = 0>
@@ -971,7 +804,7 @@ fp_t limit(fp_t(*f)(fp_t), fp_t x)
 	P.S.
 	I compute f(x) by using the values of a function in some neighbourhood of x
 	And it gets more and more and more precise as N -> infinity
-	So yeah, I bet I have derived some kind of inverse of the Taylor series expansion
+	So yeah, I guess I have derived some kind of inverse of the Taylor series expansion
 	¯\_(ツ)_/¯
 
 	*/
