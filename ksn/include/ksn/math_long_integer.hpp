@@ -112,8 +112,8 @@ constexpr void long_integer_sign_extend(long_integer_limb_t* storage, size_t con
 
 struct long_integer_arithmetic_helper
 {
-	using limb = long_integer_limb_t;
-	using slimb = long_integer_signed_limb_t;
+	using limb = detail::long_integer_limb_t;
+	using slimb = detail::long_integer_signed_limb_t;
 
 	static constexpr uint8_t ct_addcarry64(uint8_t carry, uint64_t a, uint64_t b, uint64_t* dst)
 	{
@@ -207,8 +207,8 @@ struct long_integer_arithmetic_helper
 template<bool is_signed>
 struct _long_integer_storage_adapter_heap
 {
-	using limb = long_integer_limb_t;
-	using slimb = long_integer_signed_limb_t;
+	using limb = detail::long_integer_limb_t;
+	using slimb = detail::long_integer_signed_limb_t;
 
 	static constexpr bool is_signed = is_signed;
 
@@ -642,7 +642,10 @@ public:
 		static thread_local std::vector<cfp_t> roots_arr;
 		static thread_local std::vector<size_t> reverse_arr;
 
-		size_t n = std::max(in1->count_occupied_limbs(), in2->count_occupied_limbs());
+		const size_t c1 = in1->count_occupied_limbs();
+		const size_t c2 = in2->count_occupied_limbs();
+
+		size_t n = std::max(c1, c2);
 		if constexpr (detail::is_long_integer_storage_adapter_stack_v<typename To::adapter_type>)
 		{
 			if (out->capacity() < n)
@@ -671,20 +674,25 @@ public:
 		if constexpr (detail::is_long_integer_storage_adapter_heap_v<typename To::adapter_type>)
 			out->reserve(n);
 
-		n *= 2; //my FFT implementation uses 32-bit int limbs because 64 bit ints can't be casted to 64 bit double without loss of significant digits
-		
+		//Size ratio coefficient
+		static constexpr size_t C = sizeof(limb) / sizeof(int_t);
+		n *= C;
+
 		size_t log2n = ksn::ilog2(n);
 
 		fft_arr1.resize(n);
 		fft_arr2.resize(n);
 
-		const uint32_t* p1 = (uint32_t*)in1->m_storage.get_storage();
-		const uint32_t* p2 = (uint32_t*)in2->m_storage.get_storage();
+		const int_t* p1 = (int_t*)in1->m_storage.get_storage();
+		const int_t* p2 = (int_t*)in2->m_storage.get_storage();
 
-		for (size_t i = 0; i < in1->capacity() * 2; ++i)
+		for (size_t i = 0; i < c1 * C; ++i)
 			fft_arr1[i] = p1[i];
-		for (size_t i = 0; i < in2->capacity() * 2; ++i)
+		for (size_t i = 0; i < c2 * C; ++i)
 			fft_arr2[i] = p2[i];
+
+		memset(fft_arr1.data() + c1 * C, 0, (n - c1 * C) * sizeof(cfp_t));
+		memset(fft_arr2.data() + c2 * C, 0, (n - c2 * C) * sizeof(cfp_t));
 
 		if (reverse_arr.size() != n)
 		{
@@ -705,35 +713,45 @@ public:
 		}
 
 		const size_t roots_size = n / 2;
-		if (roots_arr.size() != roots_size && roots_size)
+		if (roots_size)
 		{
-			roots_arr.resize(roots_size);
-			roots_arr[0] = 1;
-			roots_arr[roots_size / 2] = { 0, 1 };
-
-			size_t i = 1;
-			fp_t angle = fp_t(KSN_PI * 2 / n);
-			cfp_t base(std::cos(angle), std::sin(angle));
-			cfp_t current = base;
-			
-			//if constexpr (true)
-			if (roots_size > 2) //for debug purposes 
-				//TODO: make sure this is always true by setting an FFT threshold
+			if (roots_arr.size() != roots_size && roots_size)
 			{
-				while (true)
+				roots_arr.resize(roots_size);
+				roots_arr[0] = 1;
+				if (roots_size / 2)
+					roots_arr[roots_size / 2] = { 0, -1 };
+
+				//if constexpr (true)
+				if (roots_size > 2) //for debug purposes 
+					//TODO: make sure this is always true by setting an FFT threshold
 				{
-					roots_arr[i] = current;
-					roots_arr[roots_size - i] = { -current.real, current.imag };
-					if (++i == roots_size / 2)
-						break;
-					current *= base;
+					size_t i = 1;
+					fp_t angle = fp_t(KSN_PI * 2 / n);
+					cfp_t base(std::cos(angle), -std::sin(angle));
+					cfp_t current = base;
+
+					while (true)
+					{
+						roots_arr[i] = current;
+						roots_arr[roots_size - i] = { -current.real(), current.imag() };
+						if (++i == roots_size / 2)
+							break;
+						current *= base;
+					}
 				}
+			}
+			else
+			{
+				//Undo conjugation done by FFT
+				for (auto& root : roots_arr)
+					root.imag = -root.imag;
 			}
 		}
 
 		__inplace_FFT_p2<false>(fft_arr1, roots_arr, reverse_arr);
 		__inplace_FFT_p2<false>(fft_arr2, roots_arr, reverse_arr);
-
+		
 		for (size_t i = 0; i < n; ++i)
 		{
 			if constexpr (divide)
@@ -744,15 +762,32 @@ public:
 
 		__inplace_FFT_p2<true>(fft_arr1, roots_arr, reverse_arr);
 
-		size_t write_limit = std::min(n, out->capacity() * 2);
-		uint32_t* const p_out = (uint32_t*)out->m_storage.get_storage();
+
+		size_t write_limit = std::min(n, out->capacity() * C);
+		int_t* const p_out = (int_t*)out->m_storage.get_storage();
+
+		constexpr fp_t error_adjustment_const = 1 + 2 * std::numeric_limits<fp_t>::epsilon();
+
+		uint64_t accumulator = 0;
 		for (size_t i = 0; i < write_limit; ++i)
 		{
-			p_out[i] = int_t(fft_arr1[i].real + 0.5);
+			double current = fft_arr1[i].real();
+			if (current < 0)
+			{
+				if (current < -1)
+					__debugbreak();
+				current = 0;
+			}
+			else
+				current *= error_adjustment_const;
+
+			accumulator += (uint64_t)current;
+			p_out[i] = int_t(accumulator);
+			accumulator >>= (sizeof(int_t)) * 8;
 		}
 
-		//Do we need this?
-		memset(p_out + write_limit, 0, sizeof(int_t) * (out->capacity() * 2 - write_limit));
+		//TODO: Do we even need this?
+		memset(p_out + write_limit, 0, sizeof(int_t) * (out->capacity() * C - write_limit));
 	}
 
 	template<bool divide, class T1, class T2, class To>
@@ -1141,8 +1176,7 @@ public:
 
 
 
-	//template<detail::storage_adapter some_adapter_t>
-	template<class some_adapter_t>
+	template<detail::storage_adapter some_adapter_t>
 	my_t& operator=(const long_integer<some_adapter_t>& other)
 	{
 		this->init_from_other(other);
@@ -1197,12 +1231,12 @@ public:
 		return *this;
 	}
 
-	template<class adapter1_t, class adapter2_t>
-	_KSN_NODISCARD constexpr friend auto operator+
-	(const long_integer<adapter1_t>& lhs, const long_integer<adapter2_t>& rhs)
+	template<class xadapter_t>
+	_KSN_NODISCARD constexpr auto operator+
+	(const long_integer<xadapter_t>& other)
 	{
-		long_integer_addsub_result_t<adapter1_t, adapter2_t> result;
-		add(result, lhs, rhs);
+		long_integer_addsub_result_t<adapter_t, xadapter_t> result;
+		add(&result, this, &other);
 		return result;
 	}
 
@@ -1380,6 +1414,21 @@ public:
 		multiply_or_divide<true, false>(this, this, &other);
 		return *this;
 	}
+
+	template<detail::storage_adapter some_adapter_t>
+	constexpr my_t& operator/=(const long_integer<some_adapter_t>& other)
+	{
+		multiply_or_divide<true, true>(this, this, &other);
+		return *this;
+	}
+
+
+
+#undef  _ksnLI_add64_2c
+
+#undef _ksnLI_add64
+
+#undef _ksnLI_mul64
 };
 
 
