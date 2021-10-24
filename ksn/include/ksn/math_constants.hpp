@@ -31,13 +31,3 @@
 
 
 //#define KSN_I					sqrt(-1)
-
-
-
-
-
-_KSN_BEGIN
-
-//
-
-_KSN_END
