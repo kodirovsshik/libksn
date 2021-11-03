@@ -168,6 +168,7 @@ public:
 		ksn::window_t::_window_impl& win_impl = *(window_t::_window_impl*)GetWindowLongPtrW(wnd, GWLP_USERDATA);
 		std::deque<event_t>& q = win_impl.m_queue;
 
+
 #define push_mouse_event(_button, is_pressed) \
 		{\
 			event_t ev; \
@@ -548,6 +549,10 @@ public:
 
 #undef push_mouse_event
 #undef push_mouse_scroll_event
+		//case WM_SHOWWINDOW:
+		case WM_PAINT:
+			win_impl.check_initial_blackout();
+		break;
 
 		default:
 			break;
@@ -601,6 +606,7 @@ public:
 			bool m_is_closing : 1;
 			bool m_is_clipping : 1;
 			bool m_is_thread_safe_events : 1;
+			mutable bool m_filled_on_init : 1;
 		};
 		uint16_t m_flags;
 	};
@@ -763,13 +769,14 @@ private:
 
 	void init_flags()
 	{
-		m_is_repetitive_keyboard_enabled = false;
-		m_is_resizemove = false;
-		m_check_special_keys_on_keyboard_event = true;
-		m_mouse_inside = false;
-		m_is_closing = false;
-		m_is_clipping = false;
-		m_is_thread_safe_events = true;
+		this->m_is_repetitive_keyboard_enabled = false;
+		this->m_is_resizemove = false;
+		this->m_check_special_keys_on_keyboard_event = true;
+		this->m_mouse_inside = false;
+		this->m_is_closing = false;
+		this->m_is_clipping = false;
+		this->m_is_thread_safe_events = true;
+		this->m_filled_on_init = false;
 	}
 
 
@@ -823,8 +830,8 @@ public:
 		std::swap(this->m_pending_wchar, rhs.m_pending_wchar);
 		std::swap(this->m_flags, rhs.m_flags);
 
-		//We don't care about the queue mutex cuz if you move your window to another object
-		//	in one thread and are still using it in another thread, you are probably doing something wrong
+		//We don't care about the queues' mutexes cuz if you move your window to another object
+		//in one thread and are still using it in another thread then you are probably doing something wrong
 	}
 
 	void close() noexcept
@@ -928,18 +935,7 @@ public:
 					{
 						break;
 					}
-					if (msg.message == WM_PAINT)
-					{ //we don't wanna burn user's eyes, right?
-						PAINTSTRUCT pm;
-						BeginPaint(this->m_window, &pm);
-						GetClientRect(this->m_window, &pm.rcPaint);
-
-						HBRUSH black_brush = CreateSolidBrush(RGB(0, 0, 0));
-						FillRect(this->m_hdc, &pm.rcPaint, black_brush);
-						DeleteObject(black_brush);
-
-						EndPaint(this->m_window, &pm);
-					}
+					
 					TranslateMessage(&msg);
 					DispatchMessageW(&msg);
 				}
@@ -1076,6 +1072,23 @@ public:
 			return false;
 
 		return SetWindowTextW(this->m_window, namae.c_str());
+	}
+
+	void check_initial_blackout() const noexcept
+	{
+		if (!this->m_filled_on_init)
+		{
+			PAINTSTRUCT pm;
+			BeginPaint(this->m_window, &pm);
+			GetClientRect(this->m_window, &pm.rcPaint);
+
+			HBRUSH black_brush = CreateSolidBrush(RGB(0, 0, 0));
+			FillRect(this->m_hdc, &pm.rcPaint, black_brush);
+			DeleteObject(black_brush);
+
+			EndPaint(this->m_window, &pm);
+			this->m_filled_on_init = true;
+		}
 	}
 };
 
@@ -1312,6 +1325,7 @@ void window_t::hide() const noexcept
 void window_t::show() const noexcept
 {
 	ShowWindow(this->m_impl->m_window, SW_SHOW);
+	this->m_impl->check_initial_blackout();
 }
 
 
