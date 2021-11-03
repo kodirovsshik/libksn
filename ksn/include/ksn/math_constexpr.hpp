@@ -8,6 +8,7 @@
 
 #include <limits>
 #include <stdexcept>
+#include <numeric>
 
 #undef min
 #undef max
@@ -107,7 +108,7 @@ constexpr int ilog2(T x)
 	}
 	else
 	{
-		static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "There was no 128 bit integers in my time");
+		static_assert(false, "In my time we had no 128-bit integers");
 	}
 }
 
@@ -183,68 +184,58 @@ constexpr T uabs(T x) noexcept
 
 
 
-template<class T>
-constexpr T fmod(T x, T period) noexcept
+template<class T, bool use_dx>
+constexpr T _sin(const T& x, const T* p_dx) noexcept
 {
-	int64_t int_part = int64_t(x / period);
-	return x - int_part * period;
-}
-template<class T>
-constexpr T fmod1(T x, T period) noexcept
-{
-	x = fmod(x, period);
-	if (x < 0) return x + ksn::abs(period);
-	return x;
-}
+	if (x != x)
+		return x;
 
+	//TODO: fix
+	//x = ksn::fmod(x, T(2 * KSN_PId));
+	if (x > T(KSN_PI)) return _sin<T, use_dx>(x - T(2 * KSN_PI), p_dx);
 
-
-
-
-template<class T>
-constexpr T sin(T x) noexcept
-{
-	x = ksn::fmod(x, T(2 * KSN_PId));
-	if (x > T(KSN_PId)) x -= T(2 * KSN_PId);
 	T result = x;
 	T sqr = -x * x;
 	T current = x;
+
 	size_t i = 1;
 	while (1)
 	{
 		i += 2;
 		current *= sqr / (i * (i - 1));
 		T new_result = result + current;
-		if (new_result == result) return new_result;
-		result = new_result;
-	}
-}
-template<class T>
-constexpr T sin(T x, T dx) noexcept
-{
-	x = ksn::fmod(x, T(2 * KSN_PI));
-	if (x > T(KSN_PI)) x -= T(2 * KSN_PI);
-	T result = x;
-	T sqr = -x * x;
-	T current = x;
-	size_t i = 1;
-	while (1)
-	{
-		i += 2;
-		current *= sqr / (i * (i - 1));
-		T new_result = result + current;
-		if (ksn::abs(new_result - result) <= dx) return new_result;
+		if constexpr (use_dx)
+		{
+			if (ksn::abs(new_result - result) <= *p_dx)
+				return new_result;
+		}
+		else
+		{
+			if (new_result == result)
+				return new_result;
+		}
 		result = new_result;
 	}
 }
 
 template<class T>
-T cos(T x) noexcept
+constexpr T sin(const T& x) noexcept
+{
+	return _sin<T, false>(x, nullptr);
+}
+template<class T>
+constexpr T sin(const T& x, const T& dx) noexcept
+{
+	return _sin<T, true>(x, &dx);
+}
+
+template<class T>
+constexpr T cos(const T& x) noexcept
 {
 	return ksn::sin(x - T(KSN_PI / 2));
 }
 template<class T>
-T cos(T x, T dx) noexcept
+constexpr T cos(const T& x, const T& dx) noexcept
 {
 	return ksn::sin(x - T(KSN_PI / 2), dx);
 }
@@ -253,10 +244,11 @@ T cos(T x, T dx) noexcept
 
 
 
-template<class T>
-constexpr T exp(T x)
+template<class T, bool use_dx>
+constexpr T _exp(const T& x, const T* p_dx)
 {
-	if ((x == x) == false) return x;
+	if (x != x)
+		return x;
 
 	long double result = 1;
 	long double num = x;
@@ -266,28 +258,16 @@ constexpr T exp(T x)
 	while (true)
 	{
 		long double new_result = result + num / denom;
-		if (new_result == result) return new_result;
-
-		result = new_result;
-
-		num *= x;
-		denom *= ++n;
-	}
-}
-template<class T>
-constexpr T exp(T x, T dx)
-{
-	if ((x == x) == false) return x;
-
-	long double result = 1;
-	long double num = x;
-	long double denom = 1;
-	size_t n = 1;
-
-	while (true)
-	{
-		long double new_result = result + num / denom;
-		if (ksn::abs(new_result - result) < dx) return new_result;
+		if constexpr (use_dx)
+		{
+			if (ksn::abs(new_result - result) < *p_dx)
+				return new_result;
+		}
+		else
+		{
+			if (new_result == result)
+				return new_result;
+		}
 
 		result = new_result;
 
@@ -296,16 +276,31 @@ constexpr T exp(T x, T dx)
 	}
 }
 
-
-
-
-
 template<class T>
-constexpr T ln(T x)
+constexpr T exp(const T& x)
 {
-	if (x >= 1.5) return -ln(1 / x);
-	if (x <= 0) return std::numeric_limits<long double>::quiet_NaN();
-	if (x <= 1e-2) return T(-10) + ln(x * exp<T>(10));
+	return _exp<T, false>(x, nullptr);
+}
+template<class T>
+constexpr T exp(const T& x, const T& dx)
+{
+	return _exp<T, true>(x, &dx);
+}
+
+
+
+
+
+template<class T, bool use_dx>
+constexpr T _ln(const T& x, const T& p_dx)
+{
+	if (x != x)
+		return x;
+
+	if (x >= 1.5) return -ln<T, use_dx>(1 / x, p_dx);
+	if (x < 0) return std::numeric_limits<T>::quiet_NaN();
+	if (x == 0) return -std::numeric_limits<T>::infinity();
+	if (x <= 1e-2) return T(-5) + _ln<T, use_dx>(x * exp<T>(5), p_dx);
 
 	long double x1 = 1 - x;
 	long double num = x1;
@@ -316,7 +311,16 @@ constexpr T ln(T x)
 	while (true)
 	{
 		long double new_result = result + num / denom;
-		if (new_result == result) return -new_result;
+		if constexpr (use_dx)
+		{
+			if (ksn::abs(new_result - result) < *p_dx)
+				return -new_result;
+		}
+		else
+		{
+			if (new_result == result)
+				return -new_result;
+		}
 
 		result = new_result;
 
@@ -325,30 +329,15 @@ constexpr T ln(T x)
 	}
 }
 template<class T>
-constexpr T ln(T x, T dx)
+constexpr T ln(const T& x)
 {
-	if (x >= 1.5) return -ln(1 / x);
-	if (x <= 0) return std::numeric_limits<long double>::quiet_NaN();
-	if (x <= 1e-6) return T(-10) + ln(x * exp<T>(10));
-
-	long double x1 = 1 - x;
-	long double num = x1;
-	uint64_t denom = 1;
-
-	long double result = 0;
-
-	while (true)
-	{
-		long double new_result = result + num / denom;
-		if (ksn::abs(new_result - result) < dx) return -new_result;
-
-		result = new_result;
-
-		num *= x1;
-		denom++;
-	}
+	return _ln<T, false>(x, nullptr);
 }
-
+template<class T>
+constexpr T ln(const T& x, const T& dx)
+{
+	return _ln<T, true>(x, &dx);
+}
 
 
 
@@ -364,24 +353,12 @@ constexpr auto pow(T1 x, T2 y, T3 d)
 	return ksn::exp<std::common_type_t<T1, T2>>(y * ksn::ln(x, d), d);
 }
 
-template<class T1, std::integral T2>
+template<std::integral T1, std::unsigned_integral T2>
 constexpr T1 pow(T1 x, T2 y)
 {
-	if constexpr (std::signed_integral<T2>)
-	{
-		if (y < 0)
-		{
-			if (y == std::numeric_limits<T2>::min())
-				return (x == T1(0)) ? NAN : 0;
-
-			using T2u = std::make_signed_t<T2>;
-			return pow<T1, T2u>(T1(1) / x, T2u(-y));
-		}
-	}
-
-	T1 result(1);
-	if (y == 0) return result;
-
+	T1 result = 1;
+	if (!y) return result;
+	
 	T2 walker = 1 << ilog2(y);
 
 	while (walker != 0)
@@ -395,21 +372,23 @@ constexpr T1 pow(T1 x, T2 y)
 	return result;
 }
 
-template<std::integral T1, std::unsigned_integral T2>
+template<class T1, std::integral T2>
 constexpr T1 pow(T1 x, T2 y)
 {
-	T1 result = 1;
-	T2 walker = 1 << ilog2(y);
+	using T2u = std::make_signed_t<T2>;
 
-	while (walker != 0)
+	if constexpr (std::signed_integral<T2>)
 	{
-		result *= result;
-		if (y & walker)
-			result *= x;
-		walker >>= 1;
+		if (y < 0)
+		{
+			if (y == std::numeric_limits<T2>::min())
+				return (x == T1(0)) ? NAN : 0;
+
+			return pow<T1, T2u>(T1(1) / x, T2u(-y));
+		}
 	}
 
-	return result;
+	return pow(x, (T2u)y);
 }
 
 template<std::integral T1, std::signed_integral T2>
@@ -561,6 +540,100 @@ constexpr T root(T x, uint32_t n)
 
 
 
+template<class T>
+constexpr T fabs(T x)
+{
+	if (x < 0) return -x;
+	return x;
+}
+
+template<class T, std::integral iT>
+constexpr T exp2(iT n)
+{
+	T x = 1;
+	while (n > 0)
+	{
+		x *= 2;
+		n--;
+	}
+	while (n < 0)
+	{
+		x /= 2;
+		n++;
+	}
+	return x;
+}
+
+template<class T>
+constexpr T trunc(T x)
+{
+	if (x < 0) return -trunc(-x);
+	if (x < 1) return 0;
+	
+	int revert_power = 0;
+	do
+	{
+		++revert_power;
+		x /= 2;
+	} while (x >= 1);
+
+	constexpr int mantissa_digits = std::numeric_limits<T>::digits;
+
+	if (revert_power >= mantissa_digits)
+		return x;
+
+	x *= exp2<T>(mantissa_digits);
+	x = T((uint64_t)x & ~((uint64_t(1) << (mantissa_digits - revert_power)) - 1));
+	x *= exp2<T>(revert_power - mantissa_digits);
+
+	return x;
+}
+template<class T>
+constexpr T floor(T x)
+{
+	if (x < 0)
+		return -trunc(-x) - 1;
+	return trunc(x);
+}
+
+template<class T>
+constexpr T fmod(T x, T mod)
+{
+	T q = trunc(x / mod);
+	return x - q * mod;
+}
+template<class T>
+constexpr T fmod1(T x, T mod)
+{
+	T q = floor(x / mod);
+	return x - q * mod;
+}
+
+template<class T>
+constexpr T fdiv(T x, T div)
+{
+	return trunc(x / div);
+}
+template<class T>
+constexpr T fdiv1(T x, T div)
+{
+	return floor(x / div);
+}
+
+template<class T>
+std::pair<T, T> fdivmod(T x, T div)
+{
+	T q = trunc(x / div);
+	return { q, x - q * div };
+}
+template<class T>
+std::pair<T, T> fdivmod1(T x, T div)
+{
+	T q = floor(x / div);
+	return { q, x - q * div };
+}
+
+
 
 
 template<size_t n>
@@ -618,88 +691,63 @@ constexpr static uint64_t fibonacci(size_t x)
 
 
 
-template<class T>
-constexpr T atan(T x) noexcept
-{
-	if (ksn::abs(x) < 1)
-	{
-		T sqr = -x * x;
-		T sum = x;
-		T current = x;
-		size_t i = 1;
-		while (1)
-		{
-			i += 2;
-			current *= sqr;
-			T new_sum = sum + current / i;
-			if (new_sum == sum) return new_sum;
-			sum = new_sum;
-		}
-	}
-	else if (x <= -1)
-	{
-		return atan(-x) - T(KSN_PId);
-	}
-	else
-	{
-		T sqr = -x * x;
-		T sum = T(KSN_PId / 2);
-		T current = -1 / x;
-		size_t i = 1;
-		while (1)
-		{
-			i += 2;
-			current /= sqr;
-			T new_sum = sum + current / i;
-			if (new_sum == sum) return new_sum;
-			sum = new_sum;
-		}
-	}
-}
-template<class T>
-constexpr T atan(T x, T dx) noexcept
-{
-	if (ksn::abs(x) < 1)
-	{
-		T sqr = -x * x;
-		T sum = x;
-		T current = x;
-		size_t i = 1;
-		while (1)
-		{
-			i += 2;
-			current *= sqr;
-			T new_sum = sum + current / i;
-			if (ksn::abs(new_sum - sum) <= dx) return new_sum;
-			sum = new_sum;
-		}
-	}
-	else if (x <= -1)
-	{
-		return atan(-x) - T(KSN_PId);
-	}
-	else
-	{
-		T sqr = -x * x;
-		T sum = T(KSN_PId / 2);
-		T current = -1 / x;
-		size_t i = 1;
-		while (1)
-		{
-			i += 2;
-			current /= sqr;
-			T new_sum = sum + current / i;
-			if (ksn::abs(new_sum - sum) <= dx) return new_sum;
-			sum = new_sum;
-		}
-	}
-}
+_KSN_DETAIL_BEGIN
 
-template<class T>
-constexpr T atan2(T y, T x) noexcept
+template<class T, bool use_dx>
+constexpr T _atan(const T& x, const T* dx)
+{
+	if (x != x)
+		return x;
+
+	if (x <= -1)
+	{
+		return _atan<T, use_dx>(-x, dx);
+	}
+
+	T sqr, sum, current;
+	if (abs(x) < 1)
+	{
+		sqr = -1 / (x * x);
+		sum = current = x;;
+	}
+	else
+	{
+		sqr = -x * x;
+		sum = T(KSN_PId / 2);
+		current = -1 / x;
+	}
+
+	size_t i = 1;
+	while (1)
+	{
+		i += 2;
+		current *= sqr;
+		T new_sum = sum + current / i;
+		if constexpr (use_dx)
+		{
+			if (new_sum == sum)
+				return new_sum;
+		}
+		else
+		{
+			if (ksn::abs(new_sum - sum) <= dx)
+				return new_sum;
+		}
+		sum = new_sum;
+	}
+}
+template<class T, bool use_dx>
+constexpr T _atan2(const T& y, const T& x, const T* dx) noexcept
 {
 	static constexpr T pi = T(KSN_PI);
-	if (x == 0)
+	bool small_x;
+
+	if constexpr (use_dx)
+		small_x = ksn::abs(x) < *dx;
+	else
+		small_x = x == 0;
+
+	if (small_x)
 	{
 		if (y > 0) return pi / 2;
 		if (y < 0) return -pi / 2;
@@ -707,35 +755,38 @@ constexpr T atan2(T y, T x) noexcept
 		return 0;
 	}
 
-	T atan = ksn::atan(y / x);
-	
+	T atan = _atan<T, use_dx>(y / x, dx);
+
 	if (x > 0) return atan;
-	
+
 	//x < 0
 	if (y >= 0) return atan + pi;
 	//y < 0
 	return atan - pi;
 }
+
+_KSN_DETAIL_END
+
 template<class T>
-constexpr T atan2(T y, T x, T dx) noexcept
+constexpr T atan(const T& x) noexcept
 {
-	static constexpr T pi = T(KSN_PI);
-	if (ksn::abs(x) < dx)
-	{
-		if (y > 0) return pi / 2;
-		if (y < 0) return -pi / 2;
-		//y == 0
-		return 0;
-	}
+	return detail::_atan<T, false>(x, nullptr);
+}
+template<class T>
+constexpr T atan(const T& x, const T* dx) noexcept
+{
+	return detail::_atan<T, true>(x, dx);
+}
 
-	T atan = ksn::atan(y / x, dx);
-
-	if (x > 0) return atan;
-
-	//x < 0
-	if (y >= 0) return atan + pi;
-	//y < 0
-	return atan - pi;
+template<class T>
+constexpr T atan2(const T& y, const T& x) noexcept
+{
+	return detail::_atan2<T, false>(y, x, nullptr);
+}
+template<class T>
+constexpr T atan2(const T& y, const T& x, const T& dx) noexcept
+{
+	return detail::_atan2<T, true>(y, x, &dx);
 }
 
 
