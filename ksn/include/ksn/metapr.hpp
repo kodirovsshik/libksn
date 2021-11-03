@@ -31,21 +31,25 @@ struct ct_log2<0, c>
 
 
 
-template<size_t Arg0, size_t Arg1, size_t... ArgN>
+
+
+template<size_t...>
 struct max_v_helper
 {
-	static constexpr size_t value = max_v_helper<max_v_helper<Arg0, Arg1>::value, ArgN...>::value;
 };
-template<size_t Arg0, size_t Arg1>
-struct max_v_helper
+template<size_t A, size_t B, size_t... C>
+struct max_v_helper<A, B, C...>
 {
-	static constexpr size_t value = Arg0 > Arg1 ? Arg0 : Arg1;
+	static constexpr size_t value = A > B ? max_v_helper<A, C...>::value : max_v_helper<B, C...>::value;
 };
-template<size_t Arg0>
-struct max_v_helper
+template<size_t A>
+struct max_v_helper<A>
 {
-	static constexpr size_t value = Arg0;
+	static constexpr size_t value = A;
 };
+
+template<size_t... Args>
+static constexpr size_t max_v = max_v_helper<Args...>::value;
 
 
 _KSN_DETAIL_END
