@@ -131,7 +131,7 @@ public:
 	
 
 
-	template<class ofp_t>
+	template<class ofp_t> requires(std::convertible_to<ofp_t, fp_t>)
 	constexpr my_t friend operator*(const my_t& x, ofp_t y) noexcept
 	{
 		common_vec(fp_t, ofp_t, N) result;
@@ -143,21 +143,16 @@ public:
 		}
 		return result;
 	}
-	template<class ofp_t>
+	template<class ofp_t> requires(std::convertible_to<ofp_t, fp_t>)
 	constexpr my_t friend operator/(const my_t& x, ofp_t y) noexcept
 	{
-		return x * (1 / y);
+		return x * (1 / fp_t(y));
 	}
 
-	template<class ofp_t>
+	template<class ofp_t> requires(std::convertible_to<ofp_t, fp_t>)
 	constexpr my_t friend operator*(ofp_t x, const my_t& y) noexcept
 	{
 		return y * x;
-	}
-	template<class ofp_t>
-	constexpr my_t friend operator/(ofp_t x, const my_t& y) noexcept
-	{
-		return y * (1 / x);
 	}
 
 
@@ -273,14 +268,17 @@ public:
 
 
 
+using vec2i = vec<2, int>;
 using vec2f = vec<2, float>;
 using vec2d = vec<2, double>;
 using vec2l = vec<2, long double>;
 
+using vec3i = vec<3, int>;
 using vec3f = vec<3, float>;
 using vec3d = vec<3, double>;
 using vec3l = vec<3, long double>;
 
+using vec4i = vec<4, int>;
 using vec4f = vec<4, float>;
 using vec4d = vec<4, double>;
 using vec4l = vec<4, long double>;
