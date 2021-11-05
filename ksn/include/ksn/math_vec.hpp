@@ -189,6 +189,12 @@ public:
 		return sqrt(this->abs2());
 	}
 
+	template<class A, class B> requires(N == 2 && std::convertible_to<fp_t, A> && std::convertible_to<fp_t, B>)
+	constexpr operator std::pair<A, B>()
+	{
+		return std::pair<A, B>{ (A)this->data[0], (B)this->data[1] };
+	}
+	
 	template<class = void> requires(N == 2)
 	constexpr fp_t arg() const noexcept
 	{
