@@ -1257,11 +1257,15 @@ void window_t::set_client_size(uint16_t width, uint16_t height) noexcept
 
 	AdjustWindowRectEx(&size, GetWindowLongA(window, GWL_STYLE), false, 0);
 	SetWindowPos(window, NULL, 0, 0, (uint16_t)(size.right - size.left), (uint16_t)(size.bottom - size.top), SWP_NOMOVE | SWP_NOZORDER);
+	
+	auto new_size = this->get_client_size();
+	this->m_impl->m_last_size = new_size;
+	this->m_impl->m_resizemove_last_size = new_size;
 
 	ksn::event_t ev;
 	ev.type = ksn::event_type_t::resize;
-	ev.window_resize_data.width_new = width;
-	ev.window_resize_data.height_new = height;
+	ev.window_resize_data.width_new = new_size.first;
+	ev.window_resize_data.height_new = new_size.second;
 	ev.window_resize_data.width_old = prev_size.first;
 	ev.window_resize_data.height_old = prev_size.second;
 	try
@@ -1291,15 +1295,19 @@ void window_t::set_client_position(int16_t x, int16_t y) noexcept
 	pos.left = x;
 	pos.top = y;
 
+	auto prev_pos = this->get_client_position();
+
 	AdjustWindowRectEx(&pos, GetWindowLongA(window, GWL_STYLE), false, 0);
 	SetWindowPos(window, NULL, pos.left, pos.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 
-	auto prev_pos = this->get_client_position();
+	auto new_pos = this->get_client_position();
+	this->m_impl->m_last_pos = new_pos;
+	this->m_impl->m_resizemove_last_pos = new_pos;
 
 	event_t ev;
 	ev.type = event_type_t::move;
-	ev.window_move_data.x_new = x;
-	ev.window_move_data.y_new = y;
+	ev.window_move_data.x_new = new_pos.first;
+	ev.window_move_data.y_new = new_pos.second;
 	ev.window_move_data.x_old = prev_pos.first;
 	ev.window_move_data.y_old = prev_pos.second;
 	try
@@ -1477,6 +1485,9 @@ bool window_t::set_size_constraint(std::pair<uint16_t, uint16_t> min_size, std::
 
 	this->m_impl->m_size_min = min_size;
 	this->m_impl->m_size_max = max_size;
+
+	this->set_client_size(this->get_client_size());
+
 	return true;
 }
 bool window_t::set_size_min_width(uint16_t x) noexcept
