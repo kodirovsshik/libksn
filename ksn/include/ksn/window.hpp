@@ -57,7 +57,8 @@ enum class event_type_t : uint8_t
 
 enum class mouse_button_t : uint8_t
 {
-	left, right, middle, extra1, extra2
+	left = 0, right, middle, extra1, extra2,
+	buttons_count
 };
 
 enum class keyboard_button_t : uint8_t
