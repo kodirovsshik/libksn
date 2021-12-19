@@ -474,7 +474,7 @@ image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* image)
 		auto raw_j = [&]
 		(size_t pos, size_t j) -> uint8_t
 		{
-			if (j == 0) return 0;
+			if (j < bpp) return 0;
 			return raw(pos);
 		};
 
@@ -487,6 +487,7 @@ image_bgra_t::load_result_t try_load_png(FILE* fd, image_bgra_t* image)
 		auto prior_j = [&]
 		(size_t pos, size_t j) -> uint8_t
 		{
+			if (pos < byte_width) return 0;
 			return raw_j(pos - byte_width, j);
 		};
 
