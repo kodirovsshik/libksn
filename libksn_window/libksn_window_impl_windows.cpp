@@ -221,30 +221,49 @@ public:
 				lock_event_queue(&win_impl);
 				q.push_back(ev);
 			}
-			else if (w == SIZE_MINIMIZED)
+			
+			if (w == SIZE_MINIMIZED)
 			{
 				event_t ev;
 				ev.type = event_type_t::minimized;
 				lock_event_queue(&win_impl);
 				q.push_back(ev);
 			}
-			else if (w == SIZE_RESTORED && win_impl.m_is_resizemove)
+			else if (w != SIZE_MAXHIDE && w != SIZE_MAXSHOW)
 			{
+				resizemove_data_t data;
+				data.window = win_impl.m_ksn_window;
+
+				auto new_size = win_impl.m_ksn_window->get_client_size();
+
+				if (new_size == win_impl.m_resizemove_last_size)
+					break;
+
+				data.resize = true;
+				data.window_resize_data.width_old = win_impl.m_resizemove_last_size.first;
+				data.window_resize_data.height_old = win_impl.m_resizemove_last_size.second;
+				data.window_resize_data.width_new = new_size.first;
+				data.window_resize_data.height_new = new_size.second;
+
+				DeleteObject(win_impl.m_bitmap);
+				win_impl.m_bitmap = CreateCompatibleBitmap(win_impl.m_hdc, new_size.first, new_size.second);
+				SelectObject(win_impl.m_hmdc, win_impl.m_bitmap);
+
+				win_impl.m_resizemove_last_size = new_size;
 				if (win_impl.m_resizemove_handle)
-				{
-					resizemove_data_t data;
-					data.window = win_impl.m_ksn_window;
-
-					auto new_size = win_impl.m_ksn_window->get_client_size();
-
-					data.resize = true;
-					data.window_resize_data.width_old = win_impl.m_resizemove_last_size.first;
-					data.window_resize_data.height_old = win_impl.m_resizemove_last_size.second;
-					data.window_resize_data.width_new = new_size.first;
-					data.window_resize_data.height_new = new_size.second;
-
-					win_impl.m_resizemove_last_size = new_size;
 					win_impl.m_resizemove_handle(&data);
+				else
+				{
+					event_t ev;
+					ev.type = event_type_t::resize;
+
+					ev.window_resize_data.height_new = data.window_resize_data.height_new;
+					ev.window_resize_data.height_old = data.window_resize_data.height_old;
+					ev.window_resize_data.width_new = data.window_resize_data.width_new;
+					ev.window_resize_data.width_old = data.window_resize_data.width_old;
+
+					lock_event_queue(&win_impl);
+					q.push_back(ev);
 				}
 			}
 		}
@@ -252,24 +271,32 @@ public:
 
 		case WM_MOVE:
 		{
-			if (win_impl.m_is_resizemove)
+			resizemove_data_t data;
+			data.window = win_impl.m_ksn_window;
+
+			auto new_pos = win_impl.m_ksn_window->get_client_position();
+
+			data.move = true;
+			data.window_move_data.x_old = win_impl.m_resizemove_last_pos.first;
+			data.window_move_data.y_old = win_impl.m_resizemove_last_pos.second;
+			data.window_resize_data.width_new = new_pos.first;
+			data.window_resize_data.height_new = new_pos.second;
+
+			win_impl.m_resizemove_last_pos = new_pos;
+			if (win_impl.m_resizemove_handle)
+				win_impl.m_resizemove_handle(&data);
+			else
 			{
-				if (win_impl.m_resizemove_handle)
-				{
-					resizemove_data_t data;
-					data.window = win_impl.m_ksn_window;
+				event_t ev;
+				ev.type = event_type_t::move;
 
-					auto new_pos = win_impl.m_ksn_window->get_client_position();
+				ev.window_move_data.x_new = data.window_move_data.x_new;
+				ev.window_move_data.x_old = data.window_move_data.x_old;
+				ev.window_move_data.y_new = data.window_move_data.y_new;
+				ev.window_move_data.y_old = data.window_move_data.y_old;
 
-					data.move = true;
-					data.window_move_data.x_old = win_impl.m_resizemove_last_pos.first;
-					data.window_move_data.y_old = win_impl.m_resizemove_last_pos.second;
-					data.window_resize_data.width_new = new_pos.first;
-					data.window_resize_data.height_new = new_pos.second;
-
-					win_impl.m_resizemove_last_pos = new_pos;
-					win_impl.m_resizemove_handle(&data);
-				}
+				lock_event_queue(&win_impl);
+				q.push_back(ev);
 			}
 		}
 		break;
@@ -325,6 +352,10 @@ public:
 			}
 			if (new_size != win_impl.m_last_size)
 			{
+				DeleteObject(win_impl.m_bitmap);
+				win_impl.m_bitmap = CreateCompatibleBitmap(win_impl.m_hdc, new_size.first, new_size.second);
+				SelectObject(win_impl.m_hmdc, win_impl.m_bitmap);
+
 				event_t ev;
 				ev.type = event_type_t::resize;
 
