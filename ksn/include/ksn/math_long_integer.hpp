@@ -734,7 +734,7 @@ public:
 					while (true)
 					{
 						roots_arr[i] = current;
-						roots_arr[roots_size - i] = { -current.real(), current.imag() };
+						roots_arr[roots_size - i] = { -current.real, current.imag };
 						if (++i == roots_size / 2)
 							break;
 						current *= base;
@@ -771,7 +771,7 @@ public:
 		uint64_t accumulator = 0;
 		for (size_t i = 0; i < write_limit; ++i)
 		{
-			double current = fft_arr1[i].real();
+			double current = fft_arr1[i].real;
 			if (current < 0)
 			{
 				if (current < -1)

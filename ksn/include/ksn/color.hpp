@@ -288,7 +288,7 @@ constexpr color_bgr_t::color_bgr_t(detail::_color_generic_value x) noexcept
 template<color color_t>
 constexpr color_bgr_t::color_bgr_t(color_t other) noexcept
 {
-	return this->color_bgr_t::color_bgr_t(detail::_color_generic_value::from_color(other));
+	this->color_bgr_t::color_bgr_t(detail::_color_generic_value::from_color(other));
 }
 
 constexpr uint32_t color_bgr_t::rgb() const noexcept
