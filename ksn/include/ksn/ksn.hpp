@@ -340,6 +340,13 @@ Define _KSN_IS_DEBUG_BUILD yourself to be 0 or 1 before any ksn header or reconf
 _KSN_BEGIN
 
 _KSN_DETAIL_BEGIN
+
+template<bool test>
+consteval void _ct_assert()
+{
+	static_assert(test);
+}
+
 _KSN_DETAIL_END
 
 _KSN_END

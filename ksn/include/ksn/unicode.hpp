@@ -171,7 +171,7 @@ int unicode_le_to_utf32le(const char_t* p, char32_t& c)
 
 	else
 	{
-		static_assert(false, "Incorrect type passed to KSN unicode conversion routine");
+		_ct_assert<false>();
 	}
 
 	return -1;
@@ -293,7 +293,7 @@ int utf32le_to_unicode_le(char32_t c, char_t* p)
 
 	else
 	{
-		static_assert(false, "Incorrect type passed to KSN unicode conversion routine");
+		_ct_assert<false>();
 	}
 
 	return -1;
