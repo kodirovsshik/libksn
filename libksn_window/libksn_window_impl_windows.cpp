@@ -457,23 +457,26 @@ public:
 		case WM_KEYUP:
 		case WM_SYSKEYUP:
 		{
+			bool press = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
 			bool repeated = HIWORD(l) & KF_REPEAT;
-			if (win_impl.m_is_repetitive_keyboard_enabled || !repeated)
+			if (!press || win_impl.m_is_repetitive_keyboard_enabled || !repeated)
 			{
 				event_t ev;
-				if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
+				if (press)
 				{
 					if (repeated)
 						ev.type = event_type_t::keyboard_hold;
 					else
 						ev.type = event_type_t::keyboard_press;
 				}
-				else ev.type = event_type_t::keyboard_release;
+				else 
+					ev.type = event_type_t::keyboard_release;
 
 				ev.keyboard_button_data.button = my_t::_get_button(w, l);
 
 				if (win_impl.m_check_special_keys_on_keyboard_event)
 				{
+					//TODO: test this code
 					ev.keyboard_button_data.alt = HIWORD(GetKeyState(VK_MENU)) != 0;
 					ev.keyboard_button_data.control = HIWORD(GetKeyState(VK_CONTROL)) != 0;
 					ev.keyboard_button_data.shift = HIWORD(GetKeyState(VK_SHIFT)) != 0;
