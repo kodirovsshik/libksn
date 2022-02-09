@@ -103,8 +103,11 @@ struct malloc_guard
 
 
 void dynamic_assert(int nonzero, const char* expr, const char* msg, int line, const char* file, ...);
+#if _KSN_IS_DEBUG_BUILD
 #define ksn_dynamic_assert(true_expr, msg, ...) ksn::dynamic_assert(!!(true_expr), #true_expr, msg, __LINE__, __FILE__, __VA_ARGS__);
-
+#else
+#define ksn_dynamic_assert(...)
+#endif
 
 
 
