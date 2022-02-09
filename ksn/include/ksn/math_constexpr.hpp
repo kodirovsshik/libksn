@@ -108,7 +108,8 @@ constexpr int ilog2(T x)
 	}
 	else
 	{
-		static_assert(false, "In my time we had no 128-bit integers");
+		//In my days we had no 128 bit integers
+		_ct_assert<false>();
 	}
 }
 
