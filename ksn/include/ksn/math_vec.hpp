@@ -44,6 +44,20 @@ private:
 
 public:
 
+	using value_type = fp_t;
+	using reference = fp_t&;
+	using const_reference = const fp_t&;
+
+	using iterator = fp_t*;
+	using const_iterator = const fp_t*;
+	using reverse_iterator = std::reverse_iterator<iterator>;
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+	using difference_type = ptrdiff_t;
+	using size_type = size_t;
+
+
+
 	fp_t data[N];
 
 	using value_type = fp_t;
@@ -106,6 +120,61 @@ public:
 #pragma warning(pop)
 #endif
 
+	
+	iterator begin() noexcept
+	{
+		return this->data;
+	}
+	const_iterator begin() const noexcept
+	{
+		return this->data;
+	}
+
+	iterator end() noexcept
+	{
+		return std::end(this->data);
+	}
+	const_iterator end() const noexcept
+	{
+		return std::end(this->data);
+	}
+	
+	const_iterator cbegin() const noexcept
+	{
+		return this->data;
+	}
+	const_iterator cend() const noexcept
+	{
+		return std::end(this->data);
+	}
+
+
+	reverse_iterator rbegin() noexcept
+	{
+		return std::end(this->data) - 1;
+	}
+	const_reverse_iterator rbegin() const noexcept
+	{
+		return std::end(this->data) - 1;
+	}
+
+	reverse_iterator rend() noexcept
+	{
+		return this->data - 1;
+	}
+	const_reverse_iterator rend() const noexcept
+	{
+		return this->data - 1;
+	}
+
+	const_reverse_iterator crbegin() const noexcept
+	{
+		return std::end(this->data) - 1;
+	}
+	const_reverse_iterator crend() const noexcept
+	{
+		return this->data - 1;
+	}
 
 
 	template<class ofp_t>
@@ -320,11 +389,26 @@ _ksn_define_vec_minmax(max);
 
 
 template<size_t N, class fp_t>
-constexpr auto clamp(const vec<N, fp_t>& value, const vec<N, fp_t>& lower_bound, const vec<N, fp_t> upper_bound)
+constexpr auto clamp(const vec<N, fp_t>& value, const vec<N, fp_t>& lower_bound, const vec<N, fp_t>& upper_bound)
 {
 	return max(min(value, upper_bound), lower_bound);
 }
 
+
+#define _ksn_define_vec_rounder(round_f) \
+template<size_t N, class fp_t> \
+constexpr auto round_f(vec<N, fp_t> v) \
+{ \
+	using std::round_f; \
+	for (auto& x : v) \
+		x = round_f(x); \
+	return v; \
+}
+_ksn_define_vec_rounder(round);
+_ksn_define_vec_rounder(floor);
+_ksn_define_vec_rounder(ceil);
+
+#undef _ksn_define_vec_rounder
 
 _KSN_END
 
