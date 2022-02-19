@@ -65,11 +65,11 @@ public:
 	window_gl_t(window_gl_t&&) noexcept;
 	~window_gl_t() noexcept;
 
-	window_gl_t(uint16_t width, uint16_t height, const char* title = "", context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
-	window_gl_t(uint16_t width, uint16_t height, const wchar_t* title, context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
-
-	window_open_result_t open(uint16_t width, uint16_t height, const char* title = "", context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
-	window_open_result_t open(uint16_t width, uint16_t height, const wchar_t* title, context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const char* title, context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const wchar_t* title = L"", context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const char8_t* title, context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const char16_t* title, context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const char32_t* title, context_settings settings = {}, window_style_t style = window_style::default_style) noexcept;
 
 
 

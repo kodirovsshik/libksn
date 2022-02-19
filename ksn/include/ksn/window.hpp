@@ -458,20 +458,20 @@ public:
 	window_t() noexcept;
 	window_t(const window_t&) = delete;
 	window_t(window_t&&) noexcept;
-	virtual ~window_t() noexcept;
+	~window_t() noexcept;
 
 
 	void swap(window_t& other) noexcept;
 
 
-	virtual window_open_result_t open(uint16_t width, uint16_t height, const char* title, window_style_t style = window_style::default_style) noexcept;
-	virtual window_open_result_t open(uint16_t width, uint16_t height, const wchar_t* title = L"", window_style_t style = window_style::default_style) noexcept;
-	virtual window_open_result_t open(uint16_t width, uint16_t height, const char8_t* title, window_style_t style = window_style::default_style) noexcept;
-	virtual window_open_result_t open(uint16_t width, uint16_t height, const char16_t* title, window_style_t style = window_style::default_style) noexcept;
-	virtual window_open_result_t open(uint16_t width, uint16_t height, const char32_t* title, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const char* title, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const wchar_t* title = L"", window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const char8_t* title, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const char16_t* title, window_style_t style = window_style::default_style) noexcept;
+	window_open_result_t open(uint16_t width, uint16_t height, const char32_t* title, window_style_t style = window_style::default_style) noexcept;
 
 
-	virtual void close() noexcept;
+	void close() noexcept;
 
 	bool poll_event(event_t&) noexcept;
 	bool wait_event(event_t&) noexcept;
