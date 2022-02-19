@@ -19,7 +19,7 @@ class time
 public:
 
 	time() noexcept; //01.01.1980
-	time(unsigned long long nanoseconds_since_epoch) noexcept;
+	time(int64_t nanoseconds_since_epoch) noexcept;
 
 
 	int64_t as_nsec() const noexcept; //Return current time as nanoseconds since epoch

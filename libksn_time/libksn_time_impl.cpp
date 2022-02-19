@@ -18,7 +18,7 @@ _KSN_BEGIN
 
 time::time() noexcept
 	: m_nsec(0) {}
-time::time(unsigned long long ns) noexcept
+time::time(int64_t ns) noexcept
 	: m_nsec(ns) {}
 
 
