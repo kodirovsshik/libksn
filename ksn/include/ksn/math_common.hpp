@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <concepts>
 #include <complex>
+#include <span>
 
 #include <cmath>
 
@@ -504,7 +505,7 @@ constexpr bool is_inf_nan(const std::complex<fp_t>& x) noexcept
 _KSN_DETAIL_BEGIN
 
 template<class fp_t, class callable_t, class... params_t>
-constexpr bool newthon_method_general(callable_t func, fp_t& result, fp_t x, long double epsilon, long double h, size_t cycles_left, params_t&& ...params)
+constexpr bool newton_method_general(callable_t func, fp_t& result, fp_t x, long double epsilon, long double h, size_t cycles_left, params_t&& ...params)
 {
 	using std::abs;
 
@@ -558,20 +559,20 @@ _KSN_DETAIL_END
 
 
 template<class fp_t, class callable_t, class... params_t>
-constexpr bool newthon_method(callable_t func, fp_t& result, fp_t x0 = 1, long double epsilon = 1e-4L, long double h = 1e-4L, size_t max_cycles = 50, params_t&& ...params)
+constexpr bool newton_method(callable_t func, fp_t& result, fp_t x0 = 1, long double epsilon = 1e-4L, long double h = 1e-4L, size_t max_cycles = 50, params_t&& ...params)
 {
-	return detail::newthon_method_general(func, result, std::move(x0), epsilon, h, max_cycles, std::forward<params_t>(params)...);
+	return detail::newton_method_general(func, result, std::move(x0), epsilon, h, max_cycles, std::forward<params_t>(params)...);
 }
 
 template<std::floating_point fp_t, class callable_t, class... params_t>
-constexpr bool newthon_method(callable_t func, fp_t& result, fp_t x0 = 1, long double epsilon = (long double)std::numeric_limits<fp_t>::epsilon() * 1000,
+constexpr bool newton_method(callable_t func, fp_t& result, fp_t x0 = 1, long double epsilon = (long double)std::numeric_limits<fp_t>::epsilon() * 1000,
 	long double h = (long double)std::numeric_limits<fp_t>::epsilon() * 1000, size_t max_cycles = 50, params_t&& ...params)
 {
-	return detail::newthon_method_general(func, result, std::move(x0), epsilon, h, max_cycles, std::forward<params_t>(params)...);
+	return detail::newton_method_general(func, result, std::move(x0), epsilon, h, max_cycles, std::forward<params_t>(params)...);
 }
 
 template<std::integral int_t, class callable_t, class... params_t>
-constexpr bool newthon_method(callable_t&&, int_t&, int_t = 0, int_t = 0, int_t = 0, size_t = 0, params_t&& ...)
+constexpr bool newton_method(callable_t&&, int_t&, int_t = 0, int_t = 0, int_t = 0, size_t = 0, params_t&& ...)
 {
 	return false;
 }
@@ -886,8 +887,251 @@ constexpr fp_t interpolate_cubic(fp_t x1, fp_t x2, fp_t x3, fp_t x4, fp_t t)
 
 
 
+
+_KSN_DETAIL_BEGIN
+
+template<std::floating_point T>
+constexpr T newton_method_get_epsilon() noexcept
+{
+	return std::numeric_limits<T>::epsilon();
+}
+template<class T>
+constexpr T newton_method_get_epsilon() noexcept
+{
+	return 1e-8;
+}
+template<class T>
+constexpr T newton_method_ct_sqrt(T x) noexcept
+{
+	T y = 1;
+	for (int i = 0; i < 20; ++i)
+	{
+		y = T(0.5) * (y + x / y);
+	}
+	return y;
+}
+
+_KSN_DETAIL_END
+
+template<class X, class Y = X>
+struct newton_method_params
+{
+	Y y_threshold = detail::newton_method_get_epsilon<Y>() * Y(100);
+	X derivative_step = detail::newton_method_ct_sqrt(X(10) * detail::newton_method_get_epsilon<X>());
+	X coefficient = 1;
+	X x_min = -INFINITY;
+	X x_max = INFINITY;
+	size_t max_iterations = 100;
+};
+
+_KSN_DETAIL_BEGIN
+
+template<class X, class callee_t, size_t span_size = std::dynamic_extent, class Y = std::remove_cvref_t<std::invoke_result_t<callee_t, std::span<X, span_size>>>>
+bool newton_method_multivariable(callee_t&& f, std::span<X, span_size> x, newton_method_params<X, Y>& params)
+{
+	size_t& iterations = params.max_iterations;
+	const X& dx = params.derivative_step;
+
+	using std::abs;
+	using span_t = decltype(x);
+
+	Y y, dy;
+	X temp;
+
+	const size_t n = x.size();
+
+	std::vector<X> delta(x.size());
+	std::vector<X> x1(x.size());
+	std::vector<X> x2(x.size());
+
+	auto x1span = span_t(x1);
+	auto x2span = span_t(x2);
+
+	auto calculate_partial_derivative = [&]
+	(size_t index, const X& step)
+	{
+		auto get_derivative_value = [&]
+		{
+			return (f(x2span) - f(x1span)) / (step * 2);
+		};
+		temp = x1span[index];
+
+		x1span[index] -= step;
+		x2span[index] += step;
+
+		dy = get_derivative_value();
+		if (abs(dy) <= params.y_threshold)
+		{
+			x1span[index] = temp;
+			x2span[index] += 9 * step;
+			dy = get_derivative_value();
+			if (abs(dy) <= params.y_threshold)
+				return false;
+			x[index] += 5 * step;
+		}
+
+		delta[index] = dy;
+		return true;
+	};
+
+	y = f(x);
+	if (abs(y) <= params.y_threshold)
+		return true;
+
+	while (iterations > 0)
+	{
+		--iterations;
+
+		bool have_nonzero_derivative = false;
+
+		std::copy(x.begin(), x.end(), x1.begin());
+		std::copy(x.begin(), x.end(), x2.begin());
+
+		for (size_t i = 0; i < x.size(); ++i)
+		{
+			auto& elem = x[i];
+			X step = (elem == 0) ? dx : (elem * dx);
+
+			step = (elem + step) - elem;
+
+
+			if (calculate_partial_derivative(i, step))
+			{
+				have_nonzero_derivative = true;
+				delta[i] = std::cbrt(y) / delta[i];
+			}
+
+			x1[i] = x2[i] = elem;
+		}
+
+		if (!have_nonzero_derivative)
+			return false;
+
+		for (size_t i = 0; i < x.size(); ++i)
+			x[i] -= delta[i] / n * params.coefficient;
+
+		y = f(x);
+		if (abs(y) <= params.y_threshold)
+			return true;
+	}
+
+	return false;
+}
+
+template<class X, class callee_t, size_t span_size = std::dynamic_extent, class Y = std::remove_cvref_t<std::invoke_result_t<callee_t, std::span<X, span_size>>>>
+bool newton_method_multivariable(callee_t&& f, std::span<X, span_size> x)
+{
+	newton_method_params<X, Y> params;
+	return newton_method_multivariable(f, x, params);
+}
+
+
+template<class X, class callee_t, size_t span_size = std::dynamic_extent, class Y = std::remove_cvref_t<std::invoke_result_t<callee_t, std::span<X, span_size>>>>
+bool newton_method_multivariable_minimization(callee_t&& f, std::span<X, span_size> x, newton_method_params<X, Y>& params)
+{
+	size_t& iterations = params.max_iterations;
+	const X& dx = params.derivative_step;
+
+	using std::abs;
+	using span_t = decltype(x);
+
+	Y y, ymin;
+
+	const size_t n = x.size();
+
+	std::vector<X> delta(x.size());
+	std::vector<X> x1(x.size());
+	std::vector<X> x2(x.size());
+	std::vector<X> xmin(x.size());
+
+	auto x1span = span_t(x1);
+	auto x2span = span_t(x2);
+
+	auto calculate_partial_derivative = [&]
+	(size_t index, const X& step)
+	{
+		x1span[index] -= step;
+		x2span[index] += step;
+
+		auto f0 = f(x);
+		auto fn1 = f(x1span);
+		auto fp1 = f(x2span);
+
+		auto dy1 = (fn1 - f0) / step;
+		auto dy2 = (fp1 - f0) / step;
+
+		auto d2y = (dy1 + dy2);
+
+		auto dy = (fp1 - fn1);
+		auto d = dy / d2y;
+		d += 0;
+		if (d != d)
+			d = 0;
+		delta[index] = d;
+		return d != 0;
+		//return fabs(d) > params.y_threshold;
+		//return true;
+	};
+
+	ymin = y = f(x);
+	std::copy(x.begin(), x.end(), xmin.begin());
+	//if (abs(y) <= params.y_threshold)
+		//return true;
+
+	while (iterations > 0)
+	{
+		--iterations;
+
+		bool have_nonzero_derivative = false;
+
+		std::copy(x.begin(), x.end(), x1.begin());
+		std::copy(x.begin(), x.end(), x2.begin());
+
+		for (size_t i = 0; i < x.size(); ++i)
+		{
+			auto& elem = x[i];
+			X step = (elem == 0) ? dx : (elem * dx);
+
+			step = (elem + step) - elem;
+
+
+			if (calculate_partial_derivative(i, step))
+			{
+				have_nonzero_derivative = true;
+				//delta[i] *= params.coefficient;
+			}
+
+			x1[i] = x2[i] = elem;
+		}
+
+		if (!have_nonzero_derivative)
+		{
+			std::copy(xmin.begin(), xmin.end(), x.begin());
+			return true;
+		}
+
+		for (size_t i = 0; i < x.size(); ++i)
+		{
+			x[i] = std::clamp(x[i] - delta[i] / n * params.coefficient, params.x_min, params.x_max);
+		}
+
+		y = f(x);
+		if (y < ymin)
+		{
+			std::copy(x.begin(), x.end(), xmin.begin());
+			ymin = y;
+		}
+		//if (abs(y) <= params.y_threshold)
+			//return true;
+	}
+
+	std::copy(xmin.begin(), xmin.end(), x.begin());
+	return false;
+}
+
+_KSN_DETAIL_END
+
+
 _KSN_END
-
-
 
 #endif //_KSN_MATH_COMMON_HPP_

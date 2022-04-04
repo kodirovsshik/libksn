@@ -293,12 +293,12 @@ constexpr T exp(const T& x, const T& dx)
 
 
 template<class T, bool use_dx>
-constexpr T _ln(const T& x, const T& p_dx)
+constexpr T _ln(const T& x, const T* p_dx)
 {
 	if (x != x)
 		return x;
 
-	if (x >= 1.5) return -ln<T, use_dx>(1 / x, p_dx);
+	if (x >= 1.5) return -_ln<T, use_dx>(1 / x, p_dx);
 	if (x < 0) return std::numeric_limits<T>::quiet_NaN();
 	if (x == 0) return -std::numeric_limits<T>::infinity();
 	if (x <= 1e-2) return T(-5) + _ln<T, use_dx>(x * exp<T>(5), p_dx);

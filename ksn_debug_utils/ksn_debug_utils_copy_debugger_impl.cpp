@@ -22,7 +22,7 @@ copy_debugger::copy_debugger()
 
 copy_debugger::copy_debugger(const copy_debugger& other)
 {
-	fprintf(copy_debugger::log_file, "[COPY DEBUGGER] constructor(const ref to %p) at %p\n", &other, this);
+	fprintf(copy_debugger::log_file, "[COPY DEBUGGER] constructor(lvalue ref to %p) at %p\n", &other, this);
 	other.check();
 	this->signature = 0xDEADC0DE;
 
