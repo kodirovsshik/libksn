@@ -287,54 +287,6 @@ struct event_t
 		default: return "<corrupted event>";
 		}
 	}
-
-	/*void dump(FILE* f = stdout)
-	{
-		const char* p = this->to_string();
-
-		if (p == nullptr) p = "<corrupted event>";
-
-		fwrite(p, sizeof(*p), strlen(p), f);
-		if (this->type == event_type_t::mouse_move)
-		{
-			this->mouse_move_data;
-			printf(": %i %i\n", this->mouse_move_data.x, this->mouse_move_data.x);
-		}
-		else if (this->type == event_type_t::mouse_press || this->type == event_type_t::mouse_release)
-		{
-			const char* button_name = [](mouse_button_t button) -> const char*
-			{
-				switch (button)
-				{
-				case mouse_button_t::left: return "left";
-				case mouse_button_t::right: return "right";
-				case mouse_button_t::middle: return "middle";
-				case mouse_button_t::extra1: return "extra1";
-				case mouse_button_t::extra2: return "extra2";
-				default: return "<corrupted data>";
-				}
-			}(this->mouse_button_data.button);
-
-			fwrite(": ", sizeof(char), 2, stdout);
-			fwrite(button_name, sizeof(*button_name), strlen(button_name), stdout);
-			printf(" at %i %i\n", (int)this->mouse_button_data.x, (int)this->mouse_button_data.y);
-		}
-		else if (this->type == event_type_t::mouse_scroll)
-		{
-			const char* button_name = this->mouse_scroll_data.is_vertical ? "vertical" : "hotizontal";
-			fwrite(": ", sizeof(char), 2, stdout);
-			fwrite(button_name, sizeof(*button_name), strlen(button_name), stdout);
-			printf(" by %g\n", this->mouse_scroll_data.delta);
-		}
-		else if (this->type == event_type_t::create || this->type == event_type_t::close)
-		{
-			putchar('\n');
-		}
-		else
-		{
-			fwrite(": Dump not implemented\n", sizeof(char), 23, stdout);
-		}
-	}*/
 };
 
 

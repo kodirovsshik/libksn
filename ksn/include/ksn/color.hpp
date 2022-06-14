@@ -210,7 +210,7 @@ struct color_hsva_t
 	//uint8_t value : 7; //0-100
 	//uint8_t alpha; //0-255
 
-	//What was the point of introducing a bit fields in the language if they are not packed
+	//What was the point of introducing a bit fields into the language if they are not packed
 
 	uint32_t m_data;
 
@@ -370,7 +370,7 @@ constexpr color_rgb_t::color_rgb_t(detail::_color_generic_value x) noexcept
 template<color color_t>
 constexpr color_rgb_t::color_rgb_t(color_t other) noexcept
 {
-	return this->color_rgb_t::color_rgb_t(detail::_color_generic_value::from_color(other));
+	this->color_rgb_t::color_rgb_t(detail::_color_generic_value::from_color(other));
 }
 
 constexpr uint32_t color_rgb_t::rgb() const noexcept

@@ -57,7 +57,7 @@ int main()
 
 	FILE* fd = fopen("report2.txt", "ab");
 	const int width = 22;
-	fprintf(fd, "\nf(x) = sqrt(|x|) as x -> 0\n\n| %12s | %*s | %*s | %*s | %*s | %*s |\n\n", 
+	fprintf(fd, "\nf(x) = sqrt(|x|) as x -> 0\n\n| %12s | %*s | %*s | %*s | %*s | %*s |\n\n",
 		"N", width, "dx = 0.1", width, "dx = 0.01", width, "dx = 0.001", width, "dx = 0.0001", width, "dx = 0.00001");
 
 	for (uint64_t n = 1; n <= 1000000000; n *= 10)

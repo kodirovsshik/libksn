@@ -23,16 +23,16 @@
 #undef _KSN_END
 #undef _KSN_DETAIL_BEGIN
 #undef _KSN_DETAIL_END
+#undef _KSN_EXPORT_BEGIN
+#undef _KSN_EXPORT_END
 
 #define _KSN ::ksn::
 #define _KSN_BEGIN namespace ksn{
 #define _KSN_END }
-#define _KSN_GRAPHICS_BEGIN namespace graphics{
-#define _KSN_GRAPHICS_END }
 #define _KSN_DETAIL_BEGIN namespace detail{
 #define _KSN_DETAIL_END }
-#define _KSN_CL_BEGIN namespace cl{
-#define _KSN_CL_END }
+#define _KSN_EXPORT_BEGIN export namespace ksn {
+#define _KSN_EXPORT_END }
 
 
 

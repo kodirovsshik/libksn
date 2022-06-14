@@ -226,7 +226,7 @@ public:
 
 
 	template<class ofp_t>
-	constexpr std::common_type_t<fp_t, ofp_t> operator*(const vec<N, ofp_t>& b) noexcept
+	constexpr std::common_type_t<fp_t, ofp_t> operator*(const vec<N, ofp_t>& b) const noexcept
 	{
 		std::common_type_t<fp_t, ofp_t> result = 0;
 
@@ -273,11 +273,17 @@ public:
 
 	constexpr my_t normalized() const noexcept
 	{
-		return *this / this->abs();
+		my_t copy(*this);
+		copy.normalize();
+		return copy;
 	}
 	constexpr my_t& normalize() noexcept
 	{
-		fp_t multiplier = 1 / this->abs();
+		auto multiplier = this->abs();
+		if (multiplier == 0)
+			return *this;
+
+		multiplier = 1 / multiplier;
 
 		for (auto& x : this->data)
 			x *= multiplier;
