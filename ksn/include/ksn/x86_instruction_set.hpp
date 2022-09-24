@@ -62,14 +62,14 @@ struct __ksn_x86_64_features
 	bool monitor : 1; //MONITOR/MWAIT. A value of 1 indicates the processor supports this feature. 
 	bool ds_cpl : 1; //CPL Qualified Debug Store. A value of 1 indicates the processor supports the extensions to the Debug Store feature to allow for branch message storage qualified by CPL
 	bool vmx : 1; //Virtual Machine Extensions. A value of 1 indicates that the processor supports this technology.
-	bool smx : 1; //Safer Mode Extensions. A value of 1 indicates that the processor supports this technology. See Chapter 6, “Safer Mode Extensions Reference”
-	bool est : 1; //Enhanced Intel SpeedStep® technology. A value of 1 indicates that the processor supports this technology.
+	bool smx : 1; //Safer Mode Extensions. A value of 1 indicates that the processor supports this technology. See Chapter 6, é‰„afer Mode Extensions Referenceãƒ»
+	bool est : 1; //Enhanced Intel SpeedStepï½® technology. A value of 1 indicates that the processor supports this technology.
 	bool tm2 : 1; //Thermal Monitor 2. A value of 1 indicates whether the processor supports this technology. 
 	bool ssse3 : 1; //A value of 1 indicates the presence of the Supplemental Streaming SIMD Extensions 3 (SSSE3). A value of 0 indicates the instruction extensions are not present in the processor
 	bool cntx_id : 1; //L1 Context ID. A value of 1 indicates the L1 data cache mode can be set to either adaptive mode or shared mode. A value of 0 indicates this feature is not supported. See definition of the IA32_MISC_ENABLE MSR Bit 24 (L1 Data Cache Context Mode) for details
 	bool sdbg : 1; //A value of 1 indicates the processor supports IA32_DEBUG_INTERFACE MSR for silicon debug.
 	bool fma : 1; //A value of 1 indicates the processor supports FMA extensions using YMM state.
-	bool cmpxchg16b : 1; //CMPXCHG16B Available. A value of 1 indicates that the feature is available. See the “CMPXCHG8B/CMPXCHG16B—Compare and Exchange Bytes” section in this chapter for a description.
+	bool cmpxchg16b : 1; //CMPXCHG16B Available. A value of 1 indicates that the feature is available. See the é¼ŽMPXCHG8B/CMPXCHG16Bä½‘ompare and Exchange Bytesãƒ»section in this chapter for a description.
 	bool xtpr : 1; //xTPR Update Control. A value of 1 indicates that the processor supports changing IA32_MISC_ENABLE[bit 23].
 	bool pdcm : 1; //Perfmon and Debug Capability: A value of 1 indicates the processor supports the performance and debug feature indication MSR IA32_PERF_CAPABILITIES
 	bool _reserved_leaf1_ecx_bit16 : 1;
@@ -80,7 +80,7 @@ struct __ksn_x86_64_features
 	bool x2apic : 1; //A value of 1 indicates that the processor supports x2APIC feature.
 	bool movbe : 1; //A value of 1 indicates that the processor supports MOVBE instruction.
 	bool popcnt : 1; //A value of 1 indicates that the processor supports the POPCNT instruction.
-	bool tsc_deadline : 1; //A value of 1 indicates that the processor’s local APIC timer supports one-shot operation using a TSC deadline value.
+	bool tsc_deadline : 1; //A value of 1 indicates that the processorç—´ local APIC timer supports one-shot operation using a TSC deadline value.
 	bool aesni : 1; //A value of 1 indicates that the processor supports the AESNI instruction extensions.
 	bool xsave : 1; //A value of 1 indicates that the processor supports the XSAVE/XRSTOR processor extended states feature, the XSETBV/XGETBV instructions, and XCR0.
 	bool osxsave : 1; //A value of 1 indicates that the OS has set CR4.OSXSAVE[bit 18] to enable XSETBV/XGETBV instructions to access XCR0 and to support processor extended state management using XSAVE/XRSTOR.

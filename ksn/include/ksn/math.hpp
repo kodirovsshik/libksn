@@ -1,4 +1,4 @@
-﻿
+
 #ifndef _KSN_MATH_HPP_
 #define _KSN_MATH_HPP_
 
@@ -11,7 +11,7 @@
 //UPD: deprecated cuz as ++20 has already came out
 
 
-//Formula parser and interpretator
+//Formula parser and interpreter
 //#include <ksn/math_formula.hpp>
 
 

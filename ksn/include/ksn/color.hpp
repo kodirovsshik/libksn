@@ -264,7 +264,7 @@ _KSN_BEGIN
 
 //Fourtenately, constexpr for functions does imply it being inline
 //Thus including the header in many sourcefiles sould not cause an error
-//N4860, §6.3/13.3
+//N4860, ï½§6.3/13.3
 
 
 constexpr color_bgr_t::color_bgr_t() noexcept
