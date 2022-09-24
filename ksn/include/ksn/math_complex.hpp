@@ -187,22 +187,22 @@ public:
 
 
 	template<arithmetic fp_t2>
-	constexpr my_t operator+(const fp_t2& x)
+	constexpr my_t operator+(const fp_t2& x) const
 	{
 		return my_t(this->real + x, this->imag);
 	}
 	template<arithmetic fp_t2>
-	constexpr my_t operator-(const fp_t2& x)
+	constexpr my_t operator-(const fp_t2& x) const
 	{
 		return my_t(this->real - x, this->imag);
 	}
 	template<arithmetic fp_t2>
-	constexpr my_t operator*(const fp_t2& x)
+	constexpr my_t operator*(const fp_t2& x) const
 	{
 		return my_t(fp_t(this->real * x), fp_t(this->imag * x));
 	}
 	template<arithmetic fp_t2>
-	constexpr my_t operator/(const fp_t2& x)
+	constexpr my_t operator/(const fp_t2& x) const
 	{
 		return my_t(this->real / x, this->imag / x);
 	}
