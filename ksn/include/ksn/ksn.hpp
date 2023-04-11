@@ -238,7 +238,7 @@ Define _KSN_IS_DEBUG_BUILD yourself to be 0 or 1 before any ksn header or reconf
 #define _KSN_HAS_EXCEPTIONS 0
 #define _KSN_TRY if _KSN_CONSTEXPR_CONDITION (true) {
 #define _KSN_CATCH_UNNAMED(type) } else if _KSN_CONSTEXPR_CONDITION (false) {
-#define _KSN_CATCH(type, name) } else if _KSN_CONSTEXPR_CONDITION (false) { type name = *(std::add_pointer_t<std::remove_reference_t<type>>)nullptr;
+#define _KSN_CATCH(type, name) } else if _KSN_CONSTEXPR_CONDITION (false) { type name = *(std::add_pointer_t<std::remove_reference_t<type>>)nullptr; //TODO: wtf is this
 #define _KSN_CATCH_ALL } else if _KSN_CONSTEXPR_CONDITION (false) {
 #define _KSN_CATCH_END }
 #define _KSN_RAISE(exception) { void(exception); abort(); }((void)0)

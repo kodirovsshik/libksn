@@ -32,7 +32,6 @@ struct complex
 	static_assert(!std::is_volatile_v<fp_t>, "");
 	//I love this language. Where else can there be a const volatile void type?
 	static_assert(!std::is_same_v<std::remove_cv_t<fp_t>, void>, "");
-	static_assert(!std::is_integral_v<fp_t>, "");
 
 
 private:
@@ -316,8 +315,9 @@ constexpr complex<fp_t> sqrt(const ksn::complex<fp_t>& x)
 template<class fp_t>
 constexpr complex<fp_t> cbrt(const ksn::complex<fp_t>& x)
 {
+	//TODO: what's up with this function
 	using std::sin; using std::cos; using std::pow;
-	fp_t len = pow(x.abs2(), 1.0 / 6);
+	fp_t len = pow(x.abs2(), 1.0 / 6); //TODO: fix
 	fp_t angle = x.arg();
 	if (angle > KSN_PI / 2) angle += 2 * KSN_PI;
 	else if (angle < -KSN_PI / 2) angle -= 2 * KSN_PI;
@@ -328,6 +328,7 @@ constexpr complex<fp_t> cbrt(const ksn::complex<fp_t>& x)
 template<class fp_t>
 void roots(const complex<fp_t>& x, size_t degree, complex<fp_t>* result)
 {
+	//TODO: iterators
 	using std::pow;
 	using std::cos;
 	using std::sin;
