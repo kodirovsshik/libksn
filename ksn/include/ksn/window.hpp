@@ -384,9 +384,9 @@ public:
 	using native_event_t = tagMSG;
 
 #ifdef _WIN64
-	ksn::fast_pimpl<_window_impl, 208, 8> m_impl;
+	ksn::fast_pimpl<_window_impl, 224, 8> m_impl;
 #else
-	ksn::fast_pimpl<_window_impl, 128, 4> m_impl;
+	ksn::fast_pimpl<_window_impl, 136, 4> m_impl;
 #endif
 
 #else
@@ -472,7 +472,8 @@ public:
 	void set_client_position(int16_t x, int16_t y) noexcept;
 	void set_client_position(std::pair<int16_t, int16_t>) noexcept;
 
-	void set_cursor_visible(bool visible = true) const noexcept;
+	void set_cursor_visible(bool visible = true) noexcept;
+	bool is_cursor_visible() const noexcept;
 
 	void hide() const noexcept;
 	void show() const noexcept;

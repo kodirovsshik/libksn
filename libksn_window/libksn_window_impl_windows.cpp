@@ -1,6 +1,7 @@
 
 #include <ksn/window.hpp>
 #include <ksn/unicode.hpp>
+#include <ksn/metapr.hpp>
 
 #include <Windows.h>
 
@@ -8,6 +9,9 @@
 
 #include <queue>
 #include <mutex>
+#include <unordered_map>
+
+#define KSN_WINDOW_CLASS_NAME L"_LIBKSN_window_"
 
 
 _KSN_BEGIN
@@ -53,8 +57,6 @@ namespace
 
 	static minmax_info GetSystemMetricsClient(HWND wnd)
 	{
-		minmax_info info;
-
 		RECT rcmin{};
 		rcmin.right = GetSystemMetrics(SM_CXMINTRACK);
 		rcmin.bottom = GetSystemMetrics(SM_CYMINTRACK);
@@ -68,6 +70,7 @@ namespace
 		AdjustWindowRectInverse(&rcmin, style);
 		AdjustWindowRectInverse(&rcmax, style);
 
+		minmax_info info{};
 		info.width_min = (uint16_t)std::min<long>(rcmin.right - rcmin.left, UINT16_MAX);
 		info.width_max = (uint16_t)std::min<long>(rcmax.right - rcmax.left, UINT16_MAX);
 		info.height_min = (uint16_t)std::min<long>(rcmin.bottom - rcmin.top, UINT16_MAX);
@@ -121,7 +124,7 @@ public:
 
 			SetWindowLongPtrW(wnd, GWLP_USERDATA, (LONG_PTR)&win_impl);
 
-			event_t ev;
+			event_t ev{};
 			ev.type = event_type_t::create;
 			q.push_back(ev);
 
@@ -171,7 +174,7 @@ public:
 
 #define push_mouse_event(_button, is_pressed) \
 		{\
-			event_t ev; \
+			event_t ev{}; \
 			ev.type = is_pressed ? event_type_t::mouse_press : event_type_t::mouse_release; \
 			ev.mouse_button_data.button = mouse_button_t::_button; \
 			ev.mouse_button_data.x = (uint16_t)LOWORD(l); \
@@ -187,7 +190,7 @@ public:
 			POINT pos{ (LONG)LOWORD(l), (LONG)HIWORD(l) }; \
 			ScreenToClient(win_impl.m_window, &pos); \
  \
-			event_t ev; \
+			event_t ev{}; \
 			ev.type = vertical ? event_type_t::mouse_scroll_vertical : event_type_t::mouse_scroll_horizontal; \
 			ev.mouse_scroll_data.is_vertical = (msg == WM_MOUSEWHEEL); \
 			ev.mouse_scroll_data.delta = (float)(int16_t)HIWORD(w) / 120; \
@@ -203,7 +206,7 @@ public:
 		{
 		case WM_CLOSE:
 		{
-			event_t ev;
+			event_t ev{};
 			ev.type = event_type_t::close;
 
 			lock_event_queue(&win_impl);
@@ -216,7 +219,7 @@ public:
 		{
 			if (w == SIZE_MAXIMIZED)
 			{
-				event_t ev;
+				event_t ev{};
 				ev.type = event_type_t::maximized;
 				lock_event_queue(&win_impl);
 				q.push_back(ev);
@@ -224,7 +227,7 @@ public:
 			
 			if (w == SIZE_MINIMIZED)
 			{
-				event_t ev;
+				event_t ev{};
 				ev.type = event_type_t::minimized;
 				lock_event_queue(&win_impl);
 				q.push_back(ev);
@@ -254,7 +257,7 @@ public:
 					win_impl.m_resizemove_handle(&data);
 				else
 				{
-					event_t ev;
+					event_t ev{};
 					ev.type = event_type_t::resize;
 
 					ev.window_resize_data.height_new = data.window_resize_data.height_new;
@@ -287,7 +290,7 @@ public:
 				win_impl.m_resizemove_handle(&data);
 			else
 			{
-				event_t ev;
+				event_t ev{};
 				ev.type = event_type_t::move;
 
 				ev.window_move_data.x_new = data.window_move_data.x_new;
@@ -320,7 +323,7 @@ public:
 
 		case WM_EXITSIZEMOVE:
 		{
-			WINDOWINFO info;
+			WINDOWINFO info{};
 			info.cbSize = sizeof(info);
 			GetWindowInfo(win_impl.m_window, &info);
 			RECT client_area = info.rcClient;;
@@ -338,7 +341,7 @@ public:
 
 			if (new_pos != win_impl.m_last_pos)
 			{
-				event_t ev;
+				event_t ev{};
 				ev.type = event_type_t::move;
 
 				ev.window_move_data.x_new = new_pos.first;
@@ -356,7 +359,7 @@ public:
 				win_impl.m_bitmap = CreateCompatibleBitmap(win_impl.m_hdc, new_size.first, new_size.second);
 				SelectObject(win_impl.m_hmdc, win_impl.m_bitmap);
 
-				event_t ev;
+				event_t ev{};
 				ev.type = event_type_t::resize;
 
 				ev.window_resize_data.width_new = new_size.first;
@@ -375,13 +378,13 @@ public:
 		{
 			if (win_impl.m_is_clipping)
 			{
-				WINDOWINFO info;
+				WINDOWINFO info{};
 				info.cbSize = sizeof(info);
 				GetWindowInfo(win_impl.m_window, &info);
 				ClipCursor(&info.rcClient);
 			}
 
-			event_t ev;
+			event_t ev{};
 			ev.type = event_type_t::focus_gained;
 			lock_event_queue(&win_impl);
 			q.push_back(ev);
@@ -394,7 +397,7 @@ public:
 
 			if (!win_impl.m_is_closing)
 			{
-				event_t ev;
+				event_t ev{};
 				ev.type = event_type_t::focus_lost;
 				lock_event_queue(&win_impl);
 				q.push_back(ev);
@@ -417,7 +420,7 @@ public:
 				}
 				else if (high6 == 0b110111 && high_ch)
 				{
-					event_t ev;
+					event_t ev{};
 					ev.type = event_type_t::text;
 					ev.character = ((high_ch & 0b0000001111111111) << 16) | (ch & 0b0000001111111111);
 
@@ -428,7 +431,7 @@ public:
 				}
 				else //Single UTF-16 unit
 				{
-					event_t ev;
+					event_t ev{};
 					ev.type = event_type_t::text;
 					ev.character = (uint32_t)w;
 
@@ -445,7 +448,7 @@ public:
 
 			if (win_impl.m_is_repetitive_keyboard_enabled || (l & 0xFFFF) == 0)
 			{
-				event_t ev;
+				event_t ev{};
 				ev.type = event_type_t::text;
 				ev.character = (uint32_t)w;
 			}
@@ -461,7 +464,7 @@ public:
 			bool repeated = HIWORD(l) & KF_REPEAT;
 			if (!press || win_impl.m_is_repetitive_keyboard_enabled || !repeated)
 			{
-				event_t ev;
+				event_t ev{};
 				if (press)
 				{
 					if (repeated)
@@ -541,7 +544,7 @@ public:
 			{
 				win_impl.m_mouse_inside = false;
 
-				ksn::event_t ev;
+				ksn::event_t ev{};
 				ev.type = event_type_t::mouse_leave;
 
 				lock_event_queue(&win_impl);
@@ -552,7 +555,7 @@ public:
 
 		case WM_MOUSEMOVE:
 		{
-			event_t ev;
+			event_t ev{};
 
 			if (win_impl.m_mouse_inside == false)
 			{
@@ -563,7 +566,7 @@ public:
 				}
 				win_impl.m_mouse_inside = true;
 
-				TRACKMOUSEEVENT track_info;
+				TRACKMOUSEEVENT track_info{};
 				track_info.cbSize = sizeof(track_info);
 				track_info.dwFlags = TME_LEAVE;
 				track_info.hwndTrack = win_impl.m_window;
@@ -581,6 +584,7 @@ public:
 		}
 		break;
 
+
 #undef push_mouse_event
 #undef push_mouse_scroll_event
 		//case WM_SHOWWINDOW:
@@ -588,14 +592,19 @@ public:
 			win_impl.check_initial_blackout();
 		break;
 
+		case WM_SETCURSOR:
+			SetCursor(win_impl.m_display_cursor);
+			break;
+
 		default:
 			break;
 		};
 
 
+		
 		if ((msg == WM_SYSCOMMAND) && (w == SC_KEYMENU))
 			return 0;
-
+		
 		return DefWindowProcW(wnd, msg, w, l);
 	}
 
@@ -613,6 +622,8 @@ public:
 	HDC m_hdc = nullptr;
 	HDC m_hmdc = nullptr; //memory device context //P.S. i feel like this OS will never stop surprising me
 	HBITMAP m_bitmap = nullptr;
+	HCURSOR m_loaded_cursor = nullptr;
+	HCURSOR m_display_cursor = nullptr;
 
 	window_t* m_ksn_window = nullptr;
 
@@ -660,12 +671,6 @@ private:
 		pfd.iLayerType = PFD_MAIN_PLANE;
 
 		return SetPixelFormat(hdc, ChoosePixelFormat(hdc, &pfd), &pfd);
-	}
-
-	static void _process_msg(MSG& msg)
-	{
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
 	}
 
 	static keyboard_button_t _get_button(WPARAM key, LPARAM flags)
@@ -913,7 +918,7 @@ public:
 
 		if (result == window_open_result::ok || result == window_open_result::ok_but_direct_drawing_unsupported)
 		{
-			WINDOWINFO window_info;
+			WINDOWINFO window_info{};
 			window_info.cbSize = sizeof(window_info);
 			GetWindowInfo(this->m_window, &window_info);
 
@@ -924,7 +929,11 @@ public:
 				GetCursorPos(&cursor_pos);
 				ScreenToClient(this->m_window, &cursor_pos);
 
-				this->m_size_min = adjust_size_to_client(GetSystemMetrics(SM_CXMINTRACK), GetSystemMetrics(SM_CYMINTRACK), this->m_window);
+				this->m_size_min = adjust_size_to_client(
+					GetSystemMetrics(SM_CXMINTRACK), 
+					GetSystemMetrics(SM_CYMINTRACK), 
+					this->m_window
+				);
 
 				this->m_mouse_inside =
 					cursor_pos.x >= window_info.rcClient.left &&
@@ -945,18 +954,16 @@ public:
 			//Set mouse tracking for WM_MOUSELEAVE
 			if constexpr (true)
 			{
-				TRACKMOUSEEVENT track_info;
+				TRACKMOUSEEVENT track_info{};
 				track_info.cbSize = sizeof(track_info);
 				track_info.dwFlags = TME_LEAVE;
 				track_info.hwndTrack = this->m_window;
 				TrackMouseEvent(&track_info);
 			}
 
-			//Set cursor to be an arrow and not the whatever-comes-to-os's-mind
-			SetCursor(LoadCursorW(nullptr, IDC_ARROW));
-
 			//Window is created hidden initially
-			if (!(window_style & window_style::hidden)) ShowWindow(this->m_window, SW_SHOW);
+			if (!(window_style & window_style::hidden))
+				ShowWindow(this->m_window, SW_SHOW);
 
 			//Get rid of all "default" messages
 			if constexpr (true)
@@ -973,7 +980,10 @@ public:
 					TranslateMessage(&msg);
 					DispatchMessageW(&msg);
 				}
-				_KSN_DEBUG_EXPR(if (threshold < 0) printf("WINDOW DEFAULT MESSAGES THRESHOLD REACHED\n\a"));
+				_KSN_DEBUG_EXPR(
+					if (threshold < 0) 
+						printf("WINDOW DEFAULT MESSAGES THRESHOLD REACHED\n\a")
+				);
 				//^^^ Just in case ^^^
 			}
 		}
@@ -989,8 +999,8 @@ public:
 
 	window_open_result_t _Xopen(uint16_t width, uint16_t height, const wchar_t* window_name, window_style_t window_style) noexcept
 	{
-		if (window_style & window_style::fullscreen) return window_open_result::unimplemented; //TODO
-
+		if (window_style & window_style::fullscreen) 
+			return window_open_result::unimplemented; //TODO
 
 		constexpr static UINT winapi_flags[] =
 		{
@@ -1005,10 +1015,12 @@ public:
 		};
 
 		DWORD winapi_window_style = 0;
-		for (int i = 0; i < 8; ++i) if (window_style & (1 << i)) winapi_window_style |= winapi_flags[i];
+		for (int i = 0; i < 8; ++i) 
+			if (window_style & (1 << i)) 
+				winapi_window_style |= winapi_flags[i];
 
 		RECT rect{ 0, 0, (LONG)width, (LONG)height };
-		if (window_style & ~window_style::fullscreen) //if not fullscreen
+		if (!(window_style & window_style::fullscreen)) //if not fullscreen
 		{
 			//Adjust window size so that client area is exactly WxH
 			AdjustWindowRectEx(&rect, winapi_window_style, FALSE, 0);
@@ -1017,7 +1029,7 @@ public:
 		}
 
 
-		this->m_window = CreateWindowW(L"_LIBKSN_window_", window_name, winapi_window_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
+		this->m_window = CreateWindowW(KSN_WINDOW_CLASS_NAME, window_name, winapi_window_style, CW_USEDEFAULT, CW_USEDEFAULT, (int)width, (int)height, nullptr, nullptr, nullptr, this);
 		if (this->m_window == nullptr) return window_open_result::window_creation_error;
 
 
@@ -1026,7 +1038,7 @@ public:
 
 		if constexpr (true)
 		{
-			WINDOWINFO result_info;
+			WINDOWINFO result_info{};
 			result_info.cbSize = sizeof(result_info);
 			GetWindowInfo(this->m_window, &result_info);
 
@@ -1059,6 +1071,11 @@ public:
 		SelectObject(this->m_hmdc, this->m_bitmap);
 
 
+		//Load default visible cursor
+		this->m_loaded_cursor = LoadCursorW(NULL, (LPWSTR)IDC_ARROW);
+		this->m_display_cursor = this->m_loaded_cursor;
+
+
 		if (this->m_hmdc == nullptr || this->m_bitmap == nullptr)
 		{
 			if (this->m_hmdc) DeleteDC(this->m_hmdc);
@@ -1071,7 +1088,7 @@ public:
 	bool is_open() const noexcept
 	{
 		//TODO: find a more efficient way
-		WINDOWINFO info_struct;
+		WINDOWINFO info_struct{};
 		info_struct.cbSize = sizeof(WINDOWINFO);
 		return GetWindowInfo(this->m_window, &info_struct) == TRUE;
 	}
@@ -1137,7 +1154,7 @@ namespace
 		__library_constructor_t() noexcept
 		{
 			WNDCLASSW wcW{};
-			wcW.lpszClassName = L"_LIBKSN_window_";
+			wcW.lpszClassName = KSN_WINDOW_CLASS_NAME;
 			wcW.lpfnWndProc = window_t::_window_impl::__ksn_wnd_proc;
 			wcW.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
 			RegisterClassW(&wcW);
@@ -1214,8 +1231,11 @@ void window_t::close() noexcept
 
 bool window_t::poll_event(event_t& event) noexcept
 {
-	MSG native;
-	while (PeekMessageW(&native, this->m_impl->m_window, 0, 0, PM_REMOVE))
+	MSG native{};
+	//Apparently, on Windows 10 the IME sends some high priority messages to the thread (and not the window)
+	while (PeekMessageW(&native, 
+		this->has_focus() ? NULL : this->m_impl->m_window, //Prevents hanging on IME input
+		0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&native);
 		DispatchMessageW(&native);
@@ -1277,7 +1297,7 @@ window_t::operator bool() const noexcept
 
 std::pair<uint16_t, uint16_t> window_t::get_client_size() const noexcept
 {
-	WINDOWINFO wi;
+	WINDOWINFO wi{};
 	wi.cbSize = sizeof(wi);
 	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return { 0, 0 };
 	return { uint16_t(wi.rcClient.right - wi.rcClient.left), uint16_t(wi.rcClient.bottom - wi.rcClient.top) };
@@ -1296,7 +1316,7 @@ void window_t::set_client_size(uint16_t width, uint16_t height) noexcept
 	this->m_impl->m_last_size = new_size;
 	this->m_impl->m_resizemove_last_size = new_size;
 
-	ksn::event_t ev;
+	ksn::event_t ev{};
 	ev.type = ksn::event_type_t::resize;
 	ev.window_resize_data.width_new = new_size.first;
 	ev.window_resize_data.height_new = new_size.second;
@@ -1312,7 +1332,7 @@ void window_t::set_client_size(uint16_t width, uint16_t height) noexcept
 
 std::pair<int16_t, int16_t> window_t::get_client_position() const noexcept
 {
-	WINDOWINFO wi;
+	WINDOWINFO wi{};
 	wi.cbSize = sizeof(wi);
 	if (!GetWindowInfo(this->m_impl->m_window, &wi)) return { 0, 0 };
 	return { int16_t(wi.rcClient.left), int16_t(wi.rcClient.top) };
@@ -1338,7 +1358,7 @@ void window_t::set_client_position(int16_t x, int16_t y) noexcept
 	this->m_impl->m_last_pos = new_pos;
 	this->m_impl->m_resizemove_last_pos = new_pos;
 
-	event_t ev;
+	event_t ev{};
 	ev.type = event_type_t::move;
 	ev.window_move_data.x_new = new_pos.first;
 	ev.window_move_data.y_new = new_pos.second;
@@ -1408,7 +1428,7 @@ void window_t::set_fullscreen_windowed() noexcept
 	auto prev_size = this->get_client_size();
 	auto prev_pos = this->get_client_position();
 
-	MONITORINFO info;
+	MONITORINFO info{};
 	info.cbSize = sizeof(info);
 	GetMonitorInfoA(monitor, &info);
 	AdjustWindowRectEx(&info.rcMonitor, GetWindowLongA(window, GWL_STYLE), false, 0);
@@ -1417,7 +1437,7 @@ void window_t::set_fullscreen_windowed() noexcept
 	auto new_size = this->get_client_size();
 	auto new_pos = this->get_client_position();
 
-	event_t ev;
+	event_t ev{};
 
 	ev.type = event_type_t::resize;
 	ev.window_resize_data.width_new = new_size.first;
@@ -1451,7 +1471,7 @@ void window_t::set_cursor_capture(bool capture) noexcept
 	if (!capture)
 		return (void)ClipCursor(NULL);
 
-	WINDOWINFO info;
+	WINDOWINFO info{};
 	info.cbSize = sizeof(info);
 	GetWindowInfo(this->m_impl->m_window, &info);
 	ClipCursor(&info.rcClient);
@@ -1485,16 +1505,25 @@ bool window_t::has_focus() const noexcept
 void window_t::request_focus() const noexcept
 {
 	auto win = this->m_impl->m_window;
-	if (!win) return;
+	if (!win)
+		return;
 
 	if (IsIconic(win))
 		ShowWindow(win, SW_RESTORE);
 	SetActiveWindow(win);
 }
 
-void window_t::set_cursor_visible(bool visible) const noexcept
+void window_t::set_cursor_visible(bool visible) noexcept
 {
-	SetCursor(visible ? LoadCursorA(NULL, (LPCSTR)IDC_ARROW) : NULL);
+	ShowCursor(visible);
+}
+
+bool window_t::is_cursor_visible() const noexcept
+{
+	CURSORINFO info{};
+	info.cbSize = sizeof(info);
+	GetCursorInfo(&info);
+	return info.flags & CURSOR_SHOWING;
 }
 
 void window_t::set_repeat_keyboard(bool enabled) noexcept
