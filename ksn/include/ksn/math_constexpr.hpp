@@ -108,8 +108,7 @@ constexpr int ilog2(T x)
 	}
 	else
 	{
-		//In my days we had no 128 bit integers
-		_ct_assert<false>();
+		_ksn_ct_unreachable("In my days we had no 128 bit integers");
 	}
 }
 

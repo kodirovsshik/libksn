@@ -171,7 +171,7 @@ int unicode_le_to_utf32le(const char_t* p, char32_t& c)
 
 	else
 	{
-		_ct_assert<false>();
+		_ksn_ct_unreachable("Unknown char type");
 	}
 
 	return -1;
@@ -293,7 +293,7 @@ int utf32le_to_unicode_le(char32_t c, char_t* p)
 
 	else
 	{
-		_ct_assert<false>();
+		_ksn_ct_unreachable("Unknown char type");
 	}
 
 	return -1;

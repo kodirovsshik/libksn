@@ -341,11 +341,7 @@ _KSN_BEGIN
 
 _KSN_DETAIL_BEGIN
 
-template<bool test>
-consteval void _ct_assert()
-{
-	static_assert(test);
-}
+#define _ksn_ct_unreachable(msg) []<bool flag = false>(){ static_assert(flag, "" msg); }()
 
 _KSN_DETAIL_END
 

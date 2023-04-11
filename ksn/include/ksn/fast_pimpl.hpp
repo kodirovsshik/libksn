@@ -25,7 +25,7 @@ private:
 
 private:
 
-	std::aligned_storage_t<size, alignment> m_object;
+	alignas(alignment) std::byte m_object[size];
 
 
 
@@ -44,11 +44,11 @@ public:
 	
 	T* ptr() noexcept
 	{
-		return reinterpret_cast<T*>(&this->m_object);
+		return reinterpret_cast<T*>(&this->m_object[0]);
 	}
 	const T* ptr() const noexcept
 	{
-		return reinterpret_cast<const T*>(&this->m_object);
+		return reinterpret_cast<const T*>(&this->m_object[0]);
 	}
 
 	T* operator->() noexcept
