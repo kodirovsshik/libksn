@@ -10,44 +10,60 @@
 #include <vector>
 
 
+
 _KSN_BEGIN
+
+using image_load_result_t = uint8_t;
+struct image_load_result
+{
+	//ok
+	constexpr static image_load_result_t ok = 0;
+
+	//Failed to open/read
+	constexpr static image_load_result_t file_unavailable = 1;
+
+	//Not a valid image file
+	constexpr static image_load_result_t file_invalid = 2;
+
+	//Failed to allocate memory
+	constexpr static image_load_result_t out_of_memory = 3;
+
+	//Integrity check fail or necessary data is missing
+	constexpr static image_load_result_t file_corrupted = 4;
+
+	//File contains something format decoder is aware of, but not [possibly yet] implemented for
+	constexpr static image_load_result_t unimplemented = 5;
+
+
+	constexpr static image_load_result_t internal_error = -1;
+};
+
+
+
+template<color color_t>
+class image_t;
+
+template<color color_t>
+image_load_result_t try_load_png(FILE* fd, image_t<color_t>* data);
+template<color color_t>
+image_load_result_t try_load_bmp(FILE* fd, image_t<color_t>* data);
+template<color color_t>
+image_load_result_t try_load_qoi(FILE* fd, image_t<color_t>* data);
+template<color color_t>
+image_load_result_t try_load_jpeg(FILE* fd, image_t<color_t>* data);
 
 
 
 template<color color_t>
 class image_t
 {
-	std::vector<image_t> m_data;
+	std::vector<color_t> m_data;
 	uint32_t width, height;
+
+	using my_t = image_t<color_t>;
 
 
 public:
-	using load_result_t = uint8_t;
-	struct load_result
-	{
-		//ok
-		constexpr static load_result_t ok = 0;
-
-		//Failed to open/read
-		constexpr static load_result_t file_unavailable = 1;
-
-		//Not a valid image file
-		constexpr static load_result_t file_invalid = 2;
-
-		//Failed to allocate memory
-		constexpr static load_result_t out_of_memory = 3;
-
-		//Integrity check fail or necessary data is missing
-		constexpr static load_result_t file_corrupted = 4;
-
-		//File contains something format decoder is aware of, but not [possibly yet] implemented for
-		constexpr static load_result_t unimplemented = 5;
-
-
-
-		constexpr static load_result_t internal_error = -1;
-	};
-
 
 	image_t() noexcept = default;
 	image_t(const image_t&) noexcept = default;
@@ -55,18 +71,25 @@ public:
 
 	~image_t() noexcept = default;
 
-	image_t& operator=(const image_t&) noexcept = default;
-	image_t& operator=(image_t&&) noexcept;
+	my_t& operator=(const my_t&) noexcept = default;
+	my_t& operator=(my_t&&) noexcept;
 
 	template<color other_color_t>
 	image_t<other_color_t> convert_color_space() noexcept;
 
 
-	load_result_t load_from_file(const char* fname) noexcept;
+	image_load_result_t load_from_file(const char* fname) noexcept;
 
 	void clear() noexcept;
 
-	void swap(image_t& other) noexcept;
+	void swap(my_t& other) noexcept;
+
+
+
+	friend image_load_result_t try_load_png<color_t>(FILE* fd, my_t* data);
+	friend image_load_result_t try_load_bmp<color_t>(FILE* fd, my_t* data);
+	friend image_load_result_t try_load_qoi<color_t>(FILE* fd, my_t* data);
+	friend image_load_result_t try_load_jpeg<color_t>(FILE* fd, my_t* data);
 };
 
 
@@ -96,7 +119,6 @@ TODO:
 
 */
 
-#include <ksn/image.hpp>
 #include <ksn/crc.hpp>
 #include <ksn/stuff.hpp>
 #include <ksn/metapr.hpp>
@@ -144,25 +166,16 @@ void image_t<color_t>::swap(image_t& other) noexcept
 }
 
 
-template<color color_t>
-image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* data);
-template<color color_t>
-image_t<color_t>::load_result_t try_load_bmp(FILE* fd, image_t<color_t>* data);
-template<color color_t>
-image_t<color_t>::load_result_t try_load_qoi(FILE* fd, image_t<color_t>* data);
-template<color color_t>
-image_t<color_t>::load_result_t try_load_jpeg(FILE* fd, image_t<color_t>* data);
-
 
 template<color color_t>
-image_t<color_t>::load_result_t image_t<color_t>::load_from_file(const char* fname) noexcept
+image_load_result_t image_t<color_t>::load_from_file(const char* fname) noexcept
 {
 	this->clear();
 
 	try
 	{
 		FILE* f = ::fopen(fname, "rb");
-		if (!f) return load_result::file_unavailable;
+		if (!f) return image_load_result::file_unavailable;
 
 		struct __on_return_t
 		{
@@ -170,7 +183,7 @@ image_t<color_t>::load_result_t image_t<color_t>::load_from_file(const char* fna
 			~__on_return_t() { fclose(f); }
 		} __on_return_t{ f };
 
-		load_result_t(*load_handlers[])(FILE*, image_t<color_t>*) =
+		image_load_result_t(*load_handlers[])(FILE*, image_t<color_t>*) =
 		{
 			try_load_png<color_t>,
 			//try_load_bmp<color_t>,
@@ -181,19 +194,19 @@ image_t<color_t>::load_result_t image_t<color_t>::load_from_file(const char* fna
 		for (auto handler : load_handlers)
 		{
 			auto result = handler(f, this);
-			if (result != load_result::file_invalid)
+			if (result != image_load_result::file_invalid)
 				return result;
 		}
 
-		return load_result::file_invalid;
+		return image_load_result::file_invalid;
 	}
 	catch (const std::bad_alloc&)
 	{
-		return load_result::out_of_memory;
+		return image_load_result::out_of_memory;
 	}
 	catch (...)
 	{
-		return load_result::internal_error;
+		return image_load_result::internal_error;
 	}
 }
 
@@ -214,7 +227,7 @@ bool check_signature(FILE* f, const char* data, size_t size)
 
 
 
-#define assert_corrupted(expr) if (!(expr)) { return image_t<color_t>::load_result::file_corrupted; } else ksn::nop()
+#define assert_corrupted(expr) if (!(expr)) { return image_load_result::file_corrupted; } else ksn::nop()
 #define assert_storage(storage, minimum_size) if (storage.size() < minimum_size) { storage.resize(minimum_size); } else ksn::nop()
 #define update_crc_with_var(crc, data) if constexpr (true) { crc = ksn::crc32_update(&(data), sizeof(data), crc); } else ksn::nop()
 #define read_var(fd, var, crc) if constexpr (true) { assert_corrupted(file_read_bin_data(fd, var)); update_crc_with_var(crc, var); bswap(var); } else ksn::nop()
@@ -244,12 +257,11 @@ struct png_recompress_data
 	static constexpr size_t bits = _bits;
 };
 
-
 template<color color_t>
-image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
+image_load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
 {
 	if (!check_signature(fd, "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A", 8))
-		return image_t<color_t>::load_result::file_invalid;
+		return image_load_result::file_invalid;
 
 	std::vector<uint8_t> png_compressed_storage;
 	std::vector<uint8_t> png_decompressed_storage;
@@ -328,7 +340,7 @@ image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
 		read_var(fd, interlace_method, header_crc_expected);
 
 		//It is already kinda painful to implement ones that are currently present
-		if (compression_method || filter_method || interlace_method) return image_t<color_t>::load_result::unimplemented;
+		if (compression_method || filter_method || interlace_method) return image_load_result::unimplemented;
 
 		uint32_t header_crc;
 		read_var_nocrc(fd, header_crc);
@@ -349,8 +361,8 @@ image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
 	switch (dtemp)
 	{
 	case Z_OK: break;
-	case Z_MEM_ERROR: return image_t<color_t>::load_result::out_of_memory;
-	default: return image_t<color_t>::load_result::internal_error;
+	case Z_MEM_ERROR: return image_load_result::out_of_memory;
+	default: return image_load_result::internal_error;
 	}
 
 	struct _destruct_sentry_t
@@ -635,7 +647,7 @@ image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
 			case 1: worker(png_recompress_data<1, 1>()); break;
 			case 2: worker(png_recompress_data<1, 2>()); break;
 			case 4: worker(png_recompress_data<1, 4>()); break;
-			default: return image_t<color_t>::load_result::internal_error;
+			default: return image_load_result::internal_error;
 			};
 			break;
 
@@ -645,7 +657,7 @@ image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
 			case 1: worker(png_recompress_data<3, 1>()); break;
 			case 2: worker(png_recompress_data<3, 2>()); break;
 			case 4: worker(png_recompress_data<3, 4>()); break;
-			default: return image_t<color_t>::load_result::internal_error;
+			default: return image_load_result::internal_error;
 			};
 			break;
 
@@ -655,7 +667,7 @@ image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
 			case 1: worker(png_recompress_data<2, 1>()); break;
 			case 2: worker(png_recompress_data<2, 2>()); break;
 			case 4: worker(png_recompress_data<2, 4>()); break;
-			default: return image_t<color_t>::load_result::internal_error;
+			default: return image_load_result::internal_error;
 			};
 			break;
 
@@ -665,12 +677,12 @@ image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
 			case 1: worker(png_recompress_data<4, 1>()); break;
 			case 2: worker(png_recompress_data<4, 2>()); break;
 			case 4: worker(png_recompress_data<4, 4>()); break;
-			default: return image_t<color_t>::load_result::internal_error;
+			default: return image_load_result::internal_error;
 			};
 			break;
 
 		default:
-			return image_t<color_t>::load_result::internal_error;
+			return image_load_result::internal_error;
 		}
 
 		png_decompressed_storage = std::move(png_recompressed_storage);
@@ -795,7 +807,7 @@ image_t<color_t>::load_result_t try_load_png(FILE* fd, image_t<color_t>* image)
 		break;
 	}
 
-	return image_t<color_t>::load_result::ok;
+	return image_load_result::ok;
 }
 
 
