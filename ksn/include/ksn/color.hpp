@@ -10,6 +10,12 @@
 #include <ksn/color_defs.hpp>
 
 
+#ifdef _KSN_COMPILER_MSVC
+#pragma warning(push)
+#pragma warning(disable : 26495) //Uninitialized member of the union
+#endif
+
+
 
 _KSN_BEGIN
 
@@ -688,5 +694,9 @@ _KSN_DETAIL_END
 _KSN_END
 
 
+
+#ifdef _KSN_COMPILER_MSVC
+#pragma warning(pop)
+#endif
 
 #endif //!_KSN_COLOR_HPP_
