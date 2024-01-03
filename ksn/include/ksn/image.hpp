@@ -57,13 +57,13 @@ image_load_result_t try_load_jpeg(FILE* fd, image_t<color_t>* data);
 template<color color_t>
 class image_t
 {
+public:
 	std::vector<color_t> m_data;
 	uint32_t width, height;
 
 	using my_t = image_t<color_t>;
 
 
-public:
 
 	image_t() noexcept = default;
 	image_t(const image_t&) noexcept = default;

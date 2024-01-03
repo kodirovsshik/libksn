@@ -8,6 +8,7 @@
 #include <chrono>
 #include <type_traits>
 #include <utility>
+#include <algorithm>
 
 #include <stdio.h>
 

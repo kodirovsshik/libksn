@@ -426,7 +426,7 @@ constexpr color_rgba_t::color_rgba_t(detail::_color_generic_value x) noexcept
 template<ksn::color color_t>
 constexpr color_rgba_t::color_rgba_t(color_t other) noexcept
 {
-	return this->color_rgba_t::color_rgba_t(detail::_color_generic_value::from_color(other));
+	this->color_rgba_t::color_rgba_t(detail::_color_generic_value::from_color(other));
 }
 
 constexpr uint32_t color_rgba_t::rgba() const noexcept
