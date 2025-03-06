@@ -1,6 +1,7 @@
 # libksn
-Support library for my everyday coding, nothing really to see here
+Support library for my typical coding needs, nothing really to see here
 
-Why would you ever get here?
+Deprecated in favor of libksn_modular (uses C++20 modules)
 
-But just in case you wonder, all headers are in ./ksn/include
+# Warning: Bad code & project organization lies ahead!
+All headers are in ./ksn/include
